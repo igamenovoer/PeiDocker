@@ -54,6 +54,7 @@ stage_1:
   custom:
     # run twice, in case of failure
     on_first_run:
+      - 'stage-1/system/apt/enable-external-cache.sh' # this will save cache to /apt-ext-store
       - 'stage-1/custom/install-dev-tools.sh'
       - 'stage-1/system/ros2/setup-locale.sh'
       - 'stage-1/system/ros2/setup-ros2-repo.sh'
@@ -63,6 +64,11 @@ stage_1:
       - 'stage-1/contrib/igamenovoer/config-video-permission.bash'
       - 'stage-1/contrib/igamenovoer/config-git.sh'
       - 'stage-1/contrib/igamenovoer/install-python-pkgs.bash'
+
+  mount:
+    apt_external_cache:
+      type: auto-volume
+      dst_path: /apt-ext-store
 
 stage_2:
 
@@ -101,3 +107,6 @@ stage_2:
     home_igamenovoer:
       type: auto-volume
       dst_path: /home/igamenovoer
+    apt_external_cache:
+      type: auto-volume
+      dst_path: /apt-ext-store
