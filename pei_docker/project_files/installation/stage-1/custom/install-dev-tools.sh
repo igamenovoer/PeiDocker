@@ -12,11 +12,23 @@ export DEBIAN_FRONTEND=noninteractive
 export TZ=Asia/Shanghai
 
 # for general development
-apt-get install python3 python3-pip -y
-apt-get install cmake cmake-curses-gui pkg-config -y
+apt-get update
 
-# install this to avoid tzdata asking for timezone in the future
-apt-get install tzdata -y
+# Define development libraries
+dev_libs=(
+    "python3"
+    "python3-pip"
+    "cmake"
+    "cmake-curses-gui"
+    "pkg-config"
+    "git"
+    "git-lfs"
+    "micro"
+    "nano"
+    "mc"
+    "tzdata"  # install this to avoid tzdata asking for timezone in the future
+)
 
-# you need these to make opencv work
-apt-get install ffmpeg libsm6 libxext6 -y
+# Install all development libraries
+echo "Installing development libraries..."
+apt-get install -y "${dev_libs[@]}"
