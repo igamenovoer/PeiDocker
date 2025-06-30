@@ -95,6 +95,7 @@ With PeiDocker, you can:
 - Install packages from public repository mirrors, or via proxy.
 - Install apps for your container, during or after building, into places such as docker volumes, bind mounts or in-image directory.
 - Run custom commands during image building, when the container starts, or when you SSH into the container.
+- **Use environment variables with fallback values** in configuration files for flexible deployments across different environments.
 
 _For details, please refer to the [Documentation](https://igamenovoer.github.io/PeiDocker/)_
 

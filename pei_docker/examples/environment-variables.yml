@@ -1,0 +1,135 @@
+# Environment Variable Substitution Example
+# This configuration demonstrates how to use environment variables 
+# with fallback values for flexible Docker image configuration.
+
+stage_1:
+  # Base image can be customized for different environments
+  # Development: ubuntu:24.04 (default)
+  # GPU Development: nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+  # Production: ubuntu:22.04
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-flexible-app}:stage-1"
+
+  # SSH configuration with environment variables
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"  # Customizable SSH port
+    
+    users:
+      # Username and password can be set via environment variables
+      "${DEV_USERNAME:-developer}":
+        password: "${DEV_PASSWORD:-devpass123}"
+        uid: "${DEV_UID:-1000}"
+      
+      # Keep root user with environment variable password
+      root:
+        password: "${ROOT_PASSWORD:-rootpass}"
+
+  # Device type can be switched between cpu and gpu
+  device:
+    type: "${DEVICE_TYPE:-cpu}"
+
+  # APT repository source for different regions
+  apt:
+    repo_source: "${APT_MIRROR:-aliyun}"  # aliyun, tuna, ustc, 163, etc.
+
+  # Proxy configuration (useful in corporate environments)
+  proxy:
+    address: "${PROXY_HOST:-host.docker.internal}"
+    port: "${PROXY_PORT:-7890}"
+    enable_globally: "${ENABLE_PROXY:-false}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-flexible-app}:stage-2"
+
+  # Device type should match stage-1
+  device:
+    type: "${DEVICE_TYPE:-cpu}"
+
+  # Storage configuration with environment variables
+  storage:
+    app:
+      type: "${STORAGE_TYPE:-auto-volume}"
+      host_path: "${APP_STORAGE_PATH:-}"  # Only used if type=host
+      volume_name: "${PROJECT_NAME:-flexible-app}-app"
+    
+    data:
+      type: "${STORAGE_TYPE:-auto-volume}"
+      host_path: "${DATA_STORAGE_PATH:-}"
+      volume_name: "${PROJECT_NAME:-flexible-app}-data"
+    
+    workspace:
+      type: "${STORAGE_TYPE:-auto-volume}"
+      host_path: "${WORKSPACE_STORAGE_PATH:-}"
+      volume_name: "${PROJECT_NAME:-flexible-app}-workspace"
+
+  # Additional mount points with environment variables
+  mount:
+    # Project-specific data directory
+    project_data:
+      type: host
+      host_path: "${PROJECT_DATA_PATH:-C:\\tmp\\project-data}"
+      dst_path: "/project-data"
+    
+    # Shared tools directory
+    shared_tools:
+      type: host
+      host_path: "${SHARED_TOOLS_PATH:-C:\\tools}"
+      dst_path: "/tools"
+    
+    # Cache directory (always use volume for performance)
+    cache:
+      type: auto-volume
+      dst_path: "/cache"
+    
+    # Optional: Mount host's home directory for easy file access
+    host_home:
+      type: host
+      host_path: "${HOST_HOME_PATH:-C:\\Users\\${USERNAME}}"
+      dst_path: "/host-home"
+
+# =====================================================================
+# USAGE EXAMPLES:
+# =====================================================================
+#
+# 1. Default Development Environment:
+#    python -m pei_docker.pei configure -p ./my-project
+#    (Uses all default values)
+#
+# 2. GPU Development Environment:
+#    $env:BASE_IMAGE='nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04'
+#    $env:DEVICE_TYPE='gpu'
+#    $env:PROJECT_NAME='ml-dev'
+#    $env:SSH_HOST_PORT='3333'
+#    python -m pei_docker.pei configure -p ./my-project
+#
+# 3. Production Environment:
+#    export BASE_IMAGE="ubuntu:22.04"
+#    export PROJECT_NAME="myapp-prod"
+#    export DEV_USERNAME="appuser"
+#    export DEV_PASSWORD="$(openssl rand -base64 32)"
+#    export STORAGE_TYPE="host"
+#    export APP_STORAGE_PATH="/opt/myapp/app"
+#    export DATA_STORAGE_PATH="/opt/myapp/data"
+#    export WORKSPACE_STORAGE_PATH="/opt/myapp/workspace"
+#    python -m pei_docker.pei configure -p ./my-project
+#
+# 4. Corporate Environment with Proxy:
+#    $env:PROXY_HOST='proxy.company.com'
+#    $env:PROXY_PORT='8080'
+#    $env:ENABLE_PROXY='true'
+#    $env:APT_MIRROR='company-mirror'
+#    python -m pei_docker.pei configure -p ./my-project
+#
+# 5. Team Member with Custom Paths:
+#    $env:PROJECT_NAME='team-project'
+#    $env:DEV_USERNAME='alice'
+#    $env:PROJECT_DATA_PATH='D:\team-data'
+#    $env:SHARED_TOOLS_PATH='D:\shared-tools'
+#    $env:HOST_HOME_PATH='C:\Users\alice'
+#    python -m pei_docker.pei configure -p ./my-project
+#
+# =====================================================================

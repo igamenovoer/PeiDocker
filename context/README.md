@@ -1,0 +1,1 @@
+this dir contains information to be digested and updated by AI assistant.

@@ -10,6 +10,7 @@ import shutil
 
 import omegaconf as oc
 from pei_docker.config_processor import *
+from pei_docker.pei_utils import process_config_env_substitution
         
 @click.group()
 def cli():
@@ -101,6 +102,10 @@ def configure(project_dir:str, config:str, full_compose:bool):
         return
     
     in_config = oc.OmegaConf.load(config_path)
+    
+    # Process environment variable substitution
+    logging.info('Processing environment variable substitution')
+    in_config = process_config_env_substitution(in_config)
     
     # read the compose template file
     compose_path : str = os.path.join(project_dir, Defaults.OutputComposeTemplateName)

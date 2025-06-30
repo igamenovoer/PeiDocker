@@ -1,0 +1,22 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: test-env-vars:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"
+    users:
+      me:
+        password: '123456'
+
+stage_2:
+  image:
+    output: test-env-vars:stage-2
+
+  mount:
+    shared_host:
+      type: host
+      host_path: "${SHARED_HOST_PATH:-C:\\tmp\\default-shared}"
+      dst_path: "/shared"

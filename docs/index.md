@@ -73,6 +73,151 @@ ssh me@127.0.0.1 -p 2222
 ```
 
 * That's it, you are good to go.
+
+## Environment Variable Substitution
+
+PeiDocker supports environment variable substitution in configuration files, allowing you to customize your setup without modifying the `user_config.yml` file directly. This is particularly useful for:
+
+- Different development environments (development, staging, production)
+- Team collaboration with different local paths
+- CI/CD pipelines with environment-specific configurations
+
+### Syntax
+
+Use the `${VARIABLE_NAME:-default_value}` syntax in your `user_config.yml`:
+
+```yaml
+stage_1:
+  ssh:
+    host_port: "${SSH_HOST_PORT:-2222}"
+    
+stage_2:
+  mount:
+    shared_folder:
+      type: host
+      host_path: "${SHARED_PATH:-C:\\tmp\\default}"
+      dst_path: "/shared"
+```
+
+### Examples
+
+#### Example 1: Configurable SSH Port
+
+```yaml
+stage_1:
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"  # Default to 2222 if not set
+```
+
+Usage:
+```bash
+# Use default port (2222)
+python -m pei_docker.pei configure -p ./my-project
+
+# Use custom port (3333)
+export SSH_HOST_PORT=3333  # Linux/macOS
+# or
+$env:SSH_HOST_PORT='3333'  # Windows PowerShell
+python -m pei_docker.pei configure -p ./my-project
+```
+
+#### Example 2: Flexible Mount Paths
+
+```yaml
+stage_2:
+  mount:
+    project_data:
+      type: host
+      host_path: "${PROJECT_DATA_PATH:-C:\\workspace\\data}"
+      dst_path: "/project/data"
+    
+    shared_tools:
+      type: host
+      host_path: "${TOOLS_PATH:-C:\\tools}"
+      dst_path: "/tools"
+```
+
+Usage:
+```bash
+# Windows PowerShell
+$env:PROJECT_DATA_PATH='D:\my-project\data'
+$env:TOOLS_PATH='D:\shared-tools'
+python -m pei_docker.pei configure -p ./my-project
+
+# Linux/macOS
+export PROJECT_DATA_PATH='/home/user/project-data'
+export TOOLS_PATH='/usr/local/shared-tools'
+python -m pei_docker.pei configure -p ./my-project
+```
+
+#### Example 3: Environment-Specific Base Images
+
+```yaml
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${OUTPUT_IMAGE:-my-app}:stage-1"
+```
+
+This allows you to use different base images for different environments:
+```bash
+# Development (default Ubuntu)
+python -m pei_docker.pei configure -p ./my-project
+
+# GPU development
+$env:BASE_IMAGE='nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04'
+python -m pei_docker.pei configure -p ./my-project
+
+# Production
+$env:BASE_IMAGE='ubuntu:22.04'
+$env:OUTPUT_IMAGE='my-production-app'
+python -m pei_docker.pei configure -p ./my-project
+```
+
+### Advanced Usage
+
+You can combine environment variables with complex configurations:
+
+```yaml
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-my-app}:stage-1"
+  
+  ssh:
+    enable: true
+    host_port: "${SSH_PORT:-2222}"
+    users:
+      "${USERNAME:-developer}":
+        password: "${USER_PASSWORD:-defaultpass}"
+        uid: "${USER_UID:-1000}"
+
+stage_2:
+  storage:
+    workspace:
+      type: "${STORAGE_TYPE:-auto-volume}"
+      host_path: "${WORKSPACE_PATH:-}"
+      volume_name: "${PROJECT_NAME:-my-app}-workspace"
+  
+  mount:
+    project_root:
+      type: host
+      host_path: "${PROJECT_ROOT:-C:\\workspace}"
+      dst_path: "/workspace"
+```
+
+### Best Practices
+
+1. **Always provide defaults**: Use `${VAR:-default}` rather than `${VAR}` to ensure the configuration works even when environment variables aren't set.
+
+2. **Use meaningful variable names**: Choose descriptive names like `PROJECT_DATA_PATH` instead of generic names like `PATH1`.
+
+3. **Document your variables**: Include comments in your `user_config.yml` explaining what each environment variable controls.
+
+4. **Test both scenarios**: Verify your configuration works both with and without environment variables set.
+
 * If you prefer to run the image using `docker run` instead of `docker compose`, you can convert the `docker-compose.yml` to commands using [Decomposerize](https://www.decomposerize.com/).
 * If you have trouble connecting to docker.io when building the image, you can either set the global proxy for docker, or pull the base image manually and tag it with a local name. For detail, see [stack overflow](https://stackoverflow.com/questions/68520864/how-to-disable-loading-metadata-while-executing-docker-build).
 

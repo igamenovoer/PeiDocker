@@ -1,0 +1,71 @@
+# Environment Variable Example Configuration
+# This demonstrates how to use environment variables with fallback values in PeiDocker
+
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-pei-image}:stage-1"
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"
+    users:
+      "${USER_NAME:-me}":
+        password: "${USER_PASSWORD:-123456}"
+        uid: "${USER_UID:-1000}"
+      root:
+        password: "${ROOT_PASSWORD:-root}"
+
+  proxy:
+    address: "${PROXY_HOST:-host.docker.internal}"
+    port: "${PROXY_PORT:-7890}"
+    enable_globally: false
+
+  apt:
+    repo_source: "${APT_REPO_SOURCE:-aliyun}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-pei-image}:stage-2"
+
+  # Environment variables for the container
+  environment:
+    - "WORKSPACE_PATH=${CONTAINER_WORKSPACE_PATH:-/workspace}"
+    - "DATA_PATH=${CONTAINER_DATA_PATH:-/data}"
+    - "PROJECT_NAME=${PROJECT_NAME:-my-project}"
+
+  # Storage with environment variable paths
+  storage:
+    app:
+      type: "${APP_STORAGE_TYPE:-manual-volume}"
+      volume_name: "${PROJECT_NAME:-pei-project}-app"
+    data:
+      type: "${DATA_STORAGE_TYPE:-manual-volume}"
+      volume_name: "${PROJECT_NAME:-pei-project}-data"
+    workspace:
+      type: "${WORKSPACE_STORAGE_TYPE:-manual-volume}"
+      volume_name: "${PROJECT_NAME:-pei-project}-workspace"
+
+  # Additional mounts with environment paths
+  mount:
+    # Host directory mount - can be customized via environment
+    host_shared:
+      type: host
+      host_path: "${SHARED_HOST_PATH:-/tmp/docker-shared}"
+      dst_path: "/shared"
+    
+    # Home directory preservation
+    user_home:
+      type: auto-volume
+      dst_path: "/home/${USER_NAME:-me}"
+    
+    # Project-specific data directory
+    project_data:
+      type: host
+      host_path: "${PROJECT_DATA_PATH:-./project-data}"
+      dst_path: "/project-data"
+
+  ports:
+    - "${APP_PORT:-8080}:8080"
+    - "${DEBUG_PORT:-9000}:9000"
