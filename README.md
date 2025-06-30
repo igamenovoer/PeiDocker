@@ -144,12 +144,21 @@ cd /path/to/PeiDocker
 
 # Create a new project in ./build or any other directory
 python -m pei_docker.pei create -p ./build
+
+# Optional: Create without examples or contrib files
+python -m pei_docker.pei create -p ./build --no-with-examples --no-with-contrib
 ```
 
 Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs. Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
 python -m pei_docker.pei configure -p ./build
+
+# Optional: Use a different config file
+python -m pei_docker.pei configure -p ./build -c my-custom-config.yml
+
+# Optional: Generate full compose file with extended sections
+python -m pei_docker.pei configure -p ./build -f
 ```
 
 Build the docker images. There are two images to be built, namely `stage-1` and `stage-2`. `stage-1` is intended to be a base image, installing system apps using `apt install`, `stage-2` is intended to be a final image based on `stage-1`, installing custom apps using downloaded packages like `.deb`. External storage is only available in `stage-2`.

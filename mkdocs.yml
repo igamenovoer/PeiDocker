@@ -5,6 +5,7 @@ repo_name: PeiDocker
 
 nav:
 - Introduction: index.md
+- CLI Reference: cli_reference.md
 - Examples: examples.md
 - Advanced Examples: advanced_examples.md
 

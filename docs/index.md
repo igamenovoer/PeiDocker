@@ -26,6 +26,9 @@ cd /path/to/PeiDocker
 
 # Create a new project in ./build or any other directory
 python -m pei_docker.pei create -p ./build
+
+# Optional: Create without examples or contrib files
+python -m pei_docker.pei create -p ./build --no-with-examples --no-with-contrib
 ```
 
 * Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs.
@@ -33,7 +36,66 @@ python -m pei_docker.pei create -p ./build
 
 ```sh
 python -m pei_docker.pei configure -p ./build
+
+# Optional: Use a different config file
+python -m pei_docker.pei configure -p ./build -c my-custom-config.yml
+
+# Optional: Generate full compose file with extended sections
+python -m pei_docker.pei configure -p ./build -f
 ```
+
+## CLI Commands Reference
+
+### `create` command
+
+Creates a new PeiDocker project with template files and examples.
+
+```sh
+python -m pei_docker.pei create [OPTIONS]
+```
+
+**Options:**
+- `-p, --project-dir DIRECTORY`: Project directory (required)
+- `-e, --with-examples`: Copy example files to the project dir (default: enabled)
+- `--with-contrib`: Copy contrib directory to the project dir (default: enabled)
+- `--help`: Show help message
+
+**Examples:**
+```sh
+# Create project with all templates and examples
+python -m pei_docker.pei create -p ./my-project
+
+# Create minimal project without examples
+python -m pei_docker.pei create -p ./minimal-project --no-with-examples --no-with-contrib
+```
+
+### `configure` command
+
+Processes the configuration file and generates docker-compose.yml and related files.
+
+```sh
+python -m pei_docker.pei configure [OPTIONS]
+```
+
+**Options:**
+- `-p, --project-dir DIRECTORY`: Project directory (required)
+- `-c, --config FILE`: Config file name, relative to the project dir (default: `user_config.yml`)
+- `-f, --full-compose`: Generate full compose file with x-??? sections (default: false)
+- `--help`: Show help message
+
+**Examples:**
+```sh
+# Use default config file (user_config.yml)
+python -m pei_docker.pei configure -p ./my-project
+
+# Use custom config file
+python -m pei_docker.pei configure -p ./my-project -c prod-config.yml
+
+# Generate full compose file with extended sections
+python -m pei_docker.pei configure -p ./my-project -f
+```
+
+For detailed CLI options and advanced usage, see the [CLI Reference](cli_reference.md).
 
 * Build the docker images. There are two images to be built, namely `stage-1` and `stage-2`. `stage-1` is intended to be a base image, installing system apps using `apt install`, `stage-2` is intended to be a final image based on `stage-1`, installing custom apps using downloaded packages like `.deb`. External storage is only available in `stage-2`.
 
@@ -294,6 +356,7 @@ stage_1:
     users:
       me:
         password: '123456'
+        uid: 1000  # user ID (optional, defaults to auto-assigned)
 
         # public key file path, relative to the installation directory
         # e.g., 'stage-1/system/ssh/keys/mykey.rsa.pub'
@@ -301,9 +364,11 @@ stage_1:
       you:
         password: '654321'
         pubkey_file: null
+        uid: 1001
       root: # you can configure root user here
         password: root
         pubkey_file: null
+        uid: 0  # root uid, always 0 regardless of what you put here
 
   # proxy settings
   # inside the container, the proxy will accessed as http://{address}:{port}
@@ -314,7 +379,6 @@ stage_1:
     enable_globally: false  # enable proxy for all shell commands during build and run?
     remove_after_build: false # remove global proxy after build?
     use_https: false # use https proxy?
-
 
   # apt settings
   apt:
@@ -386,7 +450,7 @@ stage_2:
 
   # additional environment variables
   # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
-  environment:  # use list intead of dict
+  environment:  # use list instead of dict
     - 'EXAMPLE_VAR_STAGE_2=example env var'
 
   # port mapping, will be appended to the stage-1 port mapping
@@ -397,7 +461,6 @@ stage_2:
   device:
     type: cpu # can be cpu or gpu
 
-  
   # proxy settings
   # inside the container, the proxy will accessed as http://{address}:{port}
   # note that whether the proxy is used or not depends on the applications
