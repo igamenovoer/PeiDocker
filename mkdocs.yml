@@ -1,4 +1,7 @@
 site_name: PeiDocker
+site_url: https://igamenovoer.github.io/PeiDocker/
+repo_url: https://github.com/igamenovoer/PeiDocker
+repo_name: PeiDocker
 
 nav:
 - Introduction: index.md
