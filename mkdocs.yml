@@ -7,13 +7,15 @@ use_directory_urls: true
 nav:
 - Introduction: index.md
 - CLI Reference: cli_reference.md
-- Examples: examples.md
-- Advanced Examples: advanced_examples.md
+- Examples:
+  - Basic: examples/basic.md
+  - Advanced: examples/advanced.md
 
 theme:
   name: material
   features:
     - navigation.tabs
+    - navigation.instant
     - navigation.sections
     - navigation.expand
     - navigation.top
