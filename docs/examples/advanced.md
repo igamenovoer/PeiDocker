@@ -1,5 +1,279 @@
 # Advanced Examples
 
+[](){#environment-variables}
+## Environment Variable Substitution
+
+PeiDocker supports environment variable substitution in configuration files using the `${VARIABLE_NAME:-default_value}` syntax, similar to Docker Compose. This feature allows you to create flexible configurations that can be customized without modifying the configuration file directly.
+
+### Basic Example: Configurable SSH Port
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: "${PROJECT_NAME:-my-app}:stage-1"
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"  # Default to 2222 if not set
+    users:
+      "${USERNAME:-developer}":
+        password: "${USER_PASSWORD:-defaultpass}"
+        uid: "${USER_UID:-1000}"
+```
+
+**Usage:**
+```bash
+# Use default values
+python -m pei_docker.pei configure -p ./my-project
+
+# Use custom values
+export PROJECT_NAME="my-custom-app"     # Linux/macOS
+export SSH_HOST_PORT="3333"
+export USERNAME="john"
+export USER_PASSWORD="secretpass"
+# or on Windows PowerShell:
+$env:PROJECT_NAME='my-custom-app'
+$env:SSH_HOST_PORT='3333'
+$env:USERNAME='john'
+$env:USER_PASSWORD='secretpass'
+
+python -m pei_docker.pei configure -p ./my-project
+```
+
+### Development vs Production Example
+
+This example shows how to use different configurations for development and production environments:
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-my-app}:stage-1"
+  ssh:
+    enable: true
+    host_port: "${SSH_PORT:-2222}"
+    users:
+      "${DEV_USER:-developer}":
+        password: "${DEV_PASSWORD:-devpass}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-my-app}:stage-2"
+  
+  storage:
+    workspace:
+      type: "${STORAGE_TYPE:-auto-volume}"
+      host_path: "${WORKSPACE_PATH:-}"
+      volume_name: "${PROJECT_NAME:-my-app}-workspace"
+  
+  mount:
+    project_data:
+      type: host
+      host_path: "${DATA_PATH:-C:\\tmp\\project-data}"
+      dst_path: "/data"
+    
+    shared_tools:
+      type: host  
+      host_path: "${TOOLS_PATH:-C:\\tools}"
+      dst_path: "/tools"
+```
+
+**Development Environment:**
+```bash
+# Windows PowerShell
+$env:PROJECT_NAME='myapp-dev'
+$env:SSH_PORT='2222'
+$env:DEV_USER='developer'
+$env:DEV_PASSWORD='devpass123'
+$env:STORAGE_TYPE='host'
+$env:WORKSPACE_PATH='C:\dev\myapp\workspace'
+$env:DATA_PATH='C:\dev\myapp\data'
+$env:TOOLS_PATH='C:\dev\tools'
+
+python -m pei_docker.pei configure -p ./my-project
+```
+
+**Production Environment:**
+```bash
+# Linux/macOS
+export PROJECT_NAME="myapp-prod"
+export BASE_IMAGE="ubuntu:22.04"
+export SSH_PORT="22022"
+export DEV_USER="appuser"
+export DEV_PASSWORD="$(openssl rand -base64 32)"
+export STORAGE_TYPE="manual-volume"
+export DATA_PATH="/opt/myapp/data"
+export TOOLS_PATH="/opt/shared-tools"
+
+python -m pei_docker.pei configure -p ./my-project
+```
+
+### GPU Development with Flexible Paths
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: "${GPU_BASE_IMAGE:-nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04}"
+    output: "${PROJECT_NAME:-gpu-dev}:stage-1"
+  
+  ssh:
+    enable: true
+    host_port: "${SSH_PORT:-3333}"
+    users:
+      "${DEV_USER:-developer}":
+        password: "${DEV_PASSWORD:-devpass}"
+  
+  device:
+    type: gpu
+  
+  apt:
+    repo_source: "${APT_MIRROR:-aliyun}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-gpu-dev}:stage-2"
+  
+  device:
+    type: gpu
+  
+  mount:
+    datasets:
+      type: host
+      host_path: "${DATASETS_PATH:-C:\\datasets}"
+      dst_path: "/datasets"
+    
+    models:
+      type: host
+      host_path: "${MODELS_PATH:-C:\\models}"
+      dst_path: "/models"
+    
+    workspace:
+      type: host
+      host_path: "${WORKSPACE_PATH:-C:\\workspace}"
+      dst_path: "/workspace"
+    
+    cache:
+      type: auto-volume
+      dst_path: "/root/.cache"
+```
+
+**Usage for different team members:**
+
+**Team Member 1 (Windows):**
+```powershell
+$env:PROJECT_NAME='ml-project'
+$env:SSH_PORT='4444'
+$env:DEV_USER='alice'
+$env:DATASETS_PATH='D:\datasets'
+$env:MODELS_PATH='D:\trained-models'
+$env:WORKSPACE_PATH='D:\ml-workspace'
+```
+
+**Team Member 2 (Linux):**
+```bash
+export PROJECT_NAME="ml-project"
+export SSH_PORT="5555"
+export DEV_USER="bob"
+export DATASETS_PATH="/mnt/storage/datasets"
+export MODELS_PATH="/mnt/storage/models"
+export WORKSPACE_PATH="/home/bob/ml-workspace"
+export APT_MIRROR="tuna"  # Use different mirror in China
+```
+
+### CI/CD Pipeline Example
+
+This example shows how to use environment variables in CI/CD pipelines:
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: "${CI_BASE_IMAGE:-ubuntu:24.04}"
+    output: "${CI_IMAGE_NAME:-ci-runner}:${CI_BUILD_NUMBER:-latest}"
+  
+  ssh:
+    enable: "${CI_ENABLE_SSH:-false}"
+    host_port: "${CI_SSH_PORT:-2222}"
+    users:
+      ci:
+        password: "${CI_PASSWORD:-ci123}"
+
+stage_2:
+  image:
+    output: "${CI_IMAGE_NAME:-ci-runner}:${CI_BUILD_NUMBER:-latest}-final"
+  
+  mount:
+    ci_cache:
+      type: "${CI_CACHE_TYPE:-auto-volume}"
+      host_path: "${CI_CACHE_PATH:-}"
+      dst_path: "/ci-cache"
+    
+    artifacts:
+      type: host
+      host_path: "${CI_ARTIFACTS_PATH:-./artifacts}"
+      dst_path: "/artifacts"
+```
+
+**In your CI pipeline (GitHub Actions example):**
+```yaml
+# .github/workflows/build.yml
+env:
+  CI_IMAGE_NAME: "my-app"
+  CI_BUILD_NUMBER: ${{ github.run_number }}
+  CI_ENABLE_SSH: "false"
+  CI_CACHE_TYPE: "manual-volume"
+  CI_ARTIFACTS_PATH: "./build-artifacts"
+
+steps:
+  - name: Build Docker Image
+    run: |
+      python -m pei_docker.pei configure -p ./docker-project
+      cd docker-project
+      docker compose build stage-2
+```
+
+### Best Practices for Environment Variables
+
+1. **Always provide sensible defaults:**
+   ```yaml
+   host_port: "${SSH_PORT:-2222}"  # ✓ Good
+   host_port: "${SSH_PORT}"        # ✗ Bad - fails if not set
+   ```
+
+2. **Use descriptive variable names:**
+   ```yaml
+   host_path: "${PROJECT_DATA_PATH:-C:\\data}"  # ✓ Good
+   host_path: "${PATH1:-C:\\data}"              # ✗ Bad - unclear purpose
+   ```
+
+3. **Group related variables:**
+   ```bash
+   # Database configuration
+   export DB_HOST="localhost"
+   export DB_PORT="5432"
+   export DB_NAME="myapp"
+   
+   # Storage configuration  
+   export DATA_PATH="/opt/data"
+   export CACHE_PATH="/opt/cache"
+   ```
+
+4. **Document your variables:**
+   ```yaml
+   # user_config.yml
+   stage_2:
+     mount:
+       # Set SHARED_DATA_PATH to your team's shared data directory
+       shared_data:
+         type: host
+         host_path: "${SHARED_DATA_PATH:-C:\\shared\\data}"
+         dst_path: "/shared-data"
+   ```
+
 ## Hardware-accelerated OpenGL
 
 ### Windows
@@ -235,19 +509,18 @@ stage_1:
     type: gpu
 
   # apt settings
-  apt:
-    # replace the default apt source with a custom one, use empty string to disable this
-    # repo_source: 'stage-1/system/apt/ubuntu-22.04-tsinghua-x64.list'
-    # special values that refer to well known apt sources:
-    # 'tuna' : 'http://mirrors.tuna.tsinghua.edu.cn/ubuntu/'
-    # 'aliyun' : 'http://mirrors.aliyun.com/ubuntu/'
-    # '163' : 'http://mirrors.163.com/ubuntu/'
-    # 'ustc' : 'http://mirrors.ustc.edu.cn/ubuntu/'
-    # 'cn' : 'http://cn.archive.ubuntu.com/ubuntu/
-    repo_source: 'tuna'
-    keep_repo_after_build: true # keep the apt source file after build?
-    use_proxy: false  # use proxy for apt?
-    keep_proxy_after_build: false # keep proxy settings after build?
+  # replace the default apt source with a custom one, use empty string to disable this
+  # repo_source: 'stage-1/system/apt/ubuntu-22.04-tsinghua-x64.list'
+  # special values that refer to well known apt sources:
+  # 'tuna' : 'http://mirrors.tuna.tsinghua.edu.cn/ubuntu/'
+  # 'aliyun' : 'http://mirrors.aliyun.com/ubuntu/'
+  # '163' : 'http://mirrors.163.com/ubuntu/'
+  # 'ustc' : 'http://mirrors.ustc.edu.cn/ubuntu/'
+  # 'cn' : 'http://cn.archive.ubuntu.com/ubuntu/
+  repo_source: 'tuna'
+  keep_repo_after_build: true # keep the apt source file after build?
+  use_proxy: false  # use proxy for apt?
+  keep_proxy_after_build: false # keep proxy settings after build?
 
   # custom scripts
   custom:
