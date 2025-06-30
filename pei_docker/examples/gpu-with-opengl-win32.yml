@@ -1,75 +1,81 @@
-# all paths are relative to /installation directory
-# for windows, you need to add these to the final docker-compose.yml file
+# GPU-enabled container with OpenGL support for Windows (WSLg)
+# This example creates a GPU-capable container with hardware-accelerated OpenGL
+# Designed for Windows with WSLg (Windows Subsystem for Linux with GUI support)
 
+# IMPORTANT: For Windows OpenGL support, manually add these volumes to docker-compose.yml:
 # volumes:
-#     - /tmp/.X11-unix:/tmp/.X11-unix
-#     - /mnt/wslg:/mnt/wslg
-#     - /usr/lib/wsl:/usr/lib/wsl
-#     - /dev:/dev
+#     - /tmp/.X11-unix:/tmp/.X11-unix    # X11 socket for GUI applications
+#     - /mnt/wslg:/mnt/wslg              # WSLg runtime directory
+#     - /usr/lib/wsl:/usr/lib/wsl        # WSL libraries
+#     - /dev:/dev                        # Device access for GPU
 
 stage_1:
-  # input/output image settings
+  # Base image configuration - using NVIDIA CUDA base image
   image:
-    base: nvidia/cuda:12.3.2-base-ubuntu22.04
-    # base: nvidia/opengl:1.0-glvnd-runtime-ubuntu22.04
-    output: pei-opengl:stage-1
+    base: nvidia/cuda:12.3.2-base-ubuntu22.04     # CUDA 12.3.2 base on Ubuntu 22.04
+    # Alternative: nvidia/opengl:1.0-glvnd-runtime-ubuntu22.04  # Pre-configured OpenGL image
+    output: pei-opengl:stage-1                     # Name of the generated stage-1 image
 
-  # ssh settings
+  # SSH server configuration
   ssh:
-    enable: true
-    port: 22  # port in container
-    host_port: 2222  # port in host
+    enable: true                    # Enable SSH server in the container
+    port: 22                       # SSH port inside the container
+    host_port: 2222                # Port on host machine mapped to container SSH port
 
-    # ssh users, the key is user name, value is user info
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
+        password: '123456'          # Regular user for development and GUI applications
 
-  # proxy settings
-  # inside the container, the proxy will accessed as http://{address}:{port}
-  # note that whether the proxy is used or not depends on the applications
+  # Proxy configuration (optional, for corporate networks)
   proxy:
-    address: host.docker.internal # default value, this will map to the host machine
-    port: 7890  # if address==host.docker.internal, this will be the proxy port on host machine
-    enable_globally: false  # enable proxy for all shell commands during build and run?
-    remove_after_build: false # remove global proxy after build?
-    use_https: false # use https proxy?
+    address: host.docker.internal  # Proxy address (maps to host machine)
+    port: 7890                     # Proxy port on host machine
+    enable_globally: false        # Don't enable proxy globally (can interfere with OpenGL)
+    remove_after_build: false     # Keep proxy settings after build
+    use_https: false               # Use HTTP proxy (not HTTPS)
 
-
-  # apt settings
+  # Package repository configuration for faster downloads
   apt:
-    repo_source: 'tuna'
+    repo_source: 'tuna'            # Use Tsinghua University mirror (good for China/Asia)
 
-  # device settings
+  # GPU support configuration
   device:
-    type: gpu # can be cpu or gpu
-    
+    type: gpu                      # Enable GPU support (requires NVIDIA Docker runtime)
+
+# Stage 2: OpenGL application layer with GPU graphics support
 stage_2:
-
-  # input/output image settings
+  # Image configuration
   image:
-    output: pei-opengl:stage-2
+    output: pei-opengl:stage-2     # Name of the final stage-2 image
 
-  # additional environment variables
-  # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
-  environment:  # use list intead of dict
-    NVIDIA_VISIBLE_DEVICES: all
-    NVIDIA_DRIVER_CAPABILITIES: graphics,utility,compute
+  # NVIDIA-specific environment variables for OpenGL support
+  environment:
+    NVIDIA_VISIBLE_DEVICES: all                    # Make all GPUs visible to container
+    NVIDIA_DRIVER_CAPABILITIES: graphics,utility,compute  # Enable graphics, utility, and compute capabilities
 
-  # device settings, will override the stage-1 device settings
+  # GPU support (inherited from stage-1)
   device:
-    type: gpu # can be cpu or gpu
+    type: gpu                      # Maintain GPU support in final image
 
+  # Persistent storage configuration using auto-managed Docker volumes
   storage:
-    app:
-      type: auto-volume
-    data:
-      type: auto-volume
-    workspace:
-      type: auto-volume
+    app:                           # Directory for installed applications
+      type: auto-volume            # Use automatically managed Docker volume
+    data:                          # Directory for data files
+      type: auto-volume            # Use automatically managed Docker volume
+    workspace:                     # Directory for workspace/code
+      type: auto-volume            # Use automatically managed Docker volume
 
-  # custom scripts in stage-2, run after stage-1 custom scripts
+  # Custom scripts configuration for OpenGL setup
   custom:
-    # scripts run during build
-    on_build: 
-      - 'stage-2/system/opengl/setup-opengl-win32.sh' # install opengl
+    on_build:                      # Scripts to run during image building
+      - 'stage-2/system/opengl/setup-opengl-win32.sh'  # Install OpenGL libraries and dependencies
+
+# Usage Notes:
+# 1. Requires NVIDIA Docker runtime and compatible GPU drivers
+# 2. Windows users need WSLg for GUI application support
+# 3. Manually add the WSLg volume mounts to docker-compose.yml after generation
+# 4. Test OpenGL with: glxinfo -B or glxgears
+# 5. For GUI applications, set DISPLAY environment variable if needed
+# 6. Some applications may require additional X11 forwarding configuration

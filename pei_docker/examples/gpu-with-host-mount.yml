@@ -1,32 +1,57 @@
+# GPU-enabled container with host directory mounting
+# This example creates a GPU-capable container with external storage mounted from host directories
+
 stage_1:
+  # Base image configuration - using NVIDIA CUDA runtime
   image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: pei-image:stage-1
+    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04  # CUDA 12.3.2 runtime on Ubuntu 22.04
+    output: pei-image:stage-1                      # Name of the generated stage-1 image
+  
+  # SSH server configuration
   ssh:
-    enable: true
-    port: 22
-    host_port: 2222
+    enable: true                    # Enable SSH server in the container
+    port: 22                       # SSH port inside the container
+    host_port: 2222                # Port on host machine mapped to container SSH port
+    
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
+        password: '123456'          # Regular user for development
       root:
-        password: root
+        password: root              # Root user for admin tasks
+  
+  # Package repository configuration for faster downloads
   apt:
-    repo_source: tuna
+    repo_source: tuna              # Use Tsinghua University mirror (good for China/Asia)
+  
+  # GPU support configuration
   device:
-    type: gpu
+    type: gpu                      # Enable GPU support (requires NVIDIA Docker runtime)
+
+# Stage 2: Application layer with external storage
 stage_2:
+  # Image configuration
   image:
-    output: pei-image:stage-2
+    output: pei-image:stage-2      # Name of the final stage-2 image
+  
+  # GPU support (inherited from stage-1 but can be overridden)
   device:
-    type: gpu
+    type: gpu                      # Maintain GPU support in final image
+  
+  # External storage configuration using host directories
   storage:
-    app:
+    app:                           # Directory for installed applications
+      type: host                   # Mount from host filesystem
+      host_path: d:/code/PeiDocker/build/storage/app  # Host directory path (update this path!)
+    data:                          # Directory for data files
       type: host
-      host_path: d:/code/PeiDocker/build/storage/app
-    data:
+      host_path: d:/code/PeiDocker/build/storage/data # Host directory path (update this path!)
+    workspace:                     # Directory for workspace/code
       type: host
-      host_path: d:/code/PeiDocker/build/storage/data
-    workspace:
-      type: host
-      host_path: d:/code/PeiDocker/build/storage/workspace
+      host_path: d:/code/PeiDocker/build/storage/workspace # Host directory path (update this path!)
+      
+# Note: Update the host_path values to match your actual directory structure
+# These paths will be accessible in the container as:
+# /soft/app -> /hard/volume/app
+# /soft/data -> /hard/volume/data
+# /soft/workspace -> /hard/volume/workspace

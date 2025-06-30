@@ -34,14 +34,27 @@ jobs:
       - name: Install dependencies
         run: |
           pip install mkdocs
+          pip install mkdocs-material
           pip install mkdocs-glightbox
           pip install mkdocs-autorefs
+          pip install pymdown-extensions
+          pip install mkdocs-readthedocs
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
       - name: Build with MkDocs
-        run: mkdocs build --clean
+        run: |
+          echo "Building MkDocs site..."
+          mkdocs build --clean --verbose
+          echo "Site contents:"
+          ls -la site/
+          echo "Checking for required files:"
+          test -f site/index.html && echo "✓ index.html exists" || echo "✗ index.html missing"
+          test -f site/cli_reference/index.html && echo "✓ cli_reference/index.html exists" || echo "✗ cli_reference/index.html missing"
+          test -f site/examples/index.html && echo "✓ examples/index.html exists" || echo "✗ examples/index.html missing"
+          echo "Index.html content preview:"
+          head -20 site/index.html
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

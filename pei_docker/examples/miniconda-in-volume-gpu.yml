@@ -1,33 +1,62 @@
+# GPU-enabled container with Miniconda installed in Docker volumes
+# This example creates a GPU-capable container with Miniconda automatically installed
+# and stores applications/data in Docker volumes for persistence
+
 stage_1:
+  # Base image configuration - using NVIDIA CUDA runtime
   image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: pei-image:stage-1
+    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04  # CUDA 12.3.2 runtime on Ubuntu 22.04
+    output: pei-image:stage-1                      # Name of the generated stage-1 image
+  
+  # SSH server configuration
   ssh:
-    enable: true
-    port: 22
-    host_port: 2222
+    enable: true                    # Enable SSH server in the container
+    port: 22                       # SSH port inside the container
+    host_port: 2222                # Port on host machine mapped to container SSH port
+    
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
+        password: '123456'          # Regular user for development
       root:
-        password: root
+        password: root              # Root user for admin tasks
+  
+  # Package repository configuration for faster downloads
   apt:
-    repo_source: tuna
+    repo_source: tuna              # Use Tsinghua University mirror (good for China/Asia)
+  
+  # GPU support configuration
   device:
-    type: gpu
+    type: gpu                      # Enable GPU support (requires NVIDIA Docker runtime)
+
+# Stage 2: Application layer with volume storage and Miniconda
 stage_2:
+  # Image configuration
   image:
-    output: pei-image:stage-2
+    output: pei-image:stage-2      # Name of the final stage-2 image
+  
+  # GPU support (inherited from stage-1 but can be overridden)
   device:
-    type: gpu
+    type: gpu                      # Maintain GPU support in final image
+  
+  # Persistent storage configuration using Docker volumes
   storage:
-    app:
-      type: manual-volume
-      volume_name: my_app
-    data:
-      type: auto-volume
-    workspace:
-      type: auto-volume
+    app:                           # Directory for installed applications (including Miniconda)
+      type: manual-volume          # Use a manually named Docker volume
+      volume_name: my_app          # Custom volume name (will persist between container recreations)
+    data:                          # Directory for data files
+      type: auto-volume            # Use automatically managed Docker volume
+    workspace:                     # Directory for workspace/code
+      type: auto-volume            # Use automatically managed Docker volume
+  
+  # Custom scripts configuration
   custom:
-    on_first_run:
-    - stage-2/system/conda/auto-install-miniconda.sh
+    on_first_run:                  # Scripts to run only on first container startup
+    - stage-2/system/conda/auto-install-miniconda.sh  # Automatically install Miniconda
+
+# Note: After first run, Miniconda will be available at /soft/app/miniconda3
+# The conda command will be available for all users
+# Storage directories are accessible as:
+# /soft/app -> persistent Docker volume (my_app)
+# /soft/data -> persistent Docker volume (auto-generated name)
+# /soft/workspace -> persistent Docker volume (auto-generated name)

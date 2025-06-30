@@ -1,52 +1,67 @@
-# heavy duty cpp development, install a lot of things
+# GPU-enabled development container with persistent storage optimization
+# This example creates a heavy-duty C++ development environment with GPU support
+# Uses volume mounting to preserve data and speed up package installation
 
 stage_1:
-  # input/output image settings
+  # Base image configuration - using NVIDIA CUDA runtime
   image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: pei-image:stage-1
+    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04  # CUDA 12.3.2 runtime on Ubuntu 22.04
+    output: pei-image:stage-1                      # Name of the generated stage-1 image
 
-  # ssh settings
+  # SSH server configuration
   ssh:
-    port: 22  # port in container
-    host_port: 2222  # port in host
+    port: 22                       # SSH port inside the container
+    host_port: 2222                # Port on host machine mapped to container SSH port
 
-    # ssh users, the key is user name, value is user info
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
-      root: # you can configure root user here
-        password: root
-        pubkey_file: null
+        password: '123456'          # Regular user for development
+      root:                        # Root user configuration
+        password: root              # Root password
+        pubkey_file: null           # No SSH key file (use password auth)
 
+  # GPU support configuration
   device:
-    type: gpu
+    type: gpu                      # Enable GPU support (requires NVIDIA Docker runtime)
 
+  # Package repository configuration for faster downloads
   apt:
-    repo_source: 'tuna'
+    repo_source: 'tuna'            # Use Tsinghua University mirror (good for China/Asia)
 
-  # additional mounts
+  # Volume mounts for stage-1 (system-level optimizations)
   mount:
-    # save apt cache, to speed up future installations
+    # Persist APT cache to speed up future package installations
     apt_cache:
-      type: auto-volume
-      dst_path: /var/cache/apt
-    
+      type: auto-volume            # Use automatically managed Docker volume
+      dst_path: /var/cache/apt     # APT cache directory in container
+
+# Stage 2: Development environment with persistent user data
 stage_2:
+  # Image configuration
   image:
-    output: pei-image:stage-2
+    output: pei-image:stage-2      # Name of the final stage-2 image
+  
+  # GPU support (inherited from stage-1)
   device:
-    type: gpu
+    type: gpu                      # Maintain GPU support in final image
 
-  # additional mounts
+  # Volume mounts for stage-2 (user-level persistence)
   mount:
-    # save home directory to volume, so that it will not get lost after container deletion
+    # Preserve user home directory to maintain development settings and files
     home_me:
-      type: auto-volume
-      dst_path: /home/me
+      type: auto-volume            # Use automatically managed Docker volume
+      dst_path: /home/me           # User home directory in container
 
-    # mount will not be inherited from stage-1
-    # you need to mount it again, or otherwise it will not be mounted
+    # Re-mount APT cache (mount settings don't inherit from stage-1)
+    # This is necessary because mount configurations are stage-specific
     apt_cache:
-      type: auto-volume
-      dst_path: /var/cache/apt
+      type: auto-volume            # Use automatically managed Docker volume
+      dst_path: /var/cache/apt     # APT cache directory in container
+
+# Usage Notes:
+# 1. APT cache persistence significantly speeds up repeated package installations
+# 2. Home directory persistence preserves user settings, history, and development files
+# 3. Mount configurations must be redefined in each stage (no inheritance)
+# 4. Suitable for heavy development workloads with frequent package installations
+# 5. GPU support enables CUDA development and GPU-accelerated applications

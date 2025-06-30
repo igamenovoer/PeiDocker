@@ -1,17 +1,28 @@
+# Minimal Ubuntu image with SSH support
+# This is the simplest PeiDocker configuration for creating an Ubuntu container with SSH access
+
 stage_1:
+  # Base image configuration
   image:
-    base: ubuntu:24.04
-    output: pei-minimal:stage-1
+    base: ubuntu:24.04              # Use Ubuntu 24.04 as the base image
+    output: pei-minimal:stage-1     # Name of the generated stage-1 image
+  
+  # SSH server configuration
   ssh:
-    enable: true
-    port: 2222
-    host_port: 2222
+    enable: true                    # Enable SSH server in the container
+    port: 22                       # SSH port inside the container (standard SSH port)
+    host_port: 2222                # Port on host machine mapped to container SSH port
+    
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
+        password: '123456'          # User 'me' with password '123456'
       you:
-        password: '654321'
+        password: '654321'          # User 'you' with password '654321'
       root:
-        password: root
+        password: root              # Root user with password 'root'
+  
+  # Package repository configuration
   apt:
-    repo_source: aliyun
+    repo_source: aliyun            # Use Aliyun mirror for faster package downloads in China
+                                   # Other options: tuna, ustc, 163, or leave empty for default

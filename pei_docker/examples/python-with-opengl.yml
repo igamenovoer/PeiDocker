@@ -1,39 +1,71 @@
+# Python development container with GPU and OpenGL support
+# This example creates a GPU-capable Python development environment with OpenGL
+# Ideal for scientific computing, data visualization, and graphics programming
+
 stage_1:
+  # Base image configuration - using NVIDIA CUDA runtime
   image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: python-gl:stage-1
+    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04  # CUDA 12.3.2 runtime on Ubuntu 22.04
+    output: python-gl:stage-1                     # Name of the generated stage-1 image
+  
+  # SSH server configuration
   ssh:
-    enable: true
-    port: 22
-    host_port: 2345
+    enable: true                    # Enable SSH server in the container
+    port: 22                       # SSH port inside the container
+    host_port: 2345                # Custom host port (different from default 2222)
+    
+    # Define SSH users with their passwords
     users:
       me:
-        password: '123456'
+        password: '123456'          # Regular user for development
       root:
-        password: root
+        password: root              # Root user for admin tasks
+  
+  # Package repository configuration for faster downloads
   apt:
-    repo_source: tuna
+    repo_source: tuna              # Use Tsinghua University mirror (good for China/Asia)
+  
+  # GPU support configuration
   device:
-    type: gpu
+    type: gpu                      # Enable GPU support (requires NVIDIA Docker runtime)
 
+# Stage 2: Python application layer with OpenGL and persistent storage
 stage_2:
+  # Image configuration
   image:
-    output: python-gl:stage-2
+    output: python-gl:stage-2      # Name of the final stage-2 image
+  
+  # GPU support (inherited from stage-1)
   device:
-    type: gpu
+    type: gpu                      # Maintain GPU support in final image
+  
+  # Persistent storage configuration with mixed volume types
   storage:
-    app:
-      type: manual-volume
-      volume_name: python-gl-app
-    data:
-      type: auto-volume
-    workspace:
-      type: auto-volume
+    app:                           # Directory for installed applications (Python, conda, etc.)
+      type: manual-volume          # Use manually named Docker volume for easy identification
+      volume_name: python-gl-app  # Custom volume name for applications
+    data:                          # Directory for data files and datasets
+      type: auto-volume            # Use automatically managed Docker volume
+    workspace:                     # Directory for workspace/code projects
+      type: auto-volume            # Use automatically managed Docker volume
+  
+  # Additional volume mounts for specific directories
   mount:
-    python-gl-home-me:
-      type: auto-volume
-      dst_path: /home/me
+    python-gl-home-me:             # Persistent home directory for user settings
+      type: auto-volume            # Use automatically managed Docker volume
+      dst_path: /home/me           # Mount point for user home directory
+  
+  # Custom scripts configuration for Python and OpenGL setup
   custom:
-    on_first_run:
-    - stage-2/system/conda/auto-install-miniconda.sh
-    - stage-2/system/opengl/setup-opengl-win32.sh
+    on_first_run:                  # Scripts to run only on first container startup
+    - stage-2/system/conda/auto-install-miniconda.sh    # Install Miniconda for Python package management
+    - stage-2/system/opengl/setup-opengl-win32.sh       # Setup OpenGL libraries and dependencies
+
+# Usage Notes:
+# 1. Perfect for Python-based graphics programming, scientific visualization
+# 2. Miniconda provides conda and pip package managers
+# 3. OpenGL support enables hardware-accelerated graphics
+# 4. Manual volume naming (python-gl-app) makes it easy to identify and backup
+# 5. Custom SSH port (2345) avoids conflicts with other containers
+# 6. Suitable for: matplotlib, mayavi, vtk, opengl, pygame, etc.
+# 7. For GUI applications, may need X11 forwarding or WSLg on Windows

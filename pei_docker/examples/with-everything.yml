@@ -1,75 +1,133 @@
+# Comprehensive example demonstrating all PeiDocker configuration options
+# This example showcases every available configuration setting across both stages
+# Use this as a reference template for understanding all available options
+
 stage_1:
+  # Base image configuration
   image:
-    base: ubuntu:24.04
-    output: pei-image:stage-1
+    base: ubuntu:24.04             # Ubuntu 24.04 LTS base image
+    output: pei-image:stage-1      # Name of the generated stage-1 image
+  
+  # SSH server configuration with multiple users
   ssh:
-    enable: true
-    port: 22
-    host_port: 2222
+    enable: true                   # Enable SSH server in the container
+    port: 22                      # SSH port inside the container
+    host_port: 2222               # Port on host machine mapped to container SSH port
+    
+    # Define multiple SSH users with different access levels
     users:
       me:
-        password: '123456'
+        password: '123456'         # Primary development user
       you:
-        password: '654321'
+        password: '654321'         # Secondary user (for team collaboration)
       root:
-        password: root
+        password: root             # Root user for administrative tasks
+  
+  # Proxy configuration for corporate networks
   proxy:
-    address: host.docker.internal
-    port: 7890
-    enable_globally: false
-    remove_after_build: false
-    use_https: false
+    address: host.docker.internal # Proxy address (maps to host machine)
+    port: 7890                    # Proxy port on host machine
+    enable_globally: false       # Don't enable proxy globally by default
+    remove_after_build: false    # Keep proxy settings after build
+    use_https: false              # Use HTTP proxy (not HTTPS)
+  
+  # Package repository configuration
   apt:
-    repo_source: ''
-    keep_repo_after_build: true
-    use_proxy: false
-    keep_proxy_after_build: false
+    repo_source: ''               # Use default Ubuntu repositories (empty = default)
+    keep_repo_after_build: true   # Keep custom repository settings after build
+    use_proxy: false              # Don't use proxy for APT operations
+    keep_proxy_after_build: false # Don't keep proxy settings for APT after build
+  
+  # Custom environment variables for stage-1
   environment:
-  - EXAMPLE_VAR_STAGE_1=example env var
-  ports: []
+  - EXAMPLE_VAR_STAGE_1=example env var  # Example environment variable
+  
+  # Additional port mappings (empty in this example)
+  ports: []                       # No additional ports mapped in stage-1
+  
+  # Device configuration
   device:
-    type: cpu
+    type: cpu                     # CPU-only configuration (no GPU support)
+  
+  # Custom scripts for various lifecycle events
   custom:
+    # Scripts executed during image building
     on_build:
-    - stage-1/custom/install-dev-tools.sh
-    - stage-1/custom/my-build-1.sh
-    - stage-1/custom/my-build-2.sh
+    - stage-1/custom/install-dev-tools.sh      # Install development tools
+    - stage-1/custom/my-build-1.sh             # Custom build script 1
+    - stage-1/custom/my-build-2.sh             # Custom build script 2
+    
+    # Scripts executed only on first container startup
     on_first_run:
-    - stage-1/custom/my-on-first-run-1.sh
-    - stage-1/custom/my-on-first-run-2.sh
+    - stage-1/custom/my-on-first-run-1.sh      # First-run initialization 1
+    - stage-1/custom/my-on-first-run-2.sh      # First-run initialization 2
+    
+    # Scripts executed on every container startup
     on_every_run:
-    - stage-1/custom/my-on-every-run-1.sh
-    - stage-1/custom/my-on-every-run-2.sh
+    - stage-1/custom/my-on-every-run-1.sh      # Every-run script 1
+    - stage-1/custom/my-on-every-run-2.sh      # Every-run script 2
+    
+    # Scripts executed when users log in via SSH
     on_user_login:
-    - stage-1/custom/my-on-user-login-1.sh
-    - stage-1/custom/my-on-user-login-2.sh
+    - stage-1/custom/my-on-user-login-1.sh     # User login script 1
+    - stage-1/custom/my-on-user-login-2.sh     # User login script 2
+
+# Stage 2: Application layer with comprehensive configuration
 stage_2:
+  # Image configuration
   image:
-    output: pei-image:stage-2
+    output: pei-image:stage-2     # Name of the final stage-2 image
+  
+  # Custom environment variables for stage-2
   environment:
-  - EXAMPLE_VAR_STAGE_2=example env var
-  ports: []
+  - EXAMPLE_VAR_STAGE_2=example env var  # Example environment variable for stage-2
+  
+  # Additional port mappings (empty in this example)
+  ports: []                       # No additional ports mapped in stage-2
+  
+  # Device configuration (inherits from stage-1 but can be overridden)
   device:
-    type: cpu
-  proxy: {}
+    type: cpu                     # Maintain CPU-only configuration
+  
+  # Proxy configuration (empty = inherit from stage-1)
+  proxy: {}                       # Use proxy settings from stage-1
+  
+  # Persistent storage configuration using auto-managed volumes
   storage:
-    app:
-      type: auto-volume
-    data:
-      type: auto-volume
-    workspace:
-      type: auto-volume
+    app:                          # Directory for installed applications
+      type: auto-volume           # Use automatically managed Docker volume
+    data:                         # Directory for data files
+      type: auto-volume           # Use automatically managed Docker volume
+    workspace:                    # Directory for workspace/code
+      type: auto-volume           # Use automatically managed Docker volume
+  
+  # Custom scripts for stage-2 lifecycle events
   custom:
+    # Scripts executed during image building (after stage-1 scripts)
     on_build:
-    - stage-2/custom/install-gui-tools.sh
-    - stage-2/custom/my-build-1.sh
-    - stage-2/custom/my-build-2.sh
+    - stage-2/custom/install-gui-tools.sh      # Install GUI tools
+    - stage-2/custom/my-build-1.sh             # Custom build script 1
+    - stage-2/custom/my-build-2.sh             # Custom build script 2
+    
+    # Scripts executed only on first container startup
     on_first_run:
-    - stage-2/custom/my-on-first-run-1.sh
-    - stage-2/custom/my-on-first-run-2.sh
+    - stage-2/custom/my-on-first-run-1.sh      # First-run initialization 1
+    - stage-2/custom/my-on-first-run-2.sh      # First-run initialization 2
+    
+    # Scripts executed on every container startup
     on_every_run:
-    - stage-2/custom/my-on-every-run-1.sh
-    - stage-2/custom/my-on-every-run-2.sh
+    - stage-2/custom/my-on-every-run-1.sh      # Every-run script 1
+    - stage-2/custom/my-on-every-run-2.sh      # Every-run script 2
+    
+    # Scripts executed when users log in via SSH
     on_user_login:
-    - stage-2/custom/my-on-user-login-1.sh
-    - stage-2/custom/my-on-user-login-2.sh
+    - stage-2/custom/my-on-user-login-1.sh     # User login script 1
+    - stage-2/custom/my-on-user-login-2.sh     # User login script 2
+
+# Usage Notes:
+# 1. This configuration demonstrates every available PeiDocker option
+# 2. Most real-world configurations will use a subset of these options
+# 3. Custom scripts must be created in the corresponding directories
+# 4. Storage directories are accessible as /soft/app, /soft/data, /soft/workspace
+# 5. Environment variables are available to all scripts and applications
+# 6. Scripts run in the order specified and can depend on previous scripts
