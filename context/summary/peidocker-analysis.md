@@ -47,6 +47,14 @@ Run custom shell scripts at different lifecycle points:
 - Configuration options for GPU-enabled containers
 - OpenGL support for Windows containers
 
+### 7. Environment Variable Substitution
+- **Docker Compose-style syntax**: Uses `${VARIABLE_NAME:-default_value}` format
+- **Flexible deployments**: Same configuration works across development, staging, production
+- **Team collaboration**: Each developer can use their own paths/settings without modifying shared configs
+- **CI/CD ready**: Perfect for automated deployments with environment-specific values
+- **Fallback support**: Robust default values when environment variables aren't set
+- **Full integration**: Works with all configuration sections (images, SSH, storage, mounts, etc.)
+
 ## Architecture
 
 ### Core Components
@@ -114,6 +122,8 @@ Based on the examples in the workspace:
 3. **Development environments**: With specific toolchains and dependencies
 4. **Proxy-enabled builds**: For corporate environments
 5. **Multi-storage setups**: Combining volumes, bind mounts, and in-image storage
+6. **Environment-specific deployments**: Using environment variables for different deployment scenarios
+7. **Team collaboration**: Shared configurations with developer-specific paths and settings
 
 ## Target Users
 
@@ -142,3 +152,15 @@ The project includes MkDocs-based documentation with:
 - **Template-based**: Uses Jinja-like templating for generating Docker artifacts
 - **Example-driven**: Rich set of examples for different scenarios
 - **Documentation-focused**: Comprehensive docs with MkDocs
+- **Environment-aware**: Built-in support for environment variable substitution with fallback values
+
+## Recent Additions (June 2025)
+
+### Environment Variable Substitution Feature
+- **Implementation**: Added `substitute_env_vars()` and `process_config_env_substitution()` functions in `pei_utils.py`
+- **Integration**: Seamlessly integrated into the main configuration pipeline in `pei.py`
+- **Syntax**: Docker Compose compatible `${VAR:-default}` format
+- **Examples**: New comprehensive example file `environment-variables.yml` with usage scenarios
+- **Documentation**: Extensive documentation updates in main docs and examples
+- **Testing**: Fully tested and verified working end-to-end
+- **Use Cases**: Supports development/staging/production deployments, team collaboration, CI/CD pipelines
