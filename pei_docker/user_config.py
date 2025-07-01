@@ -219,7 +219,7 @@ class StageConfig:
     storage : dict[str, StorageOption] | None = field(factory=dict)
     mount: dict[str, StorageOption] | None = field(factory=dict)
     
-    def get_port_mapping_as_dict(self) -> dict[int, int]:
+    def get_port_mapping_as_dict(self) -> dict[int, int] | None:
         ''' get port mapping as a dict mapping host port to container port
         '''
         if self.ports is not None:
@@ -230,7 +230,7 @@ class StageConfig:
         '''
         self.ports = port_mapping_dict_to_str(port_mapping)
         
-    def get_environment_as_dict(self) -> dict[str, str]:
+    def get_environment_as_dict(self) -> dict[str, str] | None:
         ''' get environment variables as a dict
         '''
         if self.environment is not None and isinstance(self.environment, list):

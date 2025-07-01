@@ -5,6 +5,7 @@ import omegaconf as oc
 from omegaconf import DictConfig
 from attrs import define, field
 import cattrs
+from typing import Optional
 
 from pei_docker.user_config import *
 
@@ -62,15 +63,15 @@ class Defaults:
 class GeneratedScripts:
     ''' Generated scripts for the user to run
     '''
-    on_build_script : str | None = field(default=None)
-    on_first_run_script : str | None = field(default=None)
-    on_every_run_script : str | None = field(default=None)
+    on_build_script : Optional[str] = field(default=None)
+    on_first_run_script : Optional[str] = field(default=None)
+    on_every_run_script : Optional[str] = field(default=None)
     
 class PeiConfigProcessor:
     def __init__(self) -> None:
-        self.m_config : DictConfig = None
-        self.m_compose_template : DictConfig = None
-        self.m_compose_output : DictConfig = None
+        self.m_config : Optional[DictConfig] = None
+        self.m_compose_template : Optional[DictConfig] = None
+        self.m_compose_output : Optional[DictConfig] = None
         self.m_generated_scripts : GeneratedScripts = GeneratedScripts()
         
         # host dir is relative to the directory of the docker compose file
@@ -79,7 +80,7 @@ class PeiConfigProcessor:
         self.m_container_dir = Defaults.ContainerInstallationDir
         
     @classmethod
-    def from_config(cls, config : DictConfig, compose_template : DictConfig, project_dir: str = None) -> 'PeiConfigProcessor':
+    def from_config(cls, config : DictConfig, compose_template : DictConfig, project_dir: Optional[str] = None) -> 'PeiConfigProcessor':
         ''' create a new instance of PeiConfigProcessor from the config and compose template
         '''
         self = cls()
@@ -90,9 +91,16 @@ class PeiConfigProcessor:
         return self
     
     @classmethod
-    def from_files(cls, config_file : str, compose_template_file : str, project_dir: str = None) -> 'PeiConfigProcessor':
+    def from_files(cls, config_file : str, compose_template_file : str, project_dir: Optional[str] = None) -> 'PeiConfigProcessor':
         config = oc.OmegaConf.load(config_file)
         compose = oc.OmegaConf.load(compose_template_file)
+        
+        # Ensure we have DictConfig objects
+        if not isinstance(config, DictConfig):
+            raise ValueError("Config file must contain a dictionary structure")
+        if not isinstance(compose, DictConfig):
+            raise ValueError("Compose template file must contain a dictionary structure")
+            
         return cls.from_config(config, compose, project_dir)
     
     def _check_custom_scripts(self, custom_config : CustomScriptConfig) -> bool:
@@ -216,12 +224,12 @@ class PeiConfigProcessor:
             else:
                 oc_set(build_compose, 'proxy.https_header', 'http')
     
-    def _apply_ssh_to_x_compose(self, ssh_config : SSHConfig, build_compose : DictConfig):
+    def _apply_ssh_to_x_compose(self, ssh_config : Optional[SSHConfig], build_compose : DictConfig):
         ''' process the ssh configuration and update the compose template
         
         parameters
         -------------
-        ssh_config: SSHConfig
+        ssh_config: SSHConfig | None
             the ssh section from the user config, path is 'stage-1.ssh'
         build_compose : DictConfig
             the build section from the compose template, path is 'x-cfg-stage-?.build'    
@@ -250,7 +258,7 @@ class PeiConfigProcessor:
         _ssh_names : list[str] = []
         _ssh_pwds : list[str] = []
         _ssh_pubkeys : list[str] = []
-        _ssh_uids : list[int] = []
+        _ssh_uids : list[str] = []
         for name, info in ssh_users.items():
             _ssh_names.append(name)
             
@@ -349,7 +357,10 @@ class PeiConfigProcessor:
                 oc_set(build_compose, 'output_image_name', image_config.output)
             elif ith_stage == 1:
                 # use the output of stage 1 as the base image if not specified
-                base_image = image_config.base if image_config.base else user_cfg.stage_1.image.output
+                if user_cfg.stage_1 is not None and user_cfg.stage_1.image is not None:
+                    base_image = image_config.base if image_config.base else user_cfg.stage_1.image.output
+                else:
+                    base_image = image_config.base
                 oc_set(build_compose, 'base_image', base_image)
                 oc_set(build_compose, 'output_image_name', image_config.output)
             
@@ -391,7 +402,7 @@ class PeiConfigProcessor:
             the compose template to be updated in place, must have been resolved by OmegaConf
         '''
         
-        stages : list[tuple[StageConfig, oc.DictConfig]] = [
+        stages : list[tuple[Optional[StageConfig], Optional[DictConfig]]] = [
             (user_config.stage_1, oc.OmegaConf.select(compose_template, 'services.stage-1')),
             (user_config.stage_2, oc.OmegaConf.select(compose_template, 'services.stage-2')),
         ]
@@ -402,7 +413,7 @@ class PeiConfigProcessor:
         
         for ith_stage, _data in enumerate(stages):
             stage_config, stage_compose = _data
-            if stage_config is None:
+            if stage_config is None or stage_compose is None:
                 continue
                         
             # port mapping
@@ -423,7 +434,8 @@ class PeiConfigProcessor:
             # environment variables
             if stage_config.environment is not None:
                 _env_dict = stage_config.get_environment_as_dict()
-                env_dict.update(_env_dict)
+                if _env_dict is not None:
+                    env_dict.update(_env_dict)
             # env_strings : list[str] = [f'{k}={v}' for k, v in env_dict.items()]
             oc.OmegaConf.update(stage_compose, 'environment', env_dict)
             
@@ -471,14 +483,14 @@ class PeiConfigProcessor:
             # write to compose
             oc.OmegaConf.update(stage_compose, 'volumes', vol_mapping_strings)
         
-    def _generate_script_text(self, on_what:str, filelist : list[str] | None) -> str:
+    def _generate_script_text(self, on_what:str, filelist : Optional[list[str]]) -> str:
         ''' generate the script commands that will run all user scripts
         
         parameters
         -------------
         on_what : str
             the event that the scripts will run on, such as on-build, on-first-run, on-every-run
-        filelist : list[str]
+        filelist : list[str] | None
             the list of script files to run, the path is relative to stage-?/custom
         
         '''
@@ -506,7 +518,6 @@ class PeiConfigProcessor:
         user_config : UserConfig
             the user configuration object
         '''
-        import os
         
         # stage 1
         # write to file
@@ -519,8 +530,9 @@ class PeiConfigProcessor:
             
             logging.info(f'Writing env to {filename}')
             with open(filename, 'w+') as f:
-                for k, v in env_dict.items():
-                    f.write(f'{k}={v}\n')
+                if env_dict is not None:
+                    for k, v in env_dict.items():
+                        f.write(f'{k}={v}\n')
         else:
             # write an empty file
             logging.info(f'Writing empty env file to {filename}')
@@ -539,8 +551,9 @@ class PeiConfigProcessor:
             
             logging.info(f'Writing env to {filename}')
             with open(filename, 'w+') as f:
-                for k, v in env_dict.items():
-                    f.write(f'{k}={v}\n')
+                if env_dict is not None:
+                    for k, v in env_dict.items():
+                        f.write(f'{k}={v}\n')
         else:
             # write an empty file
             logging.info(f'Writing empty env file to {filename}')
@@ -556,7 +569,7 @@ class PeiConfigProcessor:
             the user configuration object
         '''
         
-        infos : list[tuple[str, StageConfig]] = [
+        infos : list[tuple[str, Optional[StageConfig]]] = [
             ('stage-1', user_config.stage_1),
             ('stage-2', user_config.stage_2),
         ]
@@ -576,24 +589,28 @@ class PeiConfigProcessor:
             
             on_build_script = self._generate_script_text('on-build', on_build_list)
             filename_build = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-build.sh'
+            os.makedirs(os.path.dirname(filename_build), exist_ok=True)
             logging.info(f'Writing to {filename_build}')
             with open(filename_build, 'w+') as f:
                 f.write(on_build_script)
             
             on_first_run_script = self._generate_script_text('on-first-run', on_first_run_list)
             filename_first_run = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-first-run.sh'
+            os.makedirs(os.path.dirname(filename_first_run), exist_ok=True)
             logging.info(f'Writing to {filename_first_run}')
             with open(filename_first_run, 'w+') as f:
                 f.write(on_first_run_script)
             
             on_every_run_script = self._generate_script_text('on-every-run', on_every_run_list)
             filename_every_run = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-every-run.sh'
+            os.makedirs(os.path.dirname(filename_every_run), exist_ok=True)
             logging.info(f'Writing to {filename_every_run}')
             with open(filename_every_run, 'w+') as f:
                 f.write(on_every_run_script)    
                 
             on_user_login_script = self._generate_script_text('on-user-login', on_user_login_list)
             filename_user_login = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-user-login.sh'
+            os.makedirs(os.path.dirname(filename_user_login), exist_ok=True)
             logging.info(f'Writing to {filename_user_login}')
             with open(filename_user_login, 'w+') as f:
                 f.write(on_user_login_script)
@@ -626,17 +643,20 @@ class PeiConfigProcessor:
         config_dict = oc.OmegaConf.to_container(self.m_config, resolve=True)
         
         # convert environment from list to dict
-        for stage in ['stage_1', 'stage_2']:
-            if stage not in config_dict or 'environment' not in config_dict[stage]:
-                continue
-            env = config_dict[stage]['environment']
-            if env is not None and isinstance(env, list):
-                config_dict[stage]['environment'] = env_str_to_dict(env)
+        if isinstance(config_dict, dict):
+            for stage in ['stage_1', 'stage_2']:
+                if stage not in config_dict or 'environment' not in config_dict[stage]:
+                    continue
+                env = config_dict[stage]['environment']
+                if env is not None and isinstance(env, list):
+                    config_dict[stage]['environment'] = env_str_to_dict(env)
         
         # parse the user config
         user_config : UserConfig = cattrs.structure(config_dict, UserConfig)
         
         # apply the user config to the compose template
+        if self.m_compose_template is None:
+            raise ValueError("compose_template is None")
         compose_template : DictConfig = self.m_compose_template.copy()
         self._process_config_and_apply_x_compose(user_config, compose_template)
         
@@ -645,7 +665,8 @@ class PeiConfigProcessor:
         _resolve_dict = oc.OmegaConf.to_container(compose_template, resolve=True, 
                                                   throw_on_missing=True, 
                                                   structured_config_mode=oc.SCMode.DICT_CONFIG)
-        compose_resolved : DictConfig = oc.OmegaConf.create(_resolve_dict)
+        compose_resolved = oc.OmegaConf.create(_resolve_dict)
+        assert isinstance(compose_resolved, DictConfig), "Expected DictConfig"
         
         # apply the stage configuration to the compose template again
         self._apply_config_to_resolved_compose(user_config, compose_resolved)
@@ -661,7 +682,7 @@ class PeiConfigProcessor:
         if remove_extra:
             useless_keys = []
             for key in list(compose_resolved.keys()):
-                if key.startswith('x-'):
+                if isinstance(key, str) and key.startswith('x-'):
                     useless_keys.append(key)
             for key in useless_keys:
                 del compose_resolved[key]
