@@ -1,0 +1,86 @@
+# SSH Keys Inline Specification Example
+# This example demonstrates the new SSH key features in PeiDocker
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-ssh-example:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      # Example 1: User with password + inline public key
+      developer:
+        password: 'dev123'
+        pubkey_text: |
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G igamenovoer@IGAMEWORK-7770
+        uid: 1000
+      
+      # Example 2: User with only private key (public key auto-generated)
+      admin:
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCLeSpkKu
+          zfp8gLIO/O6v0GAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIFPW+lmS7RfUgmm/
+          zHEwJ1qrxX//PVZ1IRBx9kgrr11+AAAAoE33cdhrQMyeBuE2jpkJE0NdiGdK80qW2cJjUc
+          /5JfZSvRIF0CRD6qDt2/aOig6KQVb60ky5pAaO2nymIzTZZaVE44+LNJ46f56vqnBDQrFO
+          /uLpyhpHFluGcphOt8myrp0F4kBJj2KObJubJLAcd4aVbWgNZ4kM+KfYnEiSG88d5JR136
+          ZkKSpbazcnFf58IrZOPghEQPoFUeVRvnlKWPE=
+          -----END OPENSSH PRIVATE KEY-----
+        uid: 1001
+      
+      # Example 3: User with both public and private keys (UNPAIRED)
+      tester:
+        password: 'test456'
+        # This public key will be added to authorized_keys
+        pubkey_text: |
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICPecH+1R9qfb+561fSFn5vwcSkoPJcGYvjsxb+lD3F+ igamenovoer@IGAMEWORK-7770
+        # This private key will be imported and its public key auto-generated and also added
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA6KBy+eb
+          ZyS0HlPIAHbJj8AAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGrvSeVzXGZgItH1
+          G053XzoLT3Z4Kk68Hj5PTdwLthyEAAAAoBpmljEs0pdgvVCTGtJjCkCb0cedqiVI8GZwWH
+          uMt8LHn06AW1m4XArj45KR03Sttn7BymZpBjkKgDAzfzM92mcex9tJOxqFauiNlgcpjn2w
+          S7NEK4oo/LjMUMydoSsC+3ppvTpIUyQj0WH2KaP/RTUQrwny1W0Kdo5B/WgOeupon9dakz
+          5lt6/wVYFPYahu1kYyV+6F6vJnI3BsjuDKhw0=
+          -----END OPENSSH PRIVATE KEY-----
+        uid: 1002
+      
+      # Example 4: Traditional file-based approach (still supported)
+      legacy:
+        password: 'legacy123'
+        pubkey_file: 'stage-1/system/ssh/keys/example-pubkey.pub'
+        uid: 1003
+
+  apt:
+    repo_source: aliyun
+
+stage_2:
+  image:
+    output: pei-ssh-example:stage-2
+
+# Key Features Demonstrated:
+# 
+# 1. pubkey_text: Inline public key specification
+#    - Conflicts with pubkey_file (mutually exclusive)
+#    - Added directly to authorized_keys
+#
+# 2. privkey_text: Inline private key specification  
+#    - Conflicts with privkey_file (mutually exclusive)
+#    - Imported as user's SSH identity
+#    - Public key auto-generated and added to authorized_keys
+#
+# 3. Mixed usage: Both public and private keys can be specified
+#    - They are NOT PAIRED - independent keys
+#    - Both the provided public key AND generated public key are added
+#
+# 4. Validation: At least one authentication method required
+#    - password, pubkey_file, pubkey_text, privkey_file, or privkey_text
+#
+# 5. Container processing: SSH key generation happens inside container
+#    - No host dependencies on ssh-keygen
+#    - Works on Windows, Linux, Mac hosts

@@ -43,22 +43,25 @@ groupadd ssh_users
 # SSH_USER_NAME contains a list of users separated by comma
 # SSH_USER_PASSWORD contains a list of passwords separated by comma
 # SSH_PUBKEY_FILE contains a list of public keys separated by comma
+# SSH_PRIVKEY_FILE contains a list of private keys separated by comma
 # SSH_USER_UID contains a list of uids separated by comma
 # for each user, configure it
 IFS=',' read -ra users <<< "$SSH_USER_NAME"
 IFS=',' read -ra passwords <<< "$SSH_USER_PASSWORD"
 IFS=',' read -ra pubkey_files <<< "$SSH_PUBKEY_FILE"
+IFS=',' read -ra privkey_files <<< "$SSH_PRIVKEY_FILE"
 IFS=',' read -ra uids <<< "$SSH_USER_UID"
 for i in "${!users[@]}"; do
   user=${users[$i]}
   password=${passwords[$i]}
   pubkey_file=${pubkey_files[$i]}
+  privkey_file=${privkey_files[$i]}
   uid=${uids[$i]}
   if [ -z "$user" ]; then
     continue
   fi
 
-  echo "Configuring user $user, password $password, pubkey $pubkey_file"
+  echo "Configuring user $user, password $password, pubkey $pubkey_file, privkey $privkey_file"
   
   if [ "$user" = "root" ]; then
     # For root user, just set password and configure SSH
@@ -90,9 +93,49 @@ for i in "${!users[@]}"; do
 
   # add public key to authorized_keys
   cat "$ssh_dir/id_rsa.pub" >> "$ssh_dir/authorized_keys"
+  
+  # Handle provided public key file
   if [ -n "$pubkey_file" ]; then
     echo "Adding public key from $pubkey_file to authorized_keys"
     cat $pubkey_file >> "$ssh_dir/authorized_keys"
+  fi
+  
+  # Handle provided private key file
+  if [ -n "$privkey_file" ]; then
+    echo "Installing private key from $privkey_file"
+    
+    # Detect key type from private key
+    key_type="rsa"  # default
+    if grep -q "BEGIN OPENSSH PRIVATE KEY" "$privkey_file"; then
+      # Generate public key to detect type
+      temp_pubkey=$(ssh-keygen -y -f "$privkey_file")
+      if [[ $temp_pubkey == ssh-ed25519* ]]; then
+        key_type="ed25519"
+      elif [[ $temp_pubkey == ecdsa-sha2-* ]]; then
+        key_type="ecdsa"
+      elif [[ $temp_pubkey == ssh-dss* ]]; then
+        key_type="dsa"
+      fi
+    elif grep -q "BEGIN EC PRIVATE KEY" "$privkey_file"; then
+      key_type="ecdsa"
+    elif grep -q "BEGIN DSA PRIVATE KEY" "$privkey_file"; then
+      key_type="dsa"
+    fi
+    
+    # Copy private key to user's ssh directory
+    key_filename="id_${key_type}_imported"
+    cp "$privkey_file" "$ssh_dir/$key_filename"
+    chmod 600 "$ssh_dir/$key_filename"
+    
+    # Generate and add public key from private key to authorized_keys
+    echo "Generating public key from imported private key"
+    ssh-keygen -y -f "$ssh_dir/$key_filename" >> "$ssh_dir/authorized_keys"
+    
+    # Create corresponding .pub file
+    ssh-keygen -y -f "$ssh_dir/$key_filename" > "$ssh_dir/${key_filename}.pub"
+    chmod 644 "$ssh_dir/${key_filename}.pub"
+    
+    echo "Private key installed as $key_filename with auto-generated public key"
   fi
 
   # Set correct ownership

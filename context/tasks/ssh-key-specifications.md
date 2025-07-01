@@ -12,6 +12,8 @@ For these new features, document them clearly in the configuration file, gives e
 ## Implementation guide
 - Because `config-template-full.yml` will be parsed by python, and then the parsed results are set into `pei_docker\templates\base-image-gen.yml` which a docker compose template, those plain text keys will be problematic as they are multi-line strings with spaces. As such, you should write the plain text keys into temporary files, and reference them in `pubkey_file` and `privkey_file` in the `pei_docker\templates\base-image-gen.yml` (note that `privkey_file` is not implemented yet, implement it as well)
 - As such, `pubkey_text` and `privkey_text` only exists in `config-template-full.yml`, there is no corresponding keys in the docker compose template `base-image-gen.yml`.
+- Because when parsing the user config, the user already creates a project dir, so temporary files can be written to `installation\stage-1\generated` in the project dir, DO NOT write to system temporary dir.
+- When pei.py is run, it is in the host machine, which may be Windows, Linux or Mac, so things like generating ssh keys should not be run here. The docker build process will copy the whole `installation` into the container, and then you run most of the scripts inside the container. There are many scripts in `installation` dir for you to read as examples. As for where `installation` is located within container, check the dockerfile.
 
 ## Test data
 you can use the following data for testing. Note that, the given private key and public key are NOT PAIRED.

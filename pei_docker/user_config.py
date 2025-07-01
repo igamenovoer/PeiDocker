@@ -122,14 +122,72 @@ class ImageConfig:
 class SSHUserConfig:
     password : str | None = field(default=None)
     pubkey_file : str | None = field(default=None)
+    pubkey_text : str | None = field(default=None)
+    privkey_file : str | None = field(default=None)
+    privkey_text : str | None = field(default=None)
     uid : int | None = field(default=None)
     
     def __attrs_post_init__(self):
-        if self.password is None and self.pubkey_file is None:
-            raise ValueError('Either password or pubkey_file must be provided')
+        # Validate password format
         if self.password is not None:
             # password cannot contain space and comma
             assert ' ' not in self.password and ',' not in self.password, f'Password cannot contain space or comma: {self.password}'
+        
+        # Validate mutually exclusive public key options
+        if self.pubkey_file is not None and self.pubkey_text is not None:
+            raise ValueError('Cannot specify both pubkey_file and pubkey_text')
+        
+        # Validate mutually exclusive private key options
+        if self.privkey_file is not None and self.privkey_text is not None:
+            raise ValueError('Cannot specify both privkey_file and privkey_text')
+        
+        # At least one authentication method required
+        has_password = self.password is not None
+        has_pubkey = self.pubkey_file is not None or self.pubkey_text is not None
+        has_privkey = self.privkey_file is not None or self.privkey_text is not None
+        
+        if not (has_password or has_pubkey or has_privkey):
+            raise ValueError('Must provide at least one authentication method: password, public key, or private key')
+        
+        # Validate SSH key formats
+        if self.pubkey_text is not None:
+            self._validate_public_key_format(self.pubkey_text)
+        
+        if self.privkey_text is not None:
+            self._validate_private_key_format(self.privkey_text)
+    
+    def _validate_public_key_format(self, key_text: str) -> None:
+        """Validate SSH public key format"""
+        import re
+        key_text = key_text.strip()
+        
+        # SSH public key should start with algorithm name and contain base64 data
+        ssh_key_pattern = r'^(ssh-rsa|ssh-dss|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\s+[A-Za-z0-9+/]+=*\s*.*$'
+        
+        if not re.match(ssh_key_pattern, key_text):
+            raise ValueError(f'Invalid SSH public key format: {key_text[:50]}...')
+    
+    def _validate_private_key_format(self, key_text: str) -> None:
+        """Validate SSH private key format"""
+        key_text = key_text.strip()
+        
+        # Check for OpenSSH private key format
+        if key_text.startswith('-----BEGIN OPENSSH PRIVATE KEY-----') and key_text.endswith('-----END OPENSSH PRIVATE KEY-----'):
+            return
+        
+        # Check for traditional private key formats
+        traditional_headers = [
+            '-----BEGIN RSA PRIVATE KEY-----',
+            '-----BEGIN DSA PRIVATE KEY-----',
+            '-----BEGIN EC PRIVATE KEY-----',
+            '-----BEGIN PRIVATE KEY-----'
+        ]
+        
+        for header in traditional_headers:
+            if key_text.startswith(header):
+                return
+        
+        raise ValueError('Invalid SSH private key format. Must be in OpenSSH or traditional PEM format.')
     
 @define(kw_only=True)
 class SSHConfig:

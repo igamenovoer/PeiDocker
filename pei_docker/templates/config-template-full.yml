@@ -17,18 +17,80 @@ stage_1:
       me:
         password: '123456'
 
-        # public key file path, relative to the installation directory
-        # e.g., 'stage-1/system/ssh/keys/mykey.rsa.pub'
-        pubkey_file: null
+        # SSH Key Options (choose one method per key type):
+        
+        # Public key options (mutually exclusive):
+        pubkey_file: null    # Path to public key file (relative to installation directory)
+        pubkey_text: null    # Direct public key content (conflicts with pubkey_file)
+        
+        # Private key options (mutually exclusive):
+        privkey_file: null   # Path to private key file (relative to installation directory)
+        privkey_text: null   # Direct private key content (conflicts with privkey_file)
+        
         uid: 1000
+        
       you:
         password: '654321'
         pubkey_file: null
+        pubkey_text: null
+        privkey_file: null
+        privkey_text: null
+        privkey_file: null
+        privkey_text: null
         uid: 1001
+        
       root: # you can configure root user here
         password: root
         pubkey_file: null
+        pubkey_text: null
+        privkey_file: null
+        privkey_text: null
         uid: 0  # root uid, always 0 regardless of what you put here
+
+# SSH Key Configuration Examples:
+#
+# Example 1: Using public key text (inline specification)
+# users:
+#   developer:
+#     password: 'devpass'
+#     pubkey_text: |
+#       ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host
+#
+# Example 2: Using private key text (auto-generates public key)
+# users:
+#   developer:
+#     privkey_text: |
+#       -----BEGIN OPENSSH PRIVATE KEY-----
+#       b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCLeSpkKu
+#       zfp8gLIO/O6v0GAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIFPW+lmS7RfUgmm/
+#       zHEwJ1qrxX//PVZ1IRBx9kgrr11+AAAAoE33cdhrQMyeBuE2jpkJE0NdiGdK80qW2cJjUc
+#       /5JfZSvRIF0CRD6qDt2/aOig6KQVb60ky5pAaO2nymIzTZZaVE44+LNJ46f56vqnBDQrFO
+#       /uLpyhpHFluGcphOt8myrp0F4kBJj2KObJubJLAcd4aVbWgNZ4kM+KfYnEiSG88d5JR136
+#       ZkKSpbazcnFf58IrZOPghEQPoFUeVRvnlKWPE=
+#       -----END OPENSSH PRIVATE KEY-----
+#
+# Example 3: Using both public and private keys (NOT PAIRED - independent keys)
+# users:
+#   developer:
+#     pubkey_text: |
+#       ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host
+#     privkey_text: |
+#       -----BEGIN OPENSSH PRIVATE KEY-----
+#       b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA6KBy+eb
+#       ZyS0HlPIAHbJj8AAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGrvSeVzXGZgItH1
+#       G053XzoLT3Z4Kk68Hj5PTdwLthyEAAAAoBpmljEs0pdgvVCTGtJjCkCb0cedqiVI8GZwWH
+#       uMt8LHn06AW1m4XArj45KR03Sttn7BymZpBjkKgDAzfzM92mcex9tJOxqFauiNlgcpjn2w
+#       S7NEK4oo/LjMUMydoSsC+3ppvTpIUyQj0WH2KaP/RTUQrwny1W0Kdo5B/WgOeupon9dakz
+#       5lt6/wVYFPYahu1kYyV+6F6vJnI3BsjuDKhw0=
+#       -----END OPENSSH PRIVATE KEY-----
+#
+# Important Notes:
+# - pubkey_file and pubkey_text are mutually exclusive
+# - privkey_file and privkey_text are mutually exclusive  
+# - When privkey_text/privkey_file is specified, the public key is auto-generated
+# - Given public and private keys are NOT PAIRED - they are independent
+# - Both the provided public key AND the generated public key will be added to authorized_keys
+# - At least one authentication method (password, public key, or private key) must be provided
 
   # proxy settings
   # inside the container, the proxy will accessed as http://{address}:{port}

@@ -258,30 +258,28 @@ class PeiConfigProcessor:
         _ssh_names : list[str] = []
         _ssh_pwds : list[str] = []
         _ssh_pubkeys : list[str] = []
+        _ssh_privkeys : list[str] = []
         _ssh_uids : list[str] = []
+        
         for name, info in ssh_users.items():
             _ssh_names.append(name)
             
+            # Handle password
             pw = info.password
             if pw is None:
                 _ssh_pwds.append('')
             else:
                 _ssh_pwds.append(str(pw))   # convert to string, in case it's a number
-                
-            pubkey_file = info.pubkey_file
             
-            if pubkey_file is not None and len(pubkey_file) > 0:
-                # check if the pubkey file exists
-                # p = self.m_host_dir + '/' + pubkey_file
-                p = f'{self.m_project_dir}/{self.m_host_dir}/{pubkey_file}'
-                if not os.path.exists(p):
-                    raise FileNotFoundError(f'Pubkey file {p} not found')
-                
-                if pubkey_file is None:
-                    _ssh_pubkeys.append('')
-                else:
-                    _ssh_pubkeys.append(self.m_container_dir + '/' + pubkey_file)
+            # Handle public key sources
+            pubkey_path = self._process_public_key_sources(name, info)
+            _ssh_pubkeys.append(pubkey_path)
             
+            # Handle private key sources
+            privkey_path = self._process_private_key_sources(name, info)
+            _ssh_privkeys.append(privkey_path)
+            
+            # Handle UID
             uid = info.uid
             if uid is not None:
                 _ssh_uids.append(str(uid))
@@ -292,6 +290,7 @@ class PeiConfigProcessor:
         oc_set(build_compose, 'ssh.username', ','.join(_ssh_names))
         oc_set(build_compose, 'ssh.password', ','.join(_ssh_pwds))
         oc_set(build_compose, 'ssh.pubkey_file', ','.join(_ssh_pubkeys))
+        oc_set(build_compose, 'ssh.privkey_file', ','.join(_ssh_privkeys))
         oc_set(build_compose, 'ssh.uid', ','.join(_ssh_uids))
         
     def _apply_device(self, device_config : DeviceConfig, run_compose : DictConfig):
@@ -694,3 +693,80 @@ class PeiConfigProcessor:
         # resolve the compose template
         self.m_compose_output = compose_resolved
         return compose_resolved
+    
+    def _process_public_key_sources(self, user_name: str, user_info) -> str:
+        """
+        Process public key from file or text, return container path.
+        
+        Args:
+            user_name: SSH username
+            user_info: SSHUserConfig object
+            
+        Returns:
+            Container path to public key file, or empty string if none
+        """
+        from pei_docker.pei_utils import write_ssh_key_to_temp_file
+        
+        # Handle pubkey_file
+        if user_info.pubkey_file is not None and len(user_info.pubkey_file) > 0:
+            pubkey_file = user_info.pubkey_file
+            # Check if the pubkey file exists
+            host_path = f'{self.m_project_dir}/{self.m_host_dir}/{pubkey_file}'
+            if not os.path.exists(host_path):
+                raise FileNotFoundError(f'Pubkey file {host_path} not found')
+            return self.m_container_dir + '/' + pubkey_file
+        
+        # Handle pubkey_text
+        elif user_info.pubkey_text is not None and len(user_info.pubkey_text.strip()) > 0:
+            # Write public key text to temporary file
+            relative_path = write_ssh_key_to_temp_file(
+                user_info.pubkey_text, 
+                'pubkey',  # key type not needed for public keys
+                user_name, 
+                self.m_project_dir, 
+                is_public=True
+            )
+            return self.m_container_dir + '/' + relative_path
+        
+        return ''
+    
+    def _process_private_key_sources(self, user_name: str, user_info) -> str:
+        """
+        Process private key from file or text, return container path.
+        Note: Public key generation happens inside the container, not on host.
+        
+        Args:
+            user_name: SSH username
+            user_info: SSHUserConfig object
+            
+        Returns:
+            Container path to private key file, or empty string if none
+        """
+        from pei_docker.pei_utils import write_ssh_key_to_temp_file
+        
+        # Handle privkey_file
+        if user_info.privkey_file is not None and len(user_info.privkey_file) > 0:
+            privkey_file = user_info.privkey_file
+            # Check if the privkey file exists
+            host_path = f'{self.m_project_dir}/{self.m_host_dir}/{privkey_file}'
+            if not os.path.exists(host_path):
+                raise FileNotFoundError(f'Private key file {host_path} not found')
+            
+            return self.m_container_dir + '/' + privkey_file
+        
+        # Handle privkey_text
+        elif user_info.privkey_text is not None and len(user_info.privkey_text.strip()) > 0:
+            privkey_content = user_info.privkey_text
+            
+            # Write private key to file (public key generation will happen in container)
+            privkey_relative_path = write_ssh_key_to_temp_file(
+                privkey_content,
+                'privkey',  # key type not critical for file naming
+                user_name,
+                self.m_project_dir,
+                is_public=False
+            )
+            
+            return self.m_container_dir + '/' + privkey_relative_path
+        
+        return ''

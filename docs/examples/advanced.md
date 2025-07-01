@@ -274,6 +274,211 @@ steps:
          dst_path: "/shared-data"
    ```
 
+[](){#ssh-keys-advanced}
+## Advanced SSH Key Configuration
+
+PeiDocker provides flexible SSH key management with support for multiple key formats and methods. This section demonstrates advanced SSH key configurations using the new inline key features.
+
+### Example 1: Mixed Key Methods for Different Users
+
+This example shows how to configure multiple users with different SSH key methods:
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: my-secure-app:stage-1
+  
+  ssh:
+    enable: true
+    host_port: 2222
+    users:
+      # Admin user with inline private key (most secure for automation)
+      admin:
+        password: "${ADMIN_PASSWORD:-admin123}"
+        uid: 1000
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2g...
+          -----END OPENSSH PRIVATE KEY-----
+      
+      # Developer user with inline public key (for shared development)
+      developer:
+        password: "${DEV_PASSWORD:-dev123}"
+        uid: 1001
+        pubkey_text: "${DEV_PUBLIC_KEY:-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqa...}"
+      
+      # Service user with public key file (for legacy integration)
+      service:
+        password: "${SERVICE_PASSWORD:-service123}"
+        uid: 1002
+        pubkey_file: 'stage-1/system/ssh/keys/service-key.pub'
+      
+      # Guest user with private key file reference
+      guest:
+        password: "${GUEST_PASSWORD:-guest123}"
+        uid: 1003
+        privkey_file: 'stage-1/system/ssh/keys/guest-private-key'
+```
+
+### Example 2: Environment-Driven SSH Key Configuration
+
+Configure SSH keys entirely through environment variables for maximum flexibility:
+
+```yaml
+# user_config.yml
+stage_1:
+  ssh:
+    enable: true
+    host_port: "${SSH_PORT:-2222}"
+    users:
+      "${SSH_USERNAME:-developer}":
+        password: "${SSH_PASSWORD:-defaultpass}"
+        uid: "${SSH_UID:-1000}"
+        # Use environment variables to choose key method
+        pubkey_text: "${SSH_PUBLIC_KEY:-}"
+        privkey_text: "${SSH_PRIVATE_KEY:-}"
+        pubkey_file: "${SSH_PUBLIC_KEY_FILE:-}"
+        privkey_file: "${SSH_PRIVATE_KEY_FILE:-}"
+```
+
+**Usage with different key sources:**
+
+```bash
+# Method 1: Using inline public key
+export SSH_USERNAME="alice"
+export SSH_PASSWORD="alicepass"
+export SSH_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..."
+
+# Method 2: Using inline private key
+export SSH_USERNAME="bob"
+export SSH_PASSWORD="bobpass"
+export SSH_PRIVATE_KEY="-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2g...
+-----END OPENSSH PRIVATE KEY-----"
+
+# Method 3: Using key files
+export SSH_USERNAME="charlie"
+export SSH_PASSWORD="charliepass"
+export SSH_PUBLIC_KEY_FILE="stage-1/system/ssh/keys/charlie.pub"
+
+python -m pei_docker.pei configure -p ./my-project
+```
+
+### Example 3: Team Development with Multiple SSH Keys
+
+Configure a container for team development where each team member has their own SSH access:
+
+```yaml
+# user_config.yml
+stage_1:
+  ssh:
+    enable: true
+    host_port: 2222
+    users:
+      # Team lead with full access
+      teamlead:
+        password: "${TEAMLEAD_PASSWORD:-lead123}"
+        uid: 1000
+        pubkey_text: "${TEAMLEAD_SSH_KEY:-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...}"
+      
+      # Senior developer
+      senior-dev:
+        password: "${SENIOR_DEV_PASSWORD:-senior123}"
+        uid: 1001
+        pubkey_file: 'stage-1/system/ssh/keys/senior-dev.pub'
+      
+      # Junior developer
+      junior-dev:
+        password: "${JUNIOR_DEV_PASSWORD:-junior123}"
+        uid: 1002
+        privkey_file: 'stage-1/system/ssh/keys/junior-dev-private'
+      
+      # CI/CD service account
+      ci-service:
+        password: "${CI_PASSWORD:-ci123}"
+        uid: 1003
+        privkey_text: "${CI_PRIVATE_KEY:-}"
+
+stage_2:
+  mount:
+    # Shared project workspace
+    project:
+      type: host
+      host_path: "${PROJECT_PATH:-C:\\team\\project}"
+      dst_path: "/workspace"
+    
+    # Individual home directories
+    team_homes:
+      type: auto-volume
+      dst_path: "/home"
+      volume_name: "${PROJECT_NAME:-team-project}-homes"
+```
+
+### Example 4: Security-Focused Configuration
+
+For high-security environments, use private keys with proper access controls:
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: secure-app:stage-1
+  
+  ssh:
+    enable: true
+    host_port: "${SECURE_SSH_PORT:-22022}"  # Non-standard port
+    users:
+      # Primary admin account
+      secadmin:
+        password: "${ADMIN_PASSWORD:-$(openssl rand -base64 32)}"
+        uid: 1000
+        privkey_text: "${ADMIN_PRIVATE_KEY}"  # No default - must be provided
+      
+      # Backup admin account
+      backup-admin:
+        password: "${BACKUP_PASSWORD:-$(openssl rand -base64 32)}"
+        uid: 1001
+        privkey_file: "${BACKUP_KEY_FILE}"  # Reference to secure key file
+      
+      # Application service account (no password, key-only access)
+      app-service:
+        password: null  # Disable password authentication
+        uid: 1002
+        pubkey_text: "${SERVICE_PUBLIC_KEY}"
+
+  # Security enhancements
+  environment:
+    - 'SSH_DISABLE_PASSWORD_AUTH=${DISABLE_PASSWORDS:-true}'
+    - 'SSH_MAX_AUTH_TRIES=${MAX_AUTH_TRIES:-3}'
+```
+
+### SSH Key Security Best Practices
+
+1. **Use private keys for automated systems**: When configuring CI/CD or automated deployment systems, use `privkey_text` or `privkey_file` to ensure the public key is generated consistently.
+
+2. **Environment variable security**: When using environment variables for private keys, ensure they are properly secured in your deployment environment:
+   ```bash
+   # Use secret management systems in production
+   export SSH_PRIVATE_KEY="$(vault kv get -field=private_key secret/ssh/deploy)"
+   ```
+
+3. **Key rotation**: With inline keys, you can easily rotate SSH keys by updating environment variables:
+   ```bash
+   # Generate new key pair
+   ssh-keygen -t ed25519 -f ./new-deploy-key -N ""
+   
+   # Update environment
+   export SSH_PRIVATE_KEY="$(cat ./new-deploy-key)"
+   
+   # Regenerate configuration
+   python -m pei_docker.pei configure -p ./my-project
+   ```
+
+4. **Validation**: PeiDocker automatically validates key formats and mutual exclusivity, preventing configuration errors.
+
 ## Hardware-accelerated OpenGL
 
 ### Windows

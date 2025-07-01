@@ -1,0 +1,56 @@
+# SSH Key Enhancement Test Configuration
+# This configuration tests the new SSH key features with unencrypted test data
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-ssh-test:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      # Test user with public key text
+      user1:
+        password: 'test123'
+        pubkey_text: |
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGWeLKDDqOiNnk2Hc8DIBsfHVFU+YaSvkDwti4Snjf/g igamenovoer@IGAMEWORK-7770
+        uid: 1001
+      
+      # Test user with private key text (will auto-generate public key)
+      user2:
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCe4n/pzj
+          LqP51FHF1ur+LnAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGWeLKDDqOiNnk2H
+          c8DIBsfHVFU+YaSvkDwti4Snjf/gAAAAoFSGY+hUy35Nf/go6bwlXRs+NZab2+CiRviT3N
+          ft8Kj5JnLSa1W+n4RsYTTByJLnUeRGceOVl2642VlqrMbbPZQrNAijXDOknu2chRKCxCXa
+          32XYSOrWj11a0lddago9vRavgiLkj8TaRNmP4YTCa6pigZDM78dH++v59fBaCtLPAmvFEI
+          xwpwYINA7QdCdqJ66PVnzzpE/v0h+eASFrTcY=
+          -----END OPENSSH PRIVATE KEY-----
+        uid: 1002
+      
+      # Test user with both public and private keys (unpaired)
+      user3:
+        password: 'dual123'
+        pubkey_text: |
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHXB5X543rnbNE9XhO7epBvQXOxCR9x9kPNvxJCwPJ4o igamenovoer@IGAMEWORK-7770
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABDDxKxOkD
+          nU5KKM45HXtsHFAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIHXB5X543rnbNE9X
+          hO7epBvQXOxCR9x9kPNvxJCwPJ4oAAAAoIUiu1ZFD45aWb3ZfUsJnK9xj+v3kygyNXwLGo
+          M00m15jgO+/k+Yguk+tsn2Jc2KTYYTMkZE5CTNhPb9aC1TG2qFrDebIfaZU7YEiC//iHp6
+          x3RB9PnFdhLbBhLwrr4NQ/U/H14LzQZqiI58SVoil03Fb886MCeuIoqn4PdxPsVb6eUMNM
+          4uKomqWCvJMDWMXCPKVfZ9tAijHKZkC3ys2Wc=
+          -----END OPENSSH PRIVATE KEY-----
+        uid: 1003
+
+  apt:
+    repo_source: aliyun
+
+stage_2:
+  image:
+    output: pei-ssh-test:stage-2

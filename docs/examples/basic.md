@@ -7,6 +7,8 @@ This is the most basic example of creating an image with SSH support. The image 
 
 To accelerate apt installation in China, the `apt` source is set to `tuna`. For other options, see the full [config file](../index.md) for documentation. If this option is omitted, the default source will be used.
 
+**Note:** This example uses password-only authentication. For advanced SSH key configuration including inline keys, file-based keys, and environment variable integration, see [Advanced SSH Key Configuration](advanced.md#ssh-keys-advanced).
+
 ```yaml
 # user_config.yml under project directory
 
