@@ -147,18 +147,31 @@ run_pixi_for_users() {
     fi
 }
 
-# Function to check if root user has a password set
-root_has_password() {
-    # Check if root has a password by examining /etc/shadow
-    local root_shadow_entry=$(getent shadow root)
-    local password_field=$(echo "$root_shadow_entry" | cut -d: -f2)
+# Function to check if any user has a password set
+user_has_password() {
+    local username="$1"
     
-    # If password field is empty, !, or *, root has no password
+    # Check if user has a password by examining /etc/shadow
+    local user_shadow_entry=$(getent shadow "$username" 2>/dev/null)
+    
+    # If getent fails, user doesn't exist in shadow file
+    if [ -z "$user_shadow_entry" ]; then
+        return 1  # No shadow entry, assume no password
+    fi
+    
+    local password_field=$(echo "$user_shadow_entry" | cut -d: -f2)
+    
+    # If password field is empty, !, or *, user has no password
     if [ -z "$password_field" ] || [ "$password_field" = "!" ] || [ "$password_field" = "*" ]; then
         return 1  # No password
     else
         return 0  # Has password
     fi
+}
+
+# Function to check if root user has a password set (wrapper around user_has_password)
+root_has_password() {
+    user_has_password "root"
 }
 
 # Function to install pixi packages for all users
@@ -169,6 +182,11 @@ install_packages_for_all_users() {
     
     # Install for regular users
     while IFS=: read -r username home uid gid; do
+        if ! user_has_password "$username"; then
+            echo "WARNING: Skipping user $username - no password set (not accessible via SSH)"
+            continue
+        fi
+        
         if find_user_pixi "$home" >/dev/null; then
             echo "Installing packages for user: $username"
             for package in "${packages[@]}"; do
@@ -204,5 +222,6 @@ export -f setup_pixi_path
 export -f run_as_user
 export -f check_pixi_available
 export -f run_pixi_for_users
+export -f user_has_password
 export -f root_has_password
 export -f install_packages_for_all_users

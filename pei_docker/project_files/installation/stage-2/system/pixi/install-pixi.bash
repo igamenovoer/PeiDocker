@@ -59,18 +59,31 @@ if [ "$UTILS_SOURCED" = false ]; then
         done < /etc/passwd
     }
     
-    # Function to check if root user has a password set
-    root_has_password() {
-        # Check if root has a password by examining /etc/shadow
-        local root_shadow_entry=$(getent shadow root)
-        local password_field=$(echo "$root_shadow_entry" | cut -d: -f2)
+    # Function to check if any user has a password set
+    user_has_password() {
+        local username="$1"
         
-        # If password field is empty, !, or *, root has no password
+        # Check if user has a password by examining /etc/shadow
+        local user_shadow_entry=$(getent shadow "$username" 2>/dev/null)
+        
+        # If getent fails, user doesn't exist in shadow file
+        if [ -z "$user_shadow_entry" ]; then
+            return 1  # No shadow entry, assume no password
+        fi
+        
+        local password_field=$(echo "$user_shadow_entry" | cut -d: -f2)
+        
+        # If password field is empty, !, or *, user has no password
         if [ -z "$password_field" ] || [ "$password_field" = "!" ] || [ "$password_field" = "*" ]; then
             return 1  # No password
         else
             return 0  # Has password
         fi
+    }
+    
+    # Function to check if root user has a password set (wrapper around user_has_password)
+    root_has_password() {
+        user_has_password "root"
     }
 fi
 
@@ -100,6 +113,11 @@ if [ "$PIXI_INSTALL_AT_HOME" = "1" ]; then
     
     # Install pixi for each regular user
     while IFS=: read -r username home uid gid; do
+        if ! user_has_password "$username"; then
+            echo "WARNING: Skipping user $username - no password set (not accessible via SSH)"
+            continue
+        fi
+        
         echo "Installing pixi for user: $username (UID: $uid, HOME: $home)"
         
         USER_PIXI_DIR="$home/.pixi"
@@ -212,6 +230,10 @@ else
     
     # Add to all regular users
     while IFS=: read -r username home uid gid; do
+        if ! user_has_password "$username"; then
+            echo "WARNING: Skipping user $username bashrc - no password set (not accessible via SSH)"
+            continue
+        fi
         add_pixi_to_bashrc "$username" "$home" "$PIXI_INSTALL_DIR/bin"
     done < <(get_all_users)
     

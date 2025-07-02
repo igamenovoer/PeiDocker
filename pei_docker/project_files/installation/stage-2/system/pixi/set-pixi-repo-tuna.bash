@@ -96,6 +96,11 @@ echo "Configuring pixi mirrors for all users..."
 
 # Configure for regular users
 while IFS=: read -r username home uid gid; do
+    if ! user_has_password "$username"; then
+        echo "WARNING: Skipping user $username - no password set (not accessible via SSH)"
+        continue
+    fi
+    
     echo "Checking pixi for user: $username"
     
     # Check if pixi is available for this user
