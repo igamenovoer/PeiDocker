@@ -78,6 +78,12 @@ Currently no automated tests. Manual testing involves:
 - UID 1001: Can conflict with auto-generated groups like `ssh_users`
 - **Recommended**: Use UID ≥ 1100 for all test configurations
 
+**Automated Testing SSH Keys**: For automated testing without manual password/passphrase entry:
+- Use the passwordless SSH keys in `tests/test-keys/`
+- Test configuration: `tests/configs/simple-pixi-test-passwordless.yml`
+- Keys are RSA 2048-bit without passphrase (testing only, never for production)
+- Enhanced test script automatically uses passwordless configuration
+
 ## Active Development Areas
 
 Based on recent commits and tasks:

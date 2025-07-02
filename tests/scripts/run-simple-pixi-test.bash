@@ -34,27 +34,27 @@ cd "$BUILD_DIR"
 echo "Building stage-1 Docker image..."
 docker compose build --progress=plain --no-cache stage-1
 
-# echo "Building stage-2 Docker image..."
-# docker compose build --progress=plain --no-cache stage-2
+echo "Building stage-2 Docker image..."
+docker compose build --progress=plain --no-cache stage-2
 
-# # Run the container briefly to test
-# echo "Starting container to verify pixi installation..."
-# docker compose up -d stage-2
+# Run the container briefly to test
+echo "Starting container to verify pixi installation..."
+docker compose up -d stage-2
 
-# # Wait for container to start
-# echo "Waiting for container to start..."
-# sleep 5
+# Wait for container to start
+echo "Waiting for container to start..."
+sleep 5
 
-# # Check if pixi is installed
-# echo "Checking pixi installation..."
-# docker compose exec stage-2 bash -c "which pixi && pixi --version"
+# Check if pixi is installed
+echo "Checking pixi installation..."
+docker compose exec stage-2 bash -c "which pixi && pixi --version"
 
-# # Check if ML packages are available
-# echo "Checking pixi global packages..."
-# docker compose exec stage-2 bash -c "pixi global list"
+# Check if ML packages are available
+echo "Checking pixi global packages..."
+docker compose exec stage-2 bash -c "pixi global list"
 
-# # Stop the container
-# echo "Stopping container..."
-# docker compose down
+# Stop the container
+echo "Stopping container..."
+docker compose down
 
 echo "===== Simple Pixi Test Completed Successfully ====="
