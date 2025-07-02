@@ -57,7 +57,7 @@ stage_1:
         uid: 1003
 
   apt:
-    repo_source: aliyun
+    repo_source: ''
 
 stage_2:
   image:

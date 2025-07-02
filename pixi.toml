@@ -1,0 +1,18 @@
+[workspace]
+authors = ["igamenovoer <igamenovoer@xx.com>"]
+channels = ["conda-forge"]
+name = "PeiDocker"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+docs-serve = "mkdocs serve"
+docs-build = "mkdocs build"
+test = "python -m pytest"
+
+[dependencies]
+python = ">=3.11"
+mkdocs-material = ">=9.6.15,<10"
+mkdocs-autorefs = "*"
+mkdocs-glightbox = "*"
+pymdown-extensions = "*"

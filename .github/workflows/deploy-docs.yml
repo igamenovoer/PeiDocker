@@ -46,12 +46,15 @@ jobs:
         run: |
           echo "Building MkDocs site..."
           mkdocs build --clean --verbose
+          # Ensure .nojekyll is in the site directory
+          touch site/.nojekyll
           echo "Site contents:"
           ls -la site/
           echo "Checking for required files:"
           test -f site/index.html && echo "✓ index.html exists" || echo "✗ index.html missing"
           test -f site/cli_reference/index.html && echo "✓ cli_reference/index.html exists" || echo "✗ cli_reference/index.html missing"
           test -f site/examples/index.html && echo "✓ examples/index.html exists" || echo "✗ examples/index.html missing"
+          test -f site/.nojekyll && echo "✓ .nojekyll exists" || echo "✗ .nojekyll missing"
           echo "Index.html content preview:"
           head -20 site/index.html
         

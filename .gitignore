@@ -163,3 +163,8 @@ cython_debug/
 build-*/
 build_*/
 .DS_Store
+# pixi environments
+.pixi
+
+# ignore test dir
+test-*/

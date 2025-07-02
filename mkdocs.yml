@@ -1,5 +1,6 @@
 site_name: PeiDocker
 site_url: https://igamenovoer.github.io/PeiDocker/
+site_dir: site
 repo_url: https://github.com/igamenovoer/PeiDocker
 repo_name: PeiDocker
 use_directory_urls: true
