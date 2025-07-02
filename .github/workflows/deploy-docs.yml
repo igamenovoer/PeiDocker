@@ -48,6 +48,8 @@ jobs:
           mkdocs build --clean --verbose
           # Ensure .nojekyll is in the site directory
           touch site/.nojekyll
+          # Also add a CNAME file if needed for custom domain (optional)
+          # echo "yourdomain.com" > site/CNAME
           echo "Site contents:"
           ls -la site/
           echo "Checking for required files:"
@@ -57,6 +59,8 @@ jobs:
           test -f site/.nojekyll && echo "✓ .nojekyll exists" || echo "✗ .nojekyll missing"
           echo "Index.html content preview:"
           head -20 site/index.html
+          echo "Checking Material theme assets:"
+          ls -la site/assets/stylesheets/ | head -5 || echo "No stylesheets found"
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
