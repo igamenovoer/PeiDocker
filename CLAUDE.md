@@ -84,6 +84,11 @@ Currently no automated tests. Manual testing involves:
 - Keys are RSA 2048-bit without passphrase (testing only, never for production)
 - Enhanced test script automatically uses passwordless configuration
 
+**SSH Testing with sshpass**: When using sshpass for password-based SSH testing:
+- Always include `-o PreferredAuthentications=password` to force password authentication
+- Example: `sshpass -p 'admin123' ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password admin@localhost -p 2222`
+- This prevents SSH from trying other authentication methods that might hang or timeout
+
 ## Active Development Areas
 
 Based on recent commits and tasks:
