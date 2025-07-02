@@ -17,11 +17,15 @@ echo "Installing Pixi Python Package Manager..."
 
 # Source common utilities if available (might not exist on first run)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_SOURCED=false
+
 if [ -f "$SCRIPT_DIR/pixi-utils.bash" ]; then
     source "$SCRIPT_DIR/pixi-utils.bash"
-else
-    # Define functions locally if pixi-utils.bash doesn't exist yet
-    
+    UTILS_SOURCED=true
+fi
+
+# Define local functions if utilities weren't sourced
+if [ "$UTILS_SOURCED" = false ]; then
     # Function to add pixi to a user's bashrc
     add_pixi_to_bashrc() {
         local user_name="$1"
@@ -53,6 +57,20 @@ else
                 echo "$username:$home:$uid:$gid"
             fi
         done < /etc/passwd
+    }
+    
+    # Function to check if root user has a password set
+    root_has_password() {
+        # Check if root has a password by examining /etc/shadow
+        local root_shadow_entry=$(getent shadow root)
+        local password_field=$(echo "$root_shadow_entry" | cut -d: -f2)
+        
+        # If password field is empty, !, or *, root has no password
+        if [ -z "$password_field" ] || [ "$password_field" = "!" ] || [ "$password_field" = "*" ]; then
+            return 1  # No password
+        else
+            return 0  # Has password
+        fi
     }
 fi
 
@@ -108,13 +126,17 @@ if [ "$PIXI_INSTALL_AT_HOME" = "1" ]; then
         echo "✓ Pixi installed for $username at $USER_PIXI_DIR"
     done < <(get_all_users)
     
-    # Also install for root
-    if [ ! -d "/root/.pixi" ] || [ ! -f "/root/.pixi/bin/pixi" ]; then
-        echo "Installing pixi for root user..."
-        cp -r "$TEMP_PIXI_DIR" "/root/.pixi"
-        chmod -R 777 "/root/.pixi"
+    # Also install for root (if root has a password)
+    if root_has_password; then
+        if [ ! -d "/root/.pixi" ] || [ ! -f "/root/.pixi/bin/pixi" ]; then
+            echo "Installing pixi for root user..."
+            cp -r "$TEMP_PIXI_DIR" "/root/.pixi"
+            chmod -R 777 "/root/.pixi"
+        fi
+        add_pixi_to_bashrc "root" "/root" "/root/.pixi/bin"
+    else
+        echo "WARNING: Skipping root user - no password set (not accessible via SSH)"
     fi
-    add_pixi_to_bashrc "root" "/root" "/root/.pixi/bin"
     
     # Clean up temp directory
     rm -rf "$TEMP_PIXI_DIR"
@@ -193,8 +215,12 @@ else
         add_pixi_to_bashrc "$username" "$home" "$PIXI_INSTALL_DIR/bin"
     done < <(get_all_users)
     
-    # Also add to root's bashrc
-    add_pixi_to_bashrc "root" "/root" "$PIXI_INSTALL_DIR/bin"
+    # Also add to root's bashrc (if root has a password)
+    if root_has_password; then
+        add_pixi_to_bashrc "root" "/root" "$PIXI_INSTALL_DIR/bin"
+    else
+        echo "WARNING: Skipping root user bashrc - no password set (not accessible via SSH)"
+    fi
     
     # Add to /etc/bash.bashrc for system-wide availability
     # This ensures new users and non-login shells also get pixi

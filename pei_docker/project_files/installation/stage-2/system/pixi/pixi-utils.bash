@@ -60,8 +60,26 @@ run_as_user() {
     shift  # Remove username from arguments
     local command="$@"
     
-    # Use su to run command as user with login shell to get their environment
-    su - "$username" -c "$command"
+    # Set up pixi PATH for the user and run the command
+    local user_home=$(getent passwd "$username" | cut -d: -f6)
+    local pixi_path=""
+    
+    # Find pixi for this user
+    if [ -f "$user_home/.pixi/bin/pixi" ]; then
+        pixi_path="$user_home/.pixi/bin"
+    elif [ -f "/hard/volume/app/pixi/bin/pixi" ]; then
+        pixi_path="/hard/volume/app/pixi/bin"
+    elif [ -f "/hard/image/app/pixi/bin/pixi" ]; then
+        pixi_path="/hard/image/app/pixi/bin"
+    fi
+    
+    if [ -n "$pixi_path" ]; then
+        # Run command with pixi in PATH
+        su - "$username" -c "export PATH=\"$pixi_path:\$PATH\"; $command"
+    else
+        # No pixi found, run command without modification
+        su - "$username" -c "$command"
+    fi
 }
 
 # Function to check if pixi is available in current environment

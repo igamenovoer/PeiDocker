@@ -5,6 +5,10 @@
 # prevent interactive prompts
 export DEBIAN_FRONTEND=noninteractive
 
+# source the pixi utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/pixi-utils.bash"
+
 echo "Configuring pixi to use Tsinghua mirrors..."
 
 # Function to create pixi config for a specific user

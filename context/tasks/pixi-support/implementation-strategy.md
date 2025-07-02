@@ -26,9 +26,11 @@ install_packages_for_all_users "${packages[@]}"
 ```
 
 ### 4. Smart Root Handling
-- Check root password via `/etc/shadow` password field
-- Skip if field is empty, `!`, or `*`
+- **Critical requirement**: All scripts that install/configure things for users must skip passwordless root
+- Check root password via `/etc/shadow` password field using `root_has_password()` function
+- Skip if field is empty, `!`, or `*` (indicates no password set)
 - Show warning: "WARNING: Skipping root user - no password set (not accessible via SSH)"
+- **Rationale**: Root without password cannot SSH login, so configuring pixi for root is wasteful
 
 ### 5. PATH Configuration
 - Removed reliance on `/etc/profile.d/` (not sourced by non-login SSH shells)
@@ -82,14 +84,58 @@ fi
 ### No longer used:
 - ~~`PIXI_INSTALL_FOR_ALL_USERS`~~ - Always install for all users now
 
+## Root Password Handling Implementation
+
+All scripts that install or configure things for users must properly handle passwordless root:
+
+### Scripts with Root Password Checking:
+
+1. **`install-pixi.bash`** ✅
+   - Per-user mode: Checks `root_has_password()` before installing pixi (lines 125-135)
+   - Shared mode: Checks `root_has_password()` before modifying root's bashrc (lines 214-219)
+   - **Warning messages**: 
+     - "WARNING: Skipping root user - no password set (not accessible via SSH)"
+     - "WARNING: Skipping root user bashrc - no password set (not accessible via SSH)"
+
+2. **`create-env-common.bash`** ✅
+   - Uses `install_packages_for_all_users()` which includes root password checking
+
+3. **`create-env-ml.bash`** ✅  
+   - Uses `install_packages_for_all_users()` which includes root password checking
+
+4. **`set-pixi-repo-tuna.bash`** ✅
+   - Direct implementation with `root_has_password()` check (lines 108-114)
+   - **Warning message**: "WARNING: Skipping root user - no password set (not accessible via SSH)"
+
+### Implementation Details:
+
+The `root_has_password()` function is implemented in two places:
+1. **`pixi-utils.bash`** - Primary implementation for scripts that source utilities
+2. **`install-pixi.bash`** - Local fallback implementation (lines 58-70) for when utilities aren't available yet
+
+```bash
+root_has_password() {
+    local root_shadow_entry=$(getent shadow root)
+    local password_field=$(echo "$root_shadow_entry" | cut -d: -f2)
+    
+    # If password field is empty, !, or *, root has no password
+    if [ -z "$password_field" ] || [ "$password_field" = "!" ] || [ "$password_field" = "*" ]; then
+        return 1  # No password
+    else
+        return 0  # Has password
+    fi
+}
+```
+
 ## Benefits
 
 1. **Reduced Code**: ~70% reduction in script size
 2. **No Duplication**: Common logic centralized
-3. **Consistent Behavior**: All scripts use same user enumeration
+3. **Consistent Behavior**: All scripts use same user enumeration and root handling
 4. **Better Discovery**: Smart pixi finding that checks all locations
 5. **SSH Compatibility**: Direct `.bashrc` modification ensures pixi in PATH
 6. **Future-proof**: `/etc/skel` updates for new users
+7. **Efficient**: Skips installation/configuration for inaccessible root user
 
 ## Testing Notes
 
