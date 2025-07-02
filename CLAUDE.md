@@ -71,6 +71,13 @@ Currently no automated tests. Manual testing involves:
 2. Running through the full workflow (create → configure → build → run)
 3. Verifying SSH access and lifecycle hooks execution
 
+### Important Testing Notes
+
+**SSH User UID Conflicts**: When creating SSH users, avoid UIDs in the 1000-1099 range as they can conflict with system users and groups. Use UID ≥ 1100 for testing to prevent conflicts like:
+- UID 1000: Often used by `ubuntu` user in Ubuntu images
+- UID 1001: Can conflict with auto-generated groups like `ssh_users`
+- **Recommended**: Use UID ≥ 1100 for all test configurations
+
 ## Active Development Areas
 
 Based on recent commits and tasks:

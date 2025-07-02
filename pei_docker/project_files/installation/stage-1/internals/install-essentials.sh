@@ -37,5 +37,3 @@ apt-get install xauth xvfb x11vnc x11-apps qimgv -y
 
 # you need these to make opencv work
 apt-get install ffmpeg libsm6 libxext6 -y
-
-# apt-get install python3 python3-pip -y

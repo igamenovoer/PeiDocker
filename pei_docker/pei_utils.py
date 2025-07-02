@@ -275,5 +275,6 @@ def write_ssh_key_to_temp_file(key_content: str, key_type: str, user_name: str, 
     else:
         os.chmod(full_path, 0o600)  # Read/write for owner only
     
-    # Return relative path from project directory
-    return os.path.relpath(full_path, project_dir).replace('\\', '/')
+    # Return relative path from installation directory for container mounting
+    installation_dir = os.path.join(project_dir, 'installation')
+    return os.path.relpath(full_path, installation_dir).replace('\\', '/')

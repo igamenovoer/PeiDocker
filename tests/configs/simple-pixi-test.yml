@@ -3,7 +3,7 @@
 
 stage_1:
   image:
-    base: ubuntu:24.04
+    base: buildpack-deps:noble-scm
     output: pei-pixi-test:stage-1
   
   ssh:
@@ -14,7 +14,7 @@ stage_1:
     users:
       admin:
         password: 'admin123'
-        uid: 1000
+        uid: 1100
         pubkey_text: |
           ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC+A6Vz6pbcIDyVgM9OJs2nRdFvIAvhBDMIrwtg56eOtHSlonhimj0r5yIvCwBbkWo5Cf5j9MRCr6GFR+c5YZJC/8XiFgndOYWSpBRubg3EfdrfsY+RhR8XrsnMsc2BpIA2A17RZdZZa5EqM0BhINeZkMLJ065LmiVD+BNKyEP+rVM8Xzi/lAqYQZcSy8vnZn3OGurX+8MiVMnAkIlP2A78rz7Z1nE3qgFbeI3aBJtWF7134U/lQzkHb9lYvpfsDcttjOsVZfgyrSM9uJX7WUscisZqgob/UOSN666Dp6/+VsM783eph7bvF1jgj1MAKivGPVV+RrMqTVmPo5EKtKdglZf3/pxAkGighFuEhFjFMdIFiI3XkKWZtJO9zBw7FdhlmXfps6s8I88SotyfeaAc1xi+82xZsKTuKde0atPEwttV2T6dJuowvvzEmmDli3S0gujE1fPVOXd7I6IFV5vFcFqb1Y1kSH1eqG3VK1vmw1+rVbwSj5wCEwZ1DL0S7F8= igamenovoer@ig-7760-linux
         privkey_text: |
@@ -59,7 +59,7 @@ stage_1:
           -----END OPENSSH PRIVATE KEY-----
 
   apt:
-    repo_source: ''
+    repo_source: 'tuna'
 
 stage_2:
   image:
