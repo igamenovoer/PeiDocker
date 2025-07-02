@@ -1,0 +1,84 @@
+# Simple Pixi Test Configuration
+# Tests the pixi package manager installation and common environment setup
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-pixi-test:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      admin:
+        password: 'admin123'
+        uid: 1000
+        pubkey_text: |
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC+A6Vz6pbcIDyVgM9OJs2nRdFvIAvhBDMIrwtg56eOtHSlonhimj0r5yIvCwBbkWo5Cf5j9MRCr6GFR+c5YZJC/8XiFgndOYWSpBRubg3EfdrfsY+RhR8XrsnMsc2BpIA2A17RZdZZa5EqM0BhINeZkMLJ065LmiVD+BNKyEP+rVM8Xzi/lAqYQZcSy8vnZn3OGurX+8MiVMnAkIlP2A78rz7Z1nE3qgFbeI3aBJtWF7134U/lQzkHb9lYvpfsDcttjOsVZfgyrSM9uJX7WUscisZqgob/UOSN666Dp6/+VsM783eph7bvF1jgj1MAKivGPVV+RrMqTVmPo5EKtKdglZf3/pxAkGighFuEhFjFMdIFiI3XkKWZtJO9zBw7FdhlmXfps6s8I88SotyfeaAc1xi+82xZsKTuKde0atPEwttV2T6dJuowvvzEmmDli3S0gujE1fPVOXd7I6IFV5vFcFqb1Y1kSH1eqG3VK1vmw1+rVbwSj5wCEwZ1DL0S7F8= igamenovoer@ig-7760-linux
+        privkey_text: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABAW8a3iUL
+          w4dgDlBZx38EwhAAAAGAAAAAEAAAGXAAAAB3NzaC1yc2EAAAADAQABAAABgQC+A6Vz6pbc
+          IDyVgM9OJs2nRdFvIAvhBDMIrwtg56eOtHSlonhimj0r5yIvCwBbkWo5Cf5j9MRCr6GFR+
+          c5YZJC/8XiFgndOYWSpBRubg3EfdrfsY+RhR8XrsnMsc2BpIA2A17RZdZZa5EqM0BhINeZ
+          kMLJ065LmiVD+BNKyEP+rVM8Xzi/lAqYQZcSy8vnZn3OGurX+8MiVMnAkIlP2A78rz7Z1n
+          E3qgFbeI3aBJtWF7134U/lQzkHb9lYvpfsDcttjOsVZfgyrSM9uJX7WUscisZqgob/UOSN
+          666Dp6/+VsM783eph7bvF1jgj1MAKivGPVV+RrMqTVmPo5EKtKdglZf3/pxAkGighFuEhF
+          jFMdIFiI3XkKWZtJO9zBw7FdhlmXfps6s8I88SotyfeaAc1xi+82xZsKTuKde0atPEwttV
+          2T6dJuowvvzEmmDli3S0gujE1fPVOXd7I6IFV5vFcFqb1Y1kSH1eqG3VK1vmw1+rVbwSj5
+          wCEwZ1DL0S7F8AAAWQkdOGc5dXLw7OmRan65alQAYWWttVetPRFfpUSdLU/xA5JAXpkssD
+          5UVPtV1OVedcxY1hwopg9toZ5TIZ5JCtV3NKhshg8pWWdo7aaEgwS1FYl1C5Xt+U2KtOA0
+          3Qsb/bLbX3pvdozBMj0Bi4LYIRshJ+vpMCKRPe8iJWBMdYJTFNbTvxLeR7U2T9SeTv0KWy
+          KFyNytwaZCP6IdV9oKlIlvw0zTYJwJFRXXdtZwvJtAWY//y/DF7ZFkJNttSyiC1Rg6ADJq
+          8LkXFvuZ9WLiPyrSmVb5HNh0NjvjjsN9Mk2yidqgI9BL202XAI9t9vWTRbzFpk/vj/NkuS
+          fsEsu8MlWsrMMdiBFfrVuk23mOcDG7EosGaFKE2M2fEaM+ez641NTHWYZjLiWqENqFRt1k
+          /9xHhXGQB39T7ytF4yQBP1vjv/VZpVcXAYQl+bDak3Ucc51A8jYBFKi1nQ78uVmgcfKsi5
+          twx62/1LIQrNcIME62/dChcKe+BCm0Bj7V1IfgVpNQmgQw7RtMCjKnry2EsBeUvpSaq0PY
+          xM1TOc5OZ/zdQ9IagC4TZXXfrWc6mcDtDh1K+wRjYk5a0AIFRp6WtifjGd+kK2+2itvpkP
+          Z8veM3VqMqH11SazQs6bnIF3IuTtndMBRyc9O7LCUUb9ackVTN/8UoIoTWUSKJq6PDE17S
+          Nyqq3e1SGYOQtFPBTGRSkN3/2RTLJ2Kwfc+hq0GdC/Nuc1gDVhrDAWALkNGsmK6uR7m4OZ
+          Alfb07Tz2YvnwKm7LSx3Ll5MyYXbWtuuUjh/XMCNcQTVCJRtq+BphS4zcI52iLeXJJhNmq
+          VpIHhD+yPDt85LWtkEmYQRSXcq5tytR/tSpS2+r1VcyuAg9F2GfM+6d2NrY5T6tTD50+MS
+          zy13SqC6+L0t9TplOXpx407/c0zJAixSf7SskRIl8lNw8WzQwqZhCOVrfINOtyQSaOyH9F
+          e6SZ2QP8ERWy0MOyqMKtWJTyOFZJv6cz1mObmH6vSPpfPHgp6LO3mtvEXpMtgOVmIunVw7
+          2Fm6z+zNK6pyd8OondqNGlMem07ErehxY3Dkf8PeWq174MSVPlt8Y86zUErmZQRUdfR/vr
+          WMXTY57VJ3Mt1LI7Ck7Sl60zq/cixF4OEReOzGXT2pkYInf4xZZNuiPQ8HapdGFx1GPFDd
+          65FsnCBhu00X2vzc+tngnoeqOY4GcMEvP7um+SSgtTcS4uOSl3yTuvr6/Q1jbsjgrVRosh
+          d1Si5cr4bbGDKt/i0pV0fcyYUDdTB8K9cF8dy/ktwwxncu4m0kHCy4zYGqBNWHcvKJsxx0
+          2yBtw+AOVDeu7ByRT5Qkw91H/tFZ37Yg3U3hasnXUIJO3B+7y27JjpBs2BgAomiYrgiIvH
+          iJMEkpMvr/vo2w7vPeoO/nn/NKjM6gOqkHbo+8DxTFIjyCGtyr81Bkj2lGchYCsMJSw4Lf
+          WbKn9SMHaI9VC9esEvCpJ+7C3K58TvPAziYkisT72Zxc1gAQAr+hoDj6tIHcYSfgckAf1d
+          s1olhY5tX0g563QKlBy+HP69ltmkBiks0x15vTnPg6bCy4BoF8BORfrqwuecvFjAxXp6fn
+          k1oz9RlG5aFO/WhkG3hH1qUtfO/VNcO6v9fxI6HRcDu7/5s1sFCEJbwlZXDJ9fkzSkVxpX
+          c6RktNRx8UyPOnSsqDTtcXjam7p75Pdda6iC8RnxWwzxtM4Fhcgk7Qbjh7f/p9oE2sGa1P
+          RPmtFrDcrgx+bgmcwLLmsRtoUDGD9DcWlat36tnTxHGIZtCasa95Qcgo+e1gZ4KLHN+iuL
+          AOHtAiIHgpQk3vmyhK6dvFC12vg98uy7E1Q2GVu4tRE99E2uklPYqPn4RvQalxeQ3dDY6x
+          J19dTcVdvv+ZOKLmtxI4vJ4fLxU=
+          -----END OPENSSH PRIVATE KEY-----
+
+  apt:
+    repo_source: ''
+
+stage_2:
+  image:
+    output: pei-pixi-test:stage-2
+  
+  # storage configurations  
+  storage:
+    app:
+      type: host
+      host_path: /workspace/docker-shared/app
+    workspace:
+      type: host
+      host_path: /workspace/docker-shared/workspace
+    data:
+      type: manual-volume
+      volume_name: ig-data
+  
+  # custom scripts
+  custom:
+    on_build:
+      - 'stage-2/system/pixi/install-pixi.bash'
+      - 'stage-2/system/pixi/create-env-common.bash'

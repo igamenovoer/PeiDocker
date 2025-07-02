@@ -1,0 +1,1 @@
+install and configure pixi python environment management

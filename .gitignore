@@ -168,3 +168,6 @@ build_*/
 
 # ignore test dir
 test-*/
+
+# ignore .lock files
+*.lock

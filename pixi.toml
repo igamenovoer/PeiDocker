@@ -16,3 +16,10 @@ mkdocs-material = ">=9.6.15,<10"
 mkdocs-autorefs = "*"
 mkdocs-glightbox = "*"
 pymdown-extensions = "*"
+global = ">=6.6.12,<7"
+cattrs = ">=25.1.1,<26"
+omegaconf = ">=2.3.0,<3"
+attrs = ">=25.3.0,<26"
+
+[pypi-dependencies]
+claude-usage-monitor = ">=1.0.6, <2"
