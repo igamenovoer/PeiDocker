@@ -38,6 +38,11 @@ ARG SSH_CONTAINER_PORT
 # if multiple users, separate the keys by comma
 ARG SSH_PUBKEY_FILE
 
+# path to the private key file for the ssh user
+# if specified, will be installed in user's .ssh directory
+# if multiple users, separate the keys by comma
+ARG SSH_PRIVKEY_FILE
+
 # user provided proxy
 ARG PEI_HTTP_PROXY_1
 ARG PEI_HTTPS_PROXY_1

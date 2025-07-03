@@ -286,7 +286,8 @@ class PeiConfigProcessor:
             else:
                 _ssh_uids.append('')
                 
-        # set config
+        # set config - ensure consistent comma-separated format with empty placeholders
+        # This ensures that each user gets the correct index when parsing in shell scripts
         oc_set(build_compose, 'ssh.username', ','.join(_ssh_names))
         oc_set(build_compose, 'ssh.password', ','.join(_ssh_pwds))
         oc_set(build_compose, 'ssh.pubkey_file', ','.join(_ssh_pubkeys))

@@ -51,6 +51,8 @@ IFS=',' read -ra passwords <<< "$SSH_USER_PASSWORD"
 IFS=',' read -ra pubkey_files <<< "$SSH_PUBKEY_FILE"
 IFS=',' read -ra privkey_files <<< "$SSH_PRIVKEY_FILE"
 IFS=',' read -ra uids <<< "$SSH_USER_UID"
+
+
 for i in "${!users[@]}"; do
   user=${users[$i]}
   password=${passwords[$i]}
