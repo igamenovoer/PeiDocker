@@ -1,0 +1,52 @@
+# SSH Absolute Path Test Configuration Template
+# This template will be customized by the test setup script
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-abspath-test:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2223
+    
+    users:
+      # User with absolute path to public key (will be customized)
+      user_pubkey_abs:
+        password: 'test123'
+        uid: 1201
+        pubkey_file: 'REPLACE_WITH_USER_PUBKEY_PATH'
+      
+      # User with absolute path to private key (will be customized)
+      user_privkey_abs:
+        password: 'test456'
+        uid: 1202
+        privkey_file: 'REPLACE_WITH_USER_PRIVKEY_PATH'
+        
+      # User with system SSH key discovery
+      user_system_pubkey:
+        password: 'test789'
+        uid: 1203
+        pubkey_file: '~'
+        
+      # User with system SSH key discovery for private key
+      user_system_privkey:
+        password: 'test012'
+        uid: 1204
+        privkey_file: '~'
+
+  apt:
+    repo_source: 'tuna'
+
+stage_2:
+  image:
+    output: pei-abspath-test:stage-2
+  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume

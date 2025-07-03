@@ -278,3 +278,111 @@ def write_ssh_key_to_temp_file(key_content: str, key_type: str, user_name: str, 
     # Return relative path from installation directory for container mounting
     installation_dir = os.path.join(project_dir, 'installation')
     return os.path.relpath(full_path, installation_dir).replace('\\', '/')
+
+
+def find_system_ssh_key(prefer_public: bool = True) -> str:
+    """
+    Find system SSH key with priority order.
+    
+    Args:
+        prefer_public: If True, look for .pub files first; if False, look for private keys first
+        
+    Returns:
+        Absolute path to the found SSH key
+        
+    Raises:
+        ValueError: If no suitable SSH key is found
+        
+    Priority order: id_rsa, id_dsa, id_ecdsa, id_ed25519
+    """
+    import os
+    
+    ssh_dir = os.path.expanduser('~/.ssh')
+    if not os.path.exists(ssh_dir):
+        raise ValueError(f'SSH directory not found: {ssh_dir}')
+    
+    # Priority order as specified in requirements
+    key_priorities = ['id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519']
+    
+    for key_name in key_priorities:
+        if prefer_public:
+            # Look for public key first
+            public_key = os.path.join(ssh_dir, f'{key_name}.pub')
+            if os.path.exists(public_key):
+                return public_key
+                
+            # Fallback to private key
+            private_key = os.path.join(ssh_dir, key_name)
+            if os.path.exists(private_key):
+                return private_key
+        else:
+            # Look for private key first
+            private_key = os.path.join(ssh_dir, key_name)
+            if os.path.exists(private_key):
+                return private_key
+                
+            # Fallback to public key
+            public_key = os.path.join(ssh_dir, f'{key_name}.pub')
+            if os.path.exists(public_key):
+                return public_key
+    
+    raise ValueError(f'No SSH key found in {ssh_dir}. Looked for: {key_priorities}')
+
+
+def resolve_ssh_key_path(key_path: str, prefer_public: bool = True) -> str:
+    """
+    Resolve SSH key path, handling absolute paths and ~ expansion.
+    
+    Args:
+        key_path: Path specification (relative, absolute, or ~)
+        prefer_public: For ~ syntax, whether to prefer public keys
+        
+    Returns:
+        Absolute path to the SSH key file
+        
+    Raises:
+        FileNotFoundError: If key file doesn't exist
+        ValueError: If ~ syntax used but no suitable key found
+    """
+    import os
+    
+    if key_path == '~':
+        # Special syntax: find system SSH key
+        return find_system_ssh_key(prefer_public=prefer_public)
+    elif os.path.isabs(key_path):
+        # Absolute path: validate existence
+        if not os.path.exists(key_path):
+            raise FileNotFoundError(f'SSH key file not found: {key_path}')
+        return key_path
+    else:
+        # Relative path: return as-is (existing logic will handle)
+        return key_path
+
+
+def read_ssh_key_content(key_path: str) -> str:
+    """
+    Read SSH key content from absolute path.
+    
+    Args:
+        key_path: Absolute path to SSH key file
+        
+    Returns:
+        SSH key content as string
+        
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        PermissionError: If file can't be read
+    """
+    import os
+    
+    if not os.path.exists(key_path):
+        raise FileNotFoundError(f'SSH key file not found: {key_path}')
+    
+    try:
+        with open(key_path, 'r') as f:
+            content = f.read()
+        return content.strip()
+    except PermissionError:
+        raise PermissionError(f'Permission denied reading SSH key file: {key_path}')
+    except Exception as e:
+        raise RuntimeError(f'Error reading SSH key file {key_path}: {e}')

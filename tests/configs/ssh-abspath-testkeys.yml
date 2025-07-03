@@ -1,0 +1,52 @@
+# SSH Absolute Path Test Configuration using Repository Test Keys
+# This configuration uses the test keys included in the repository
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-abspath-testkeys:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2226
+    
+    users:
+      # User with absolute path to repository test public key
+      user_repo_pubkey:
+        password: 'repo123'
+        uid: 1301
+        pubkey_file: '/workspace/code/PeiDocker/tests/test-keys/peidocker-test-public.key'
+      
+      # User with absolute path to repository test private key
+      user_repo_privkey:
+        password: 'repo456'
+        uid: 1302
+        privkey_file: '/workspace/code/PeiDocker/tests/test-keys/peidocker-test-private.key'
+        
+      # User with both repository test keys (different files)
+      user_repo_both:
+        password: 'repo789'
+        uid: 1303
+        pubkey_file: '/workspace/code/PeiDocker/tests/test-keys/peidocker-test-public.key'
+        privkey_file: '/workspace/code/PeiDocker/tests/test-keys/peidocker-test-private.key'
+        
+      # User with password only for comparison
+      user_password_only:
+        password: 'passonly'
+        uid: 1304
+
+  apt:
+    repo_source: 'tuna'
+
+stage_2:
+  image:
+    output: pei-abspath-testkeys:stage-2
+  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume

@@ -1,0 +1,47 @@
+# SSH Absolute Path Test Configuration
+# Tests absolute path support for SSH key files
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-abspath-test:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2223
+    
+    users:
+      # User with absolute path to public key
+      user1:
+        password: 'pass123'
+        uid: 1101
+        pubkey_file: '/home/igamenovoer/.ssh/id_rsa.pub'
+      
+      # User with absolute path to private key  
+      user2:
+        password: 'pass456'
+        uid: 1102
+        privkey_file: '/home/igamenovoer/.ssh/id_ed25519'
+        
+      # User with both absolute paths (different keys)
+      user3:
+        password: 'pass789'
+        uid: 1103
+        pubkey_file: '/home/igamenovoer/.ssh/id_ed25519.pub'
+        privkey_file: '/home/igamenovoer/.ssh/id_rsa'
+
+  apt:
+    repo_source: 'tuna'
+
+stage_2:
+  image:
+    output: pei-abspath-test:stage-2
+  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume

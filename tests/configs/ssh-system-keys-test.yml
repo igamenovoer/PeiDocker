@@ -1,0 +1,47 @@
+# SSH System Keys Test Configuration  
+# Tests ~ syntax for automatic system SSH key detection
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-system-keys-test:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2224
+    
+    users:
+      # User with ~ syntax for public key (should find highest priority .pub file)
+      developer:
+        password: 'dev123'
+        uid: 1104
+        pubkey_file: '~'
+      
+      # User with ~ syntax for private key (should find highest priority private key)
+      admin:
+        password: 'admin123'
+        uid: 1105
+        privkey_file: '~'
+        
+      # User with ~ syntax for both (will find different keys based on priority)
+      tester:
+        password: 'test123'
+        uid: 1106
+        pubkey_file: '~'
+        privkey_file: '~'
+
+  apt:
+    repo_source: 'tuna'
+
+stage_2:
+  image:
+    output: pei-system-keys-test:stage-2
+  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume

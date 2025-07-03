@@ -1,0 +1,52 @@
+# SSH Mixed Paths Test Configuration
+# Tests combination of relative paths, absolute paths, ~ syntax, and inline keys
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-mixed-paths-test:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2225
+    
+    users:
+      # User with ~ syntax (system key auto-detection)
+      user_system:
+        password: 'sys123'
+        uid: 1107
+        pubkey_file: '~'
+      
+      # User with absolute path
+      user_absolute:
+        password: 'abs123'
+        uid: 1108
+        pubkey_file: '/home/igamenovoer/.ssh/id_ed25519.pub'
+      
+      # User with inline text (existing functionality)
+      user_inline:
+        password: 'inline123'
+        uid: 1109
+        pubkey_text: |
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC+A6Vz6pbcIDyVgM9OJs2nRdFvIAvhBDMIrwtg56eOtHSlonhimj0r5yIvCwBbkWo5Cf5j9MRCr6GFR+c5YZJC/8XiFgndOYWSpBRubg3EfdrfsY+RhR8XrsnMsc2BpIA2A17RZdZZa5EqM0BhINeZkMLJ065LmiVD+BNKyEP+rVM8Xzi/lAqYQZcSy8vnZn3OGurX+8MiVMnAkIlP2A78rz7Z1nE3qgFbeI3aBJtWF7134U/lQzkHb9lYvpfsDcttjOsVZfgyrSM9uJX7WUscisZqgob/UOSN666Dp6/+VsM783eph7bvF1jgj1MAKivGPVV+RrMqTVmPo5EKtKdglZf3/pxAkGighFuEhFjFMdIFiI3XkKWZtJO9zBw7FdhlmXfps6s8I88SotyfeaAc1xi+82xZsKTuKde0atPEwttV2T6dJuowvvzEmmDli3S0gujE1fPVOXd7I6IFV5vFcFqb1Y1kSH1eqG3VK1vmw1+rVbwSj5wCEwZ1DL0S7F8= test@example.com
+      
+      # User with password only (no SSH keys)
+      user_password:
+        password: 'passonly123'
+        uid: 1110
+
+  apt:
+    repo_source: 'tuna'
+
+stage_2:
+  image:
+    output: pei-mixed-paths-test:stage-2
+  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume

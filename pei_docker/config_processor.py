@@ -697,6 +697,7 @@ class PeiConfigProcessor:
     def _process_public_key_sources(self, user_name: str, user_info) -> str:
         """
         Process public key from file or text, return container path.
+        Supports relative paths, absolute paths, and ~ syntax for system SSH keys.
         
         Args:
             user_name: SSH username
@@ -705,16 +706,33 @@ class PeiConfigProcessor:
         Returns:
             Container path to public key file, or empty string if none
         """
-        from pei_docker.pei_utils import write_ssh_key_to_temp_file
+        from pei_docker.pei_utils import write_ssh_key_to_temp_file, resolve_ssh_key_path, read_ssh_key_content
         
         # Handle pubkey_file
         if user_info.pubkey_file is not None and len(user_info.pubkey_file) > 0:
             pubkey_file = user_info.pubkey_file
-            # Check if the pubkey file exists
-            host_path = f'{self.m_project_dir}/{self.m_host_dir}/{pubkey_file}'
-            if not os.path.exists(host_path):
-                raise FileNotFoundError(f'Pubkey file {host_path} not found')
-            return self.m_container_dir + '/' + pubkey_file
+            
+            # NEW: Check if absolute path or ~ syntax
+            if os.path.isabs(pubkey_file) or pubkey_file == '~':
+                # Resolve absolute path or system SSH key
+                resolved_path = resolve_ssh_key_path(pubkey_file, prefer_public=True)
+                key_content = read_ssh_key_content(resolved_path)
+                
+                # Write to temp file (similar to pubkey_text processing)
+                relative_path = write_ssh_key_to_temp_file(
+                    key_content, 
+                    'pubkey',  # key type not needed for public keys
+                    user_name, 
+                    self.m_project_dir, 
+                    is_public=True
+                )
+                return self.m_container_dir + '/' + relative_path
+            else:
+                # EXISTING: Relative path handling (unchanged)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{pubkey_file}'
+                if not os.path.exists(host_path):
+                    raise FileNotFoundError(f'Pubkey file {host_path} not found')
+                return self.m_container_dir + '/' + pubkey_file
         
         # Handle pubkey_text
         elif user_info.pubkey_text is not None and len(user_info.pubkey_text.strip()) > 0:
@@ -733,6 +751,7 @@ class PeiConfigProcessor:
     def _process_private_key_sources(self, user_name: str, user_info) -> str:
         """
         Process private key from file or text, return container path.
+        Supports relative paths, absolute paths, and ~ syntax for system SSH keys.
         Note: Public key generation happens inside the container, not on host.
         
         Args:
@@ -742,17 +761,33 @@ class PeiConfigProcessor:
         Returns:
             Container path to private key file, or empty string if none
         """
-        from pei_docker.pei_utils import write_ssh_key_to_temp_file
+        from pei_docker.pei_utils import write_ssh_key_to_temp_file, resolve_ssh_key_path, read_ssh_key_content
         
         # Handle privkey_file
         if user_info.privkey_file is not None and len(user_info.privkey_file) > 0:
             privkey_file = user_info.privkey_file
-            # Check if the privkey file exists
-            host_path = f'{self.m_project_dir}/{self.m_host_dir}/{privkey_file}'
-            if not os.path.exists(host_path):
-                raise FileNotFoundError(f'Private key file {host_path} not found')
             
-            return self.m_container_dir + '/' + privkey_file
+            # NEW: Check if absolute path or ~ syntax
+            if os.path.isabs(privkey_file) or privkey_file == '~':
+                # Resolve absolute path or system SSH key
+                resolved_path = resolve_ssh_key_path(privkey_file, prefer_public=False)
+                key_content = read_ssh_key_content(resolved_path)
+                
+                # Write to temp file (similar to privkey_text processing)
+                privkey_relative_path = write_ssh_key_to_temp_file(
+                    key_content,
+                    'privkey',  # key type not critical for file naming
+                    user_name,
+                    self.m_project_dir,
+                    is_public=False
+                )
+                return self.m_container_dir + '/' + privkey_relative_path
+            else:
+                # EXISTING: Relative path handling (unchanged)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{privkey_file}'
+                if not os.path.exists(host_path):
+                    raise FileNotFoundError(f'Private key file {host_path} not found')
+                return self.m_container_dir + '/' + privkey_file
         
         # Handle privkey_text
         elif user_info.privkey_text is not None and len(user_info.privkey_text.strip()) > 0:

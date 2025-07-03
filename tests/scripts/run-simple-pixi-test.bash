@@ -1,15 +1,51 @@
 #!/bin/bash
 
-# Test script for pixi support
+# Generalized test script for any PeiDocker configuration
 set -e
 
-echo "===== Running Simple Pixi Test ====="
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [config_file]"
+    echo ""
+    echo "Arguments:"
+    echo "  config_file    Path to the YAML configuration file (default: tests/configs/simple-pixi-test.yml)"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Use default pixi config"
+    echo "  $0 tests/configs/ssh-test.yml        # Use specific config"
+    echo "  $0 my-custom-config.yml              # Use custom config"
+}
+
+# Parse arguments
+CONFIG_FILE="${1:-tests/configs/simple-pixi-test.yml}"
+
+# Show help if requested
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    show_usage
+    exit 0
+fi
+
+# Validate config file
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: Configuration file not found: $CONFIG_FILE"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+# Extract base name for build directory
+CONFIG_BASENAME=$(basename "$CONFIG_FILE" .yml)
+BUILD_DIR="build-${CONFIG_BASENAME}"
+
+echo "===== Running PeiDocker Build Test ====="
+echo "Config file: $CONFIG_FILE"
+echo "Build directory: $BUILD_DIR"
+echo ""
 
 # Change to project root
 cd /workspace/code/PeiDocker
 
 # Clean up any previous builds
-BUILD_DIR="build-pixi-test"
 if [ -d "$BUILD_DIR" ]; then
     echo "Cleaning up previous build directory..."
     rm -rf "$BUILD_DIR"
@@ -21,7 +57,7 @@ python -m pei_docker.pei create -p "$BUILD_DIR"
 
 # Copy our test configuration to the project
 echo "Copying test configuration..."
-cp tests/configs/simple-pixi-test.yml "$BUILD_DIR/user_config.yml"
+cp "$CONFIG_FILE" "$BUILD_DIR/user_config.yml"
 
 # Configure the project (generate docker-compose.yml from user_config.yml)
 echo "Configuring PeiDocker project..."
@@ -57,4 +93,4 @@ docker compose build --progress=plain --no-cache stage-2
 # echo "Stopping container..."
 # docker compose down
 
-echo "===== Simple Pixi Test Completed Successfully ====="
+echo "===== PeiDocker Build Test Completed Successfully ====="
