@@ -1,3 +1,7 @@
+status: FIXED
+
+so, do not get yourself into this bug again
+
 # SSH Key Path Bug Fix
 
 ## Problem Description
