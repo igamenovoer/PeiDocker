@@ -85,59 +85,54 @@ for i in "${!users[@]}"; do
     ssh_dir="/home/$user/.ssh"
   fi
 
-  # generate ssh key for user
+  # Create SSH directory
   mkdir -p $ssh_dir
-  ssh-keygen -t rsa -C "$user" -f "$ssh_dir/id_rsa" -N ""
   
-  # print the private key
-  echo "generated ssh private key for $user:"
-  cat "$ssh_dir/id_rsa"
-
-  # add public key to authorized_keys
-  cat "$ssh_dir/id_rsa.pub" >> "$ssh_dir/authorized_keys"
-  
-  # Handle provided public key file
-  if [ -n "$pubkey_file" ]; then
-    echo "Adding public key from $pubkey_file to authorized_keys"
-    cat $pubkey_file >> "$ssh_dir/authorized_keys"
-  fi
-  
-  # Handle provided private key file
+  # Check if user is providing a private key first
   if [ -n "$privkey_file" ]; then
-    echo "Installing private key from $privkey_file"
+    echo "Installing user-provided private key from $privkey_file"
     
-    # Detect key type from private key
+    # Detect key type from file headers to use standard filename
     key_type="rsa"  # default
+    key_filename="id_rsa"  # default standard filename
+    
     if grep -q "BEGIN OPENSSH PRIVATE KEY" "$privkey_file"; then
-      # Generate public key to detect type
-      temp_pubkey=$(ssh-keygen -y -f "$privkey_file")
-      if [[ $temp_pubkey == ssh-ed25519* ]]; then
-        key_type="ed25519"
-      elif [[ $temp_pubkey == ecdsa-sha2-* ]]; then
-        key_type="ecdsa"
-      elif [[ $temp_pubkey == ssh-dss* ]]; then
-        key_type="dsa"
-      fi
+      # For OpenSSH format, default to rsa (most common)
+      key_filename="id_rsa"
     elif grep -q "BEGIN EC PRIVATE KEY" "$privkey_file"; then
-      key_type="ecdsa"
+      key_filename="id_ecdsa"
     elif grep -q "BEGIN DSA PRIVATE KEY" "$privkey_file"; then
-      key_type="dsa"
+      key_filename="id_dsa"
+    elif grep -q "BEGIN RSA PRIVATE KEY" "$privkey_file"; then
+      key_filename="id_rsa"
     fi
     
-    # Copy private key to user's ssh directory
-    key_filename="id_${key_type}_imported"
+    # Copy user's private key to standard location (replaces auto-generated key)
     cp "$privkey_file" "$ssh_dir/$key_filename"
     chmod 600 "$ssh_dir/$key_filename"
     
-    # Generate and add public key from private key to authorized_keys
-    echo "Generating public key from imported private key"
-    ssh-keygen -y -f "$ssh_dir/$key_filename" >> "$ssh_dir/authorized_keys"
+    # Remove any existing .pub file for this key (since we can't generate it from encrypted key)
+    rm -f "$ssh_dir/${key_filename}.pub"
     
-    # Create corresponding .pub file
-    ssh-keygen -y -f "$ssh_dir/$key_filename" > "$ssh_dir/${key_filename}.pub"
-    chmod 644 "$ssh_dir/${key_filename}.pub"
+    echo "Private key installed as $key_filename (encrypted, replaces auto-generated key)"
     
-    echo "Private key installed as $key_filename with auto-generated public key"
+  else
+    # No user-provided private key, generate standard key pair
+    echo "Generating SSH key pair for $user"
+    ssh-keygen -t rsa -C "$user" -f "$ssh_dir/id_rsa" -N ""
+    
+    # Print the generated private key
+    echo "Generated SSH private key for $user:"
+    cat "$ssh_dir/id_rsa"
+    
+    # Add generated public key to authorized_keys
+    cat "$ssh_dir/id_rsa.pub" >> "$ssh_dir/authorized_keys"
+  fi
+  
+  # Handle provided public key file (add to authorized_keys)
+  if [ -n "$pubkey_file" ]; then
+    echo "Adding public key from $pubkey_file to authorized_keys"
+    cat $pubkey_file >> "$ssh_dir/authorized_keys"
   fi
 
   # Set correct ownership

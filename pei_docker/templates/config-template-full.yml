@@ -84,13 +84,29 @@ stage_1:
 #       5lt6/wVYFPYahu1kYyV+6F6vJnI3BsjuDKhw0=
 #       -----END OPENSSH PRIVATE KEY-----
 #
+# Example 4: Using absolute paths and system SSH key discovery
+# users:
+#   admin:
+#     password: 'admin123'
+#     privkey_file: '/home/myuser/.ssh/id_rsa'          # Absolute path to encrypted private key
+#   developer:
+#     password: 'dev123'  
+#     pubkey_file: '~'                                  # Auto-discovers system SSH public key
+#   tester:
+#     password: 'test123'
+#     privkey_file: '~'                                 # Auto-discovers system SSH private key
+# Note: ~ syntax discovers keys in priority order: id_rsa, id_dsa, id_ecdsa, id_ed25519
+#
 # Important Notes:
 # - pubkey_file and pubkey_text are mutually exclusive
 # - privkey_file and privkey_text are mutually exclusive  
-# - When privkey_text/privkey_file is specified, the public key is auto-generated
-# - Given public and private keys are NOT PAIRED - they are independent
-# - Both the provided public key AND the generated public key will be added to authorized_keys
+# - When encrypted private keys are provided, NO public key is auto-generated (avoids passphrase prompts)
+# - User-provided private keys replace auto-generated keys using standard filenames (id_rsa, id_ecdsa, etc.)
+# - To get a public key from an encrypted private key, generate it manually: ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+# - Given public and private keys are independent (not required to be paired)
+# - Only provided public keys will be added to authorized_keys (no auto-generation from private keys)
 # - At least one authentication method (password, public key, or private key) must be provided
+# - Supports absolute paths (/home/user/.ssh/id_rsa) and ~ syntax for system SSH key discovery
 
   # proxy settings
   # inside the container, the proxy will accessed as http://{address}:{port}

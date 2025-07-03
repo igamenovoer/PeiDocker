@@ -89,10 +89,18 @@ Currently no automated tests. Manual testing involves:
 - Example: `sshpass -p 'admin123' ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password admin@localhost -p 2222`
 - This prevents SSH from trying other authentication methods that might hang or timeout
 
+**SSH Private Key Handling**: When providing encrypted private keys:
+- **No automatic decryption**: Encrypted private keys are copied as-is without passphrase attempts
+- **Standard filenames**: User-provided keys replace auto-generated keys using standard names (`id_rsa`, `id_ecdsa`, etc.)
+- **No public key generation**: When private keys are provided, no corresponding `.pub` files are auto-generated
+- **Manual public key creation**: Users must manually generate public keys if needed using `ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub`
+- **Absolute path support**: Can use absolute paths (`/home/user/.ssh/id_rsa`) or `~` syntax for system key discovery
+
 ## Active Development Areas
 
 Based on recent commits and tasks:
-- SSH key handling improvements (supporting pubkey_text/privkey_text)
+- SSH key handling improvements (supporting pubkey_text/privkey_text, absolute paths, ~ syntax)
+- Enhanced encrypted private key support (no auto-decryption, standard filenames)
 - Environment variable substitution enhancements
 - Documentation improvements
 

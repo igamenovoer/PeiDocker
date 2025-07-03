@@ -130,6 +130,9 @@ bash tests/scripts/validate-ssh-abspath.bash
 - [x] Correct file generation in `installation/stage-1/generated/`
 - [x] Proper container paths: `/pei-from-host/stage-1/generated/`
 - [x] Correct file permissions (644 for public, 600 for private)
+- [x] Standard SSH filenames (id_rsa, id_ecdsa, etc.) instead of custom names
+- [x] No automatic decryption attempts on encrypted private keys
+- [x] No auto-generation of public keys from encrypted private keys
 - [x] Prevention of known path bugs
 - [x] Source file content matching
 
@@ -197,6 +200,9 @@ Everything is set up and ready for you to test the SSH absolute path feature. St
 The feature works exactly as specified in the task:
 - ✅ Supports absolute paths in `pubkey_file` and `privkey_file`
 - ✅ Supports `~` syntax for system SSH key discovery  
+- ✅ Uses standard SSH filenames (id_rsa, id_ecdsa, etc.) that SSH clients expect
+- ✅ No automatic decryption of encrypted private keys (avoids passphrase prompts)
+- ✅ Users can manually generate public keys if needed: `ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub`
 - ✅ Maintains full backward compatibility
 - ✅ Prevents the path bug mentioned in requirements
 
