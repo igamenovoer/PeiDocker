@@ -50,6 +50,158 @@ If you prefer to use `docker run` to run the image, you can copy-paste the `dock
 docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 pei-image:stage-1 /bin/bash
 ```
 
+## SSH Key Configuration
+
+While password authentication works well for basic usage, you can also configure SSH keys for more secure access. PeiDocker supports using your existing system SSH keys with the `~` syntax for automatic discovery.
+
+### Using System SSH Keys
+
+When you specify `~` for `pubkey_file` or `privkey_file`, PeiDocker will automatically discover and use your system SSH keys from your home directory (`~/.ssh/`). The discovery follows this priority order: `id_rsa`, `id_dsa`, `id_ecdsa`, `id_ed25519`.
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-image:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    users:
+      me:
+        password: '123456'
+        pubkey_file: '~'        # Auto-discovers your system public key
+      admin:
+        password: 'admin123'
+        privkey_file: '~'       # Auto-discovers your system private key
+  apt:
+    repo_source: tuna
+```
+
+### Important Notes
+
+- **Public keys**: When using `pubkey_file: '~'`, your system public key will be added to the container's `authorized_keys`, allowing passwordless SSH access
+- **Private keys**: When using `privkey_file: '~'`, your system private key will be copied to the container using standard SSH filenames (`id_rsa`, `id_ecdsa`, etc.)
+- **Encrypted private keys**: If your private key is encrypted, it will be copied as-is without decryption attempts (no passphrase prompts during build)
+- **Manual public key generation**: For encrypted private keys, you can manually generate the public key inside the container: `ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub`
+- **Absolute paths**: You can also use absolute paths like `/home/user/.ssh/id_rsa.pub` instead of the `~` syntax
+
+With this configuration, you can SSH into the container using your existing SSH keys:
+
+```bash
+# Using your private key (if pubkey_file was configured)
+ssh -p 2222 me@127.0.0.1
+
+# Or specify your key explicitly
+ssh -i ~/.ssh/id_rsa -p 2222 admin@127.0.0.1
+```
+
+### SSH Key Methods
+
+PeiDocker supports multiple methods for configuring SSH keys for users, giving you flexibility in how you manage authentication. All SSH key processing (such as public key generation from private keys) happens inside the container during the build process, ensuring cross-platform compatibility.
+
+#### Method 1: Public Key File (Legacy)
+Reference an existing public key file relative to the installation directory:
+
+```yaml
+users:
+  myuser:
+    password: 'mypassword'
+    pubkey_file: 'stage-1/system/ssh/keys/my-key.pub'
+```
+
+#### Method 2: Inline Public Key Text
+Provide the public key content directly in the configuration:
+
+```yaml
+users:
+  myuser:
+    password: 'mypassword'
+    pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhA... user@host'
+```
+
+#### Method 3: Inline Private Key Text
+Provide the private key content directly - the public key will be automatically generated inside the container:
+
+```yaml
+users:
+  myuser:
+    password: 'mypassword'
+    privkey_text: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2g...
+      -----END OPENSSH PRIVATE KEY-----
+```
+
+#### Method 4: Private Key File
+Reference a private key file - the public key will be automatically generated inside the container:
+
+```yaml
+users:
+  myuser:
+    password: 'mypassword'
+    privkey_file: 'stage-1/system/ssh/keys/my-private-key'
+```
+
+### Security Model
+
+- **Cross-platform compatibility**: All SSH key operations (including public key generation) happen inside the Linux container during build, not on the host system
+- **Mutual exclusivity**: You can only use one SSH key method per user - the configuration will be validated to prevent conflicts
+- **Text-based keys**: When using `pubkey_text` or `privkey_text`, the key content is written to temporary files in the project directory and referenced in the docker-compose configuration
+- **Container-side processing**: Private key validation and public key extraction are performed by standard SSH tools inside the container
+
+### Example Configurations
+
+#### Basic SSH setup with inline public key:
+```yaml
+stage_1:
+  ssh:
+    enable: true
+    host_port: 2222
+    users:
+      developer:
+        password: 'devpass123'
+        pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhA... dev@laptop'
+```
+
+#### Multiple users with different key methods:
+```yaml
+stage_1:
+  ssh:
+    enable: true
+    host_port: 2222
+    users:
+      alice:
+        password: 'alice123'
+        pubkey_file: 'stage-1/system/ssh/keys/alice-key.pub'  # File-based public key
+      bob:
+        password: 'bob456'
+        privkey_text: |  # Inline private key
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2g...
+          -----END OPENSSH PRIVATE KEY-----
+      charlie:
+        password: 'charlie789'
+        pubkey_text: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... charlie@workstation'  # Inline public key
+```
+
+### Usage Tips
+
+1. **Key format validation**: PeiDocker validates that public keys start with recognized prefixes (`ssh-rsa`, `ssh-ed25519`, etc.) and private keys are properly formatted OpenSSH keys
+2. **Generated files**: When using text-based keys, PeiDocker automatically creates key files in `installation/stage-1/generated/` and references them in the docker-compose configuration
+3. **Example key provided**: PeiDocker includes an example public key at `project_files/installation/stage-1/system/ssh/keys/example-pubkey.pub` that you can use for testing
+4. **Complete example**: See `examples/ssh-keys-inline.yml` in your project directory for a comprehensive example using all SSH key methods
+5. **Security consideration**: Be careful when storing private keys in configuration files - consider using environment variables or external key files for production deployments
+
+### Troubleshooting
+
+- **Permission errors**: SSH keys in the container are automatically set to the correct permissions (600 for private keys, 644 for public keys)
+- **Key validation failures**: Check that your key text is properly formatted and includes the full key content including headers and footers for private keys
+- **Connection issues**: Verify that the SSH port mapping is correct and that the SSH service started successfully in the container logs
+
+_For more advanced SSH key configuration including environment variable integration and team development scenarios, see [Advanced SSH Key Configuration](advanced.md#ssh-keys-advanced)._
+
 ## GPU image with external storage
 
 This example is based on [the basic ssh image](#basic-ssh), which demonstrates how to use GPU in the container. The image is based on `nvidia/cuda:11.8.0-runtime-ubuntu22.04` that makes use of the GPU. As such, the `device` section is added to the `stage_1` and `stage_2` sections, which are set to `gpu`.
