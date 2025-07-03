@@ -519,6 +519,131 @@ And then, commit your container to image:
 docker commit <container_id> pei-image:stage-2
 ```
 
+[](){#install-pixi}
+## Install pixi package manager
+
+**Pixi** is a modern, fast package manager for Python that uses conda-forge packages but with significantly better performance than conda. It's designed for modern Python development workflows and supports creating isolated environments with precise dependency management.
+
+This example demonstrates how to automatically install pixi and set up a common development environment with essential Python packages. The installation uses the tuna mirror for faster downloads in China and configures pixi to persist across container restarts.
+
+```yaml
+# user_config.yml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-pixi-example:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      developer:
+        password: 'dev123'
+        uid: 1100
+      root:
+        password: 'root123'
+
+  apt:
+    repo_source: tuna
+
+stage_2:
+  image:
+    output: pei-pixi-example:stage-2
+  
+  # storage configurations  
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume
+  
+  # custom scripts to install and configure pixi
+  custom:
+    on_first_run:
+      - 'stage-2/system/pixi/install-pixi.bash'
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/create-env-common.bash'
+```
+
+### What this configuration does:
+
+1. **Base Image**: Uses `ubuntu:24.04` as the base system
+2. **Pixi Installation**: Automatically installs pixi to `/hard/volume/app/pixi` (external storage) or `/hard/image/app/pixi` (image storage)
+3. **Mirror Configuration**: Sets up tuna mirrors for faster package downloads in China
+4. **Common Environment**: Creates a `common` global environment with essential packages:
+   - `scipy` - Scientific computing
+   - `click` - Command-line interface creation
+   - `attrs` - Classes without boilerplate
+   - `omegaconf` - Configuration management
+   - `rich` - Rich text and beautiful formatting
+   - `networkx` - Network analysis
+
+### Build and run process:
+
+```bash
+# assuming the project dir is /path/to/project
+
+# generate docker-compose.yml
+python -m pei_docker.pei configure --project-dir=/path/to/project
+
+cd /path/to/project
+
+# build stage-1
+docker compose build stage-1 --progress=plain --no-cache
+
+# build stage-2 (this installs pixi on first run)
+docker compose build stage-2 --progress=plain --no-cache
+
+# start stage-2 container
+docker compose up -d stage-2
+```
+
+### Verify pixi installation:
+
+After the container starts, you can SSH into it and verify pixi is working:
+
+```bash
+# SSH into the container
+ssh -p 2222 developer@127.0.0.1
+
+# Check pixi installation
+pixi --version
+
+# List global environments
+pixi global list
+
+# Verify packages in common environment
+python -c "import scipy; print('scipy:', scipy.__version__)"
+python -c "import click; print('click:', click.__version__)"
+python -c "import rich; print('rich:', rich.__version__)"
+```
+
+### Key advantages of pixi over conda:
+
+- **Speed**: Significantly faster package resolution and installation
+- **Modern**: Built with Rust, designed for current Python workflows  
+- **Cross-platform**: Works consistently across Linux, macOS, and Windows
+- **Lock files**: Automatic lock file generation for reproducible environments
+- **Global environments**: Easy management of global tool installations
+
+### Important notes:
+
+- **Persistence**: Since pixi is installed to external storage (`/hard/volume/app`), the installation persists across container restarts
+- **First run only**: The installation scripts run only on the first container startup using `on_first_run`
+- **Commit changes**: If you want to bake pixi into the image permanently, commit the container after first run:
+  ```bash
+  docker commit <container_id> pei-pixi-example:stage-2
+  ```
+- **Adding packages**: You can add more packages to the `common` environment by modifying the `create-env-common.bash` script or by running `pixi global install package_name` inside the container
+
+### Custom package lists:
+
+To customize the packages installed in the common environment, you can modify the installation scripts in your project directory under `installation/stage-2/system/pixi/` or create additional environment setup scripts for specific use cases (e.g., machine learning, web development, data science).
+
 ## Using proxy
 
 You can use proxy when building the image. The following example demonstrates how to use proxy for `stage_1`. The proxy is set to `host.docker.internal:30080`, which refers to `127.0.0.1:30080` in host where the proxy is running. The `apt` is specified to use the proxy, and the proxy is kept after the build.
