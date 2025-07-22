@@ -22,15 +22,16 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 **Purpose**: Installs the pixi binary and configures PATH for all users
 
 **Functionality**:
-- Downloads and installs pixi binary
-- Supports two installation modes via `PIXI_INSTALL_AT_HOME` environment variable
+- Downloads and installs pixi binary to each user's home directory (`~/.pixi`)
 - Adds pixi to each user's `.bashrc` file
+- Supports custom cache directory configuration via `--cache-dir` parameter
 - Creates `/etc/skel/.bashrc` entry for future users
 - Skips users without passwords (not SSH accessible)
 
-**Installation Modes**:
-- **Shared mode** (default): Installs to `/hard/volume/app/pixi` or `/hard/image/app/pixi`
-- **Per-user mode** (`PIXI_INSTALL_AT_HOME=1`): Installs to each user's `~/.pixi` directory
+**Parameters**:
+- `--cache-dir=<absolute_path>`: Optional. Sets custom cache directory for pixi (saved permanently to `.bashrc`)
+- `--install-dir=<absolute_path>`: Optional. Sets custom installation directory for pixi (default: `~/.pixi`)
+- `--verbose`: Optional. Enable verbose output during installation for debugging purposes
 
 #### `set-pixi-repo-tuna.bash`
 **Purpose**: Configures pixi to use Tsinghua University mirrors for faster downloads
@@ -87,34 +88,69 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 ### Basic Installation Workflow
 
 ```bash
-# 1. Install pixi binary (run as root)
+# 1. Install pixi binary (run as root) - installs to each user's home directory
 ./install-pixi.bash
 
-# 2. Configure mirrors (optional, for China users)
+# 2. Install with custom cache directory (optional)
+./install-pixi.bash --cache-dir=/custom/cache/path
+
+# 3. Install with custom installation directory (optional)
+./install-pixi.bash --install-dir=/custom/install/path
+
+# 4. Install with both custom cache and install directories
+./install-pixi.bash --cache-dir=/custom/cache --install-dir=/custom/install
+
+# 5. Install with verbose debugging output (optional)
+./install-pixi.bash --verbose
+
+# 6. Configure mirrors (optional, for China users)
 ./set-pixi-repo-tuna.bash
 
-# 3. Install common packages
+# 7. Install common packages
 ./create-env-common.bash
 
-# 4. Install ML packages (optional)
+# 8. Install ML packages (optional)
 ./create-env-ml.bash
 ```
 
-### Environment Variables
+### Command Line Parameters
 
-#### `PIXI_INSTALL_AT_HOME`
-Controls pixi installation location:
-- **Not set** (default): Shared installation in `/hard/volume/app/pixi` or `/hard/image/app/pixi`
-- **Set to `1`**: Per-user installation in each user's `~/.pixi` directory
+#### `--cache-dir=<absolute_path>`
+Sets a custom cache directory for pixi. The directory must be an absolute path inside the container.
+- **Not specified**: Uses pixi's default cache directory
+- **Specified**: Sets `PIXI_CACHE_DIR` environment variable permanently in each user's `.bashrc`
+
+#### `--install-dir=<absolute_path>`
+Sets a custom installation directory for pixi. The directory must be an absolute path inside the container.
+- **Not specified**: Uses pixi's default installation directory (`~/.pixi` for each user)
+- **Specified**: Installs pixi to the specified directory and adds it to PATH in each user's `.bashrc`
+
+#### `--verbose`
+Enables verbose output during the installation process for debugging purposes.
+- **Not specified**: Shows only essential installation messages
+- **Specified**: Shows detailed debugging information including parameter parsing, user enumeration, installation verification, permission setting, and configuration steps
 
 ```bash
-# Install pixi per-user
-export PIXI_INSTALL_AT_HOME=1
+# Install with default locations
 ./install-pixi.bash
 
-# Install pixi shared (default)
-unset PIXI_INSTALL_AT_HOME
-./install-pixi.bash
+# Install with custom cache directory
+./install-pixi.bash --cache-dir=/tmp/pixi-cache
+
+# Install with custom installation directory
+./install-pixi.bash --install-dir=/usr/local/pixi
+
+# Install with both custom cache and install directories
+./install-pixi.bash --cache-dir=/hard/volume/pixi-cache --install-dir=/hard/volume/pixi
+
+# Install with cache in shared volume
+./install-pixi.bash --cache-dir=/hard/volume/pixi-cache
+
+# Install with verbose output for debugging
+./install-pixi.bash --verbose
+
+# Install with all parameters for debugging
+./install-pixi.bash --cache-dir=/custom/cache --install-dir=/custom/install --verbose
 ```
 
 ### Advanced Usage
@@ -168,16 +204,20 @@ All scripts implement smart user filtering:
 
 **Rationale**: Users without passwords cannot SSH login, so configuring pixi for them is wasteful.
 
-### Installation Modes Comparison
+### Installation Characteristics
 
-| Feature | Shared Mode | Per-User Mode |
-|---------|-------------|---------------|
-| **Location** | `/hard/volume/app/pixi` | `~/.pixi` for each user |
-| **Disk Usage** | Single installation | Multiple installations |
-| **User Isolation** | All users share | Each user independent |
-| **Updates** | Update once for all | Update per user |
-| **Permissions** | 777 (world writable) | User-owned |
-| **Future Users** | Automatic access | Need individual setup |
+The script always installs pixi to each user's home directory with the following characteristics:
+
+| Feature | Per-User Installation |
+|---------|----------------------|
+| **Location** | `~/.pixi` for each user (default) or custom via `--install-dir` |
+| **Disk Usage** | Multiple installations (one per user unless using shared custom directory) |
+| **User Isolation** | Each user has independent pixi installation (unless using shared `--install-dir`) |
+| **Updates** | Update per user as needed |
+| **Permissions** | User-owned (secure isolation) |
+| **Cache Directory** | Configurable via `--cache-dir` parameter |
+| **Install Directory** | Configurable via `--install-dir` parameter |
+| **Future Users** | Automatic setup via `/etc/skel/.bashrc` |
 
 ### PATH Configuration Strategy
 
@@ -196,10 +236,7 @@ The scripts ensure pixi is available in SSH sessions by:
 **Cause**: pixi not in PATH for SSH sessions
 **Solution**: Scripts automatically add pixi to `.bashrc`. If manual fix needed:
 ```bash
-# For shared installation
-echo 'export PATH="/hard/volume/app/pixi/bin:$PATH"' >> ~/.bashrc
-
-# For per-user installation  
+# For per-user installation (default behavior)
 echo 'export PATH="~/.pixi/bin:$PATH"' >> ~/.bashrc
 ```
 
@@ -217,16 +254,21 @@ source /path/to/pixi-utils.bash
 # Check if user has password
 getent shadow username | cut -d: -f2
 
-# Check if user has pixi
-ls -la /home/username/.pixi/bin/pixi  # per-user mode
-ls -la /hard/volume/app/pixi/bin/pixi  # shared mode
+# Check if user has pixi (per-user installation)
+ls -la /home/username/.pixi/bin/pixi
+
+# Check if cache directory is configured (if --cache-dir was used)
+grep PIXI_CACHE_DIR /home/username/.bashrc
 ```
 
 ### Debugging
 
 #### Enable verbose output
 ```bash
-# Run with bash debug mode
+# Run with built-in verbose mode for detailed debugging
+./install-pixi.bash --verbose
+
+# Run with bash debug mode for script-level debugging
 bash -x ./install-pixi.bash
 
 # Check what users are detected
@@ -258,15 +300,51 @@ cat ~/.pixi/config.toml
 These scripts are designed to run during the stage-2 container build process:
 
 ```yaml
-# In PeiDocker configuration
+# In PeiDocker configuration - basic usage
 custom:
   on_first_run:
     - 'stage-2/system/pixi/install-pixi.bash'
     - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
     - 'stage-2/system/pixi/create-env-common.bash'
+
+# With custom cache directory
+custom:
+  on_first_run:
+    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/pixi-cache'
+    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/create-env-common.bash'
+
+# With custom installation directory
+custom:
+  on_first_run:
+    - 'stage-2/system/pixi/install-pixi.bash --install-dir=/hard/volume/pixi'
+    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/create-env-common.bash'
+
+# With both custom cache and install directories
+custom:
+  on_first_run:
+    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/cache --install-dir=/hard/volume/pixi'
+    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/create-env-common.bash'
+
+# With verbose output for debugging
+custom:
+  on_first_run:
+    - 'stage-2/system/pixi/install-pixi.bash --verbose'
+    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/create-env-common.bash'
+
+# With all parameters for comprehensive debugging
+custom:
+  on_first_run:
+    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/cache --install-dir=/hard/volume/pixi --verbose'
+    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/create-env-common.bash'
 ```
 
 The scripts integrate with PeiDocker's storage strategy:
-- **Volume storage**: `/hard/volume/app/pixi` (preferred for shared mode)
-- **Image storage**: `/hard/image/app/pixi` (fallback for shared mode)
-- **User homes**: `~/.pixi` (per-user mode)
+- **Installation location**: `~/.pixi` (default) or custom directory via `--install-dir` parameter  
+- **Cache location**: Configurable via `--cache-dir` parameter (can use volumes like `/hard/volume/pixi-cache`)
+- **Shared installations**: Use `--install-dir=/hard/volume/pixi` for shared installations across users
+- **Per-user isolation**: Default behavior ensures each user has independent pixi installation

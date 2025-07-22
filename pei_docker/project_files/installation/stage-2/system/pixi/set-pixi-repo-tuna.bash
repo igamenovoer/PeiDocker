@@ -70,26 +70,7 @@ get_all_users() {
     done < /etc/passwd
 }
 
-# Function to find pixi binary for a user
-find_user_pixi() {
-    local user_home="$1"
-    
-    # Check per-user installation first
-    if [ -f "$user_home/.pixi/bin/pixi" ]; then
-        echo "$user_home/.pixi/bin/pixi"
-        return 0
-    fi
-    
-    # Check shared locations
-    for pixi_dir in "/hard/volume/app/pixi" "/hard/image/app/pixi"; do
-        if [ -f "$pixi_dir/bin/pixi" ]; then
-            echo "$pixi_dir/bin/pixi"
-            return 0
-        fi
-    done
-    
-    return 1
-}
+# find_user_pixi function is now available from pixi-utils.bash
 
 # Configure pixi for all users
 echo "Configuring pixi mirrors for all users..."
@@ -104,7 +85,7 @@ while IFS=: read -r username home uid gid; do
     echo "Checking pixi for user: $username"
     
     # Check if pixi is available for this user
-    if pixi_path=$(find_user_pixi "$home"); then
+    if pixi_path=$(find_user_pixi "$home" "$username"); then
         echo "Found pixi at: $pixi_path"
         create_pixi_config "$username" "$home"
     else
@@ -114,7 +95,7 @@ done < <(get_all_users)
 
 # Also configure for root
 echo "Checking pixi for root user..."
-if pixi_path=$(find_user_pixi "/root"); then
+if pixi_path=$(find_user_pixi "/root" "root"); then
     if root_has_password; then
         echo "Found pixi at: $pixi_path"
         create_pixi_config "root" "/root"

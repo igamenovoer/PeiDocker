@@ -14,14 +14,41 @@ get_all_users() {
 # Function to find pixi binary for a user
 find_user_pixi() {
     local user_home="$1"
+    local username="${2:-$(basename "$user_home")}"
     
-    # Check per-user installation first
+    # First try to find pixi in the user's PATH by running as that user
+    if [ "$username" != "root" ]; then
+        local pixi_path=$(su - "$username" -c "command -v pixi 2>/dev/null" 2>/dev/null)
+        if [ -n "$pixi_path" ] && [ -f "$pixi_path" ]; then
+            echo "$pixi_path"
+            return 0
+        fi
+    else
+        # For root, check directly
+        if command -v pixi &>/dev/null; then
+            echo "$(command -v pixi)"
+            return 0
+        fi
+    fi
+    
+    # Check per-user default installation location
     if [ -f "$user_home/.pixi/bin/pixi" ]; then
         echo "$user_home/.pixi/bin/pixi"
         return 0
     fi
     
-    # Check shared locations
+    # Check for custom install directories by looking in bashrc
+    local bashrc_file="$user_home/.bashrc"
+    if [ -f "$bashrc_file" ]; then
+        # Look for PATH export that contains a pixi directory
+        local pixi_paths=$(grep -o 'export PATH="[^"]*pixi[^"]*bin[^"]*' "$bashrc_file" 2>/dev/null | sed 's/export PATH="//; s/:.*$//' | head -1)
+        if [ -n "$pixi_paths" ] && [ -f "$pixi_paths/pixi" ]; then
+            echo "$pixi_paths/pixi"
+            return 0
+        fi
+    fi
+    
+    # Check legacy shared locations (for backward compatibility)
     for pixi_dir in "/hard/volume/app/pixi" "/hard/image/app/pixi"; do
         if [ -f "$pixi_dir/bin/pixi" ]; then
             echo "$pixi_dir/bin/pixi"
@@ -35,19 +62,13 @@ find_user_pixi() {
 # Function to setup PATH for pixi (for current shell)
 setup_pixi_path() {
     local user_home="${1:-$HOME}"
+    local username="${2:-$(whoami)}"
     
-    # Check per-user installation first
-    if [ -f "$user_home/.pixi/bin/pixi" ]; then
-        export PATH="$user_home/.pixi/bin:$PATH"
-        return 0
-    fi
-    
-    # Check shared locations
-    if [ -d "/hard/volume/app/pixi/bin" ]; then
-        export PATH="/hard/volume/app/pixi/bin:$PATH"
-        return 0
-    elif [ -d "/hard/image/app/pixi/bin" ]; then
-        export PATH="/hard/image/app/pixi/bin:$PATH"
+    # Use find_user_pixi to get the correct pixi location
+    local pixi_binary=$(find_user_pixi "$user_home" "$username")
+    if [ -n "$pixi_binary" ]; then
+        local pixi_bin_dir=$(dirname "$pixi_binary")
+        export PATH="$pixi_bin_dir:$PATH"
         return 0
     fi
     
@@ -62,18 +83,12 @@ run_as_user() {
     
     # Set up pixi PATH for the user and run the command
     local user_home=$(getent passwd "$username" | cut -d: -f6)
-    local pixi_path=""
     
-    # Find pixi for this user
-    if [ -f "$user_home/.pixi/bin/pixi" ]; then
-        pixi_path="$user_home/.pixi/bin"
-    elif [ -f "/hard/volume/app/pixi/bin/pixi" ]; then
-        pixi_path="/hard/volume/app/pixi/bin"
-    elif [ -f "/hard/image/app/pixi/bin/pixi" ]; then
-        pixi_path="/hard/image/app/pixi/bin"
-    fi
+    # Find pixi for this user using the enhanced find function
+    local pixi_binary=$(find_user_pixi "$user_home" "$username")
     
-    if [ -n "$pixi_path" ]; then
+    if [ -n "$pixi_binary" ]; then
+        local pixi_path=$(dirname "$pixi_binary")
         # Run command with pixi in PATH
         su - "$username" -c "export PATH=\"$pixi_path:\$PATH\"; $command"
     else
@@ -124,7 +139,7 @@ run_pixi_for_users() {
             
             # Run for regular users
             while IFS=: read -r username home uid gid; do
-                if find_user_pixi "$home" >/dev/null; then
+                if find_user_pixi "$home" "$username" >/dev/null; then
                     echo "Running for user $username: pixi $pixi_command"
                     run_as_user "$username" "pixi $pixi_command"
                     found_any=true
@@ -132,9 +147,9 @@ run_pixi_for_users() {
             done < <(get_all_users)
             
             # Also check root
-            if find_user_pixi "/root" >/dev/null; then
+            if find_user_pixi "/root" "root" >/dev/null; then
                 echo "Running for root: pixi $pixi_command"
-                HOME=/root setup_pixi_path "/root"
+                HOME=/root setup_pixi_path "/root" "root"
                 pixi $pixi_command
                 found_any=true
             fi
@@ -174,6 +189,40 @@ root_has_password() {
     user_has_password "root"
 }
 
+# Function to add pixi to a user's bashrc with optional cache directory configuration
+add_pixi_to_bashrc() {
+    local user_name="$1"
+    local user_home="$2"
+    local pixi_path="$3"
+    local cache_dir="$4"
+    local bashrc_file="$user_home/.bashrc"
+    
+    # Create .bashrc if it doesn't exist
+    if [ ! -f "$bashrc_file" ]; then
+        echo "Creating $bashrc_file for user $user_name"
+        touch "$bashrc_file"
+        chown "$user_name:$user_name" "$bashrc_file"
+    fi
+    
+    # Check if this exact pixi path is already in bashrc
+    if ! grep -qF "export PATH=\"$pixi_path:\$PATH\"" "$bashrc_file"; then
+        echo "export PATH=\"$pixi_path:\$PATH\"" >> "$bashrc_file"
+        echo "Added pixi to $bashrc_file"
+    else
+        echo "Pixi path already in $bashrc_file"
+    fi
+    
+    # Add cache directory setting if provided
+    if [ -n "$cache_dir" ]; then
+        if ! grep -qF "export PIXI_CACHE_DIR=\"$cache_dir\"" "$bashrc_file"; then
+            echo "export PIXI_CACHE_DIR=\"$cache_dir\"" >> "$bashrc_file"
+            echo "Added pixi cache directory setting to $bashrc_file"
+        else
+            echo "Pixi cache directory already configured in $bashrc_file"
+        fi
+    fi
+}
+
 # Function to install pixi packages for all users
 install_packages_for_all_users() {
     local packages=("$@")
@@ -187,7 +236,7 @@ install_packages_for_all_users() {
             continue
         fi
         
-        if find_user_pixi "$home" >/dev/null; then
+        if find_user_pixi "$home" "$username" >/dev/null; then
             echo "Installing packages for user: $username"
             for package in "${packages[@]}"; do
                 echo "  Installing $package for $username..."
@@ -199,10 +248,10 @@ install_packages_for_all_users() {
     done < <(get_all_users)
     
     # Handle root user
-    if find_user_pixi "/root" >/dev/null; then
+    if find_user_pixi "/root" "root" >/dev/null; then
         if root_has_password; then
             echo "Installing packages for root user..."
-            HOME=/root setup_pixi_path "/root"
+            HOME=/root setup_pixi_path "/root" "root"
             for package in "${packages[@]}"; do
                 echo "  Installing $package for root..."
                 pixi global install "$package" || echo "    Failed to install $package for root"
@@ -224,4 +273,5 @@ export -f check_pixi_available
 export -f run_pixi_for_users
 export -f user_has_password
 export -f root_has_password
+export -f add_pixi_to_bashrc
 export -f install_packages_for_all_users
