@@ -18,6 +18,8 @@ stage_1:
     users:
       igamenovoer:
         password: '123456'
+        pubkey_file: ~
+        privkey_file: ~
         uid: 3100
       root: # you can configure root user here
         password: root
@@ -55,7 +57,7 @@ stage_1:
     # run twice, in case of failure
     on_first_run:
       - 'stage-1/custom/install-dev-tools.sh'
-      - 'stage-1/system/vision-dev/install-vision-dev.bash'
+      # - 'stage-1/system/vision-dev/install-vision-dev.bash'
       - 'stage-1/contrib/igamenovoer/config-git.sh'
 
 stage_2:
@@ -85,7 +87,7 @@ stage_2:
 
   custom:
     on_first_run: 
-      - 'stage-2/system/conda/auto-install-miniforge.sh'  # install miniconda
+      - 'stage-2/system/pixi/install-pixi.bash'
 
   # additional mounts
   mount:
@@ -95,3 +97,4 @@ stage_2:
     shared_host:
       type: host
       host_path: /mnt/d/docker-space/workspace/minimal-gpu
+      dst_path: /shared-host
