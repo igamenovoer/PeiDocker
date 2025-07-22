@@ -154,6 +154,7 @@ docker tag ubuntu:24.04 my-ubuntu:24.04
 ## Custom commands
 
 * To run custom commands during build, edit the scripts in `<project_dir>/installation/stage-<1,2>/custom`. You can also run other scripts by adding them in `user_config.yml`.
+* **Custom script parameters**: Scripts can accept shell-like parameters using quotes: `'script.sh --param=value --flag'`. Parameters are safely parsed and passed to scripts during execution.
 * If you have *on-first-run* commands in `user_config.yml`, after the first run, you shall commit the container to a new image so that the changes are saved, or otherwise those commands will be executed again when the container is recreated.
 
 ## Stage-2 storage
@@ -295,22 +296,22 @@ stage_1:
     on_build: 
       - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
       - 'stage-1/custom/my-build-1.sh'
-      - 'stage-1/custom/my-build-2.sh'
+      - 'stage-1/custom/my-build-2.sh --verbose --config=/tmp/build.conf'
 
     # scripts run on first run
     on_first_run:
       - 'stage-1/custom/my-on-first-run-1.sh'
-      - 'stage-1/custom/my-on-first-run-2.sh'
+      - 'stage-1/custom/my-on-first-run-2.sh --initialize --create-dirs'
 
     # scripts run on every run
     on_every_run:
       - 'stage-1/custom/my-on-every-run-1.sh'
-      - 'stage-1/custom/my-on-every-run-2.sh'
+      - 'stage-1/custom/my-on-every-run-2.sh --check-health'
 
     # scripts run on user login
     on_user_login:
       - 'stage-1/custom/my-on-user-login-1.sh'
-      - 'stage-1/custom/my-on-user-login-2.sh'
+      - 'stage-1/custom/my-on-user-login-2.sh --show-motd --update-prompt'
     
 stage_2:
 
@@ -378,20 +379,20 @@ stage_2:
     on_build: 
       - 'stage-2/custom/install-gui-tools.sh' # just an example, you can safely remove this
       - 'stage-2/custom/my-build-1.sh'
-      - 'stage-2/custom/my-build-2.sh'
+      - 'stage-2/custom/my-build-2.sh --enable-desktop --theme=dark'
 
     # scripts run on first start
     on_first_run:
       - 'stage-2/custom/my-on-first-run-1.sh'
-      - 'stage-2/custom/my-on-first-run-2.sh'
+      - 'stage-2/custom/my-on-first-run-2.sh --setup-workspace --clone-repos'
 
     # scripts run on every start
     on_every_run:
       - 'stage-2/custom/my-on-every-run-1.sh'
-      - 'stage-2/custom/my-on-every-run-2.sh'
+      - 'stage-2/custom/my-on-every-run-2.sh --update-status --log-startup'
 
     # scripts run on user login
     on_user_login:
       - 'stage-2/custom/my-on-user-login-1.sh'
-      - 'stage-2/custom/my-on-user-login-2.sh'
+      - 'stage-2/custom/my-on-user-login-2.sh --welcome-message --check-updates'
 ```

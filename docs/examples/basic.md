@@ -796,6 +796,66 @@ python -c "import rich; print('rich:', rich.__version__)"
 
 To customize the packages installed in the common environment, you can modify the installation scripts in your project directory under `installation/stage-2/system/pixi/` or create additional environment setup scripts for specific use cases (e.g., machine learning, web development, data science).
 
+## Custom script parameters
+
+PeiDocker supports passing parameters to custom scripts using shell-like syntax. This allows you to customize script behavior without modifying the script files themselves.
+
+```yaml
+stage_1:
+  custom:
+    on_build:
+      - 'stage-1/custom/my-build.sh --verbose --config=/tmp/build.conf'
+    on_first_run:
+      - 'stage-1/custom/setup.sh --initialize --create-dirs'
+    on_every_run:
+      - 'stage-1/custom/health-check.sh --check-services --log-output'
+
+stage_2:
+  custom:
+    on_build:
+      - 'stage-2/custom/install-app.sh --enable-desktop --theme=dark'
+    on_user_login:
+      - 'stage-2/custom/welcome.sh --show-motd --check-updates'
+```
+
+### How it works:
+
+- Parameters are safely parsed using shell-like syntax
+- Scripts receive parameters as standard command-line arguments
+- Both single and double quotes are supported for complex parameters
+- Works across all script lifecycle events (on_build, on_first_run, on_every_run, on_user_login)
+
+### Example script implementation:
+
+```bash
+#!/bin/bash
+# example script showing parameter handling
+
+# Default values
+VERBOSE=false
+CONFIG_FILE=""
+
+# Parse parameters
+for arg in "$@"; do
+    case $arg in
+        --verbose)
+            VERBOSE=true
+            ;;
+        --config=*)
+            CONFIG_FILE="${arg#*=}"
+            ;;
+        *)
+            echo "Unknown parameter: $arg"
+            ;;
+    esac
+done
+
+# Use parameters
+if [ "$VERBOSE" = true ]; then
+    echo "Verbose mode enabled"
+fi
+```
+
 ## Using proxy
 
 You can use proxy when building the image. The following example demonstrates how to use proxy for `stage_1`. The proxy is set to `host.docker.internal:30080`, which refers to `127.0.0.1:30080` in host where the proxy is running. The `apt` is specified to use the proxy, and the proxy is kept after the build.
