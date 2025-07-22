@@ -1,1 +1,0 @@
-for AI assitant to store condensed history information, about specific topics
