@@ -64,10 +64,10 @@ RUN apt install -y dos2unix
 
 # convert CRLF to LF for scripts in internals and system
 # RUN find $PEI_STAGE_DIR_2 -type f -not -path "$PEI_STAGE_DIR_2/tmp/*" -exec sed -i 's/\r$//' {} \;
-RUN find $PEI_STAGE_DIR_2 -type f -name "*.sh" -exec dos2unix {} \;
+RUN find $PEI_STAGE_DIR_2 -type f \( -name "*.sh" -o -name "*.bash" \) -exec dos2unix {} \;
 
 # add chmod+x to all scripts, including all subdirs
-RUN find $PEI_STAGE_DIR_2 -type f -name "*.sh" -exec chmod +x {} \;
+RUN find $PEI_STAGE_DIR_2 -type f \( -name "*.sh" -o -name "*.bash" \) -exec chmod +x {} \;
 
 # setup and show env
 RUN $PEI_STAGE_DIR_2/internals/setup-env.sh && env
@@ -93,10 +93,10 @@ ADD ${PEI_STAGE_HOST_DIR_2} ${PEI_STAGE_DIR_2}
 
 # convert CRLF to LF
 # RUN find $PEI_STAGE_DIR_2 -type f -not -path "$PEI_STAGE_DIR_2/tmp/*" -exec sed -i 's/\r$//' {} \;
-RUN find $PEI_STAGE_DIR_2 -type f -name "*.sh" -exec dos2unix {} \;
+RUN find $PEI_STAGE_DIR_2 -type f \( -name "*.sh" -o -name "*.bash" \) -exec dos2unix {} \;
 
 # add chmod+x to all scripts, including all subdirs
-RUN find $PEI_STAGE_DIR_2 -type f -name "*.sh" -exec chmod +x {} \;
+RUN find $PEI_STAGE_DIR_2 -type f \( -name "*.sh" -o -name "*.bash" \) -exec chmod +x {} \;
 
 # install custom apps
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

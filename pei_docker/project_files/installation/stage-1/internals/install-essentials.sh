@@ -24,6 +24,10 @@ else
   apt-get install openssh-server -y
 fi
 
+# for automation
+echo "Installing sshpass for automation..."
+apt-get install sshpass -y
+
 # FIXME: skipping all the other installations for now
 exit 0
 

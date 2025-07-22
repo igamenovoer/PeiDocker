@@ -1,11 +1,12 @@
 # main command of PeiDocker utility
 import os
 import logging
+import shlex
 import omegaconf as oc
 from omegaconf import DictConfig
 from attrs import define, field
 import cattrs
-from typing import Optional
+from typing import Optional, Tuple
 
 from pei_docker.user_config import *
 
@@ -483,6 +484,51 @@ class PeiConfigProcessor:
             # write to compose
             oc.OmegaConf.update(stage_compose, 'volumes', vol_mapping_strings)
         
+    @staticmethod
+    def _parse_script_entry(script_entry: str) -> Tuple[str, str]:
+        """
+        Parse a script entry to separate script path from parameters.
+        
+        Args:
+            script_entry: Script entry like 'stage-1/custom/my-script.sh --param1=value1 --param2="value with spaces"'
+            
+        Returns:
+            Tuple of (script_path, parameters_string)
+            
+        Examples:
+            'stage-1/custom/script.sh' -> ('stage-1/custom/script.sh', '')
+            'stage-1/custom/script.sh --verbose' -> ('stage-1/custom/script.sh', '--verbose')
+            'stage-1/custom/script.sh --param="value with spaces"' -> ('stage-1/custom/script.sh', '--param="value with spaces"')
+        """
+        try:
+            # Use shlex to parse shell-like arguments safely
+            tokens = shlex.split(script_entry.strip())
+        except ValueError as e:
+            # If shlex parsing fails (e.g., unmatched quotes), treat entire string as script path
+            logging.warning(f"Failed to parse script entry '{script_entry}': {e}. Treating as script path only.")
+            return script_entry.strip(), ""
+            
+        if not tokens:
+            return "", ""
+            
+        script_path = tokens[0]
+        
+        if len(tokens) == 1:
+            # No parameters
+            return script_path, ""
+        else:
+            # Rejoin parameters with proper shell escaping
+            parameters = []
+            for token in tokens[1:]:
+                # If token contains spaces or special chars, quote it
+                if ' ' in token or '"' in token or "'" in token or any(c in token for c in ['&', '|', ';', '(', ')', '<', '>', '$', '`', '\\', '!', '?', '*', '[', ']']):
+                    # Use shlex.quote to properly escape the token
+                    parameters.append(shlex.quote(token))
+                else:
+                    parameters.append(token)
+            
+            return script_path, " ".join(parameters)
+    
     def _generate_script_text(self, on_what:str, filelist : Optional[list[str]]) -> str:
         ''' generate the script commands that will run all user scripts
         
@@ -491,7 +537,8 @@ class PeiConfigProcessor:
         on_what : str
             the event that the scripts will run on, such as on-build, on-first-run, on-every-run
         filelist : list[str] | None
-            the list of script files to run, the path is relative to stage-?/custom
+            the list of script entries to run. Each entry can contain script path and parameters,
+            e.g., 'stage-1/custom/script.sh --param1=value1 --param2="value with spaces"'
         
         '''
         cmds : list[str] = [
@@ -502,11 +549,20 @@ class PeiConfigProcessor:
         if filelist:
             if on_what == 'on-user-login':
                 # for user login scripts, we use source instead of bash
-                for file in filelist:
-                    cmds.append(f"source $DIR/../../{file}")
+                for script_entry in filelist:
+                    script_path, parameters = self._parse_script_entry(script_entry)
+                    if parameters:
+                        # Note: source command with parameters - parameters are passed as positional args
+                        cmds.append(f"source $DIR/../../{script_path} {parameters}")
+                    else:
+                        cmds.append(f"source $DIR/../../{script_path}")
             else:
-                for file in filelist:
-                    cmds.append(f"bash $DIR/../../{file}")
+                for script_entry in filelist:
+                    script_path, parameters = self._parse_script_entry(script_entry)
+                    if parameters:
+                        cmds.append(f"bash $DIR/../../{script_path} {parameters}")
+                    else:
+                        cmds.append(f"bash $DIR/../../{script_path}")
             
         return '\n'.join(cmds)
     

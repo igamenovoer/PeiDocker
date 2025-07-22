@@ -81,12 +81,12 @@ RUN sed -i 's/\r$//' $PEI_STAGE_DIR_1/internals/setup-env.sh && \
 RUN apt update
 RUN apt-get install --reinstall -y ca-certificates dos2unix
 
-# for any .sh in PEI_STAGE_DIR_1, including subdirs
+# for any .sh/.bash in PEI_STAGE_DIR_1, including subdirs
 # convert CRLF to LF using dos2unix, replace the original
-RUN find $PEI_STAGE_DIR_1 -type f -name "*.sh" -exec dos2unix {} \;
+RUN find $PEI_STAGE_DIR_1 -type f \( -name "*.sh" -o -name "*.bash" \) -exec dos2unix {} \;
 
 # add chmod+x to all scripts, including all subdirs
-RUN find $PEI_STAGE_DIR_1 -type f -name "*.sh" -exec chmod +x {} \;
+RUN find $PEI_STAGE_DIR_1 -type f \( -name "*.sh" -o -name "*.bash" \) -exec chmod +x {} \;
 
 # show env
 RUN env
@@ -105,10 +105,10 @@ RUN $PEI_STAGE_DIR_1/internals/setup-profile-d.sh
 ADD ${PEI_STAGE_HOST_DIR_1} ${PEI_STAGE_DIR_1}
 
 # convert CRLF to LF 
-RUN find $PEI_STAGE_DIR_1 -type f -name "*.sh" -exec dos2unix {} \;
+RUN find $PEI_STAGE_DIR_1 -type f \( -name "*.sh" -o -name "*.bash" \) -exec dos2unix {} \;
 
 # add chmod+x to all scripts, including all subdirs
-RUN find $PEI_STAGE_DIR_1 -type f -name "*.sh" -exec chmod +x {} \;
+RUN find $PEI_STAGE_DIR_1 -type f \( -name "*.sh" -o -name "*.bash" \) -exec chmod +x {} \;
 
 # install custom apps and clean up
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

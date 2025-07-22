@@ -171,3 +171,5 @@ test-*/
 
 # ignore .lock files
 *.lock
+
+tmp/

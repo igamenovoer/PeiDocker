@@ -9,8 +9,12 @@ stage_1:
   # ssh settings
   ssh:
     enable: true
-    port: 22  # port in container
-    host_port: 2222  # port in host
+
+    # port in container, if given, this port WILL be set inside container as SSH port
+    port: 22  
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
 
     # ssh users, the key is user name, value is user info
     users:
@@ -160,25 +164,35 @@ stage_1:
   # custom scripts
   custom:
     # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
     on_build: 
       - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
       - 'stage-1/custom/my-build-1.sh'
-      - 'stage-1/custom/my-build-2.sh'
+      - 'stage-1/custom/my-build-2.sh --verbose --config=/tmp/build.conf'
+      # Example with parameters:
+      # - 'stage-1/custom/setup-environment.sh --env=development --log-level=debug'
+      # - 'stage-1/custom/install-packages.sh --package-list="git curl vim" --update-cache'
 
     # scripts run on first run
     on_first_run:
       - 'stage-1/custom/my-on-first-run-1.sh'
-      - 'stage-1/custom/my-on-first-run-2.sh'
+      - 'stage-1/custom/my-on-first-run-2.sh --initialize --create-dirs'
+      # Example with quoted parameters:
+      # - 'stage-1/custom/setup-workspace.sh --workspace-name="My Project" --template=default'
 
     # scripts run on every run
     on_every_run:
       - 'stage-1/custom/my-on-every-run-1.sh'
-      - 'stage-1/custom/my-on-every-run-2.sh'
+      - 'stage-1/custom/my-on-every-run-2.sh --check-health'
+      # Example with environment-specific parameters:
+      # - 'stage-1/custom/sync-data.sh --source=/data --destination=/backup --compress'
 
     # scripts run on user login
     on_user_login:
       - 'stage-1/custom/my-on-user-login-1.sh'
-      - 'stage-1/custom/my-on-user-login-2.sh'
+      - 'stage-1/custom/my-on-user-login-2.sh --show-motd --update-prompt'
+      # Example with user-specific parameters:
+      # - 'stage-1/custom/setup-user-env.sh --theme=dark --shell=bash --enable-completion'
     
 stage_2:
 
@@ -242,24 +256,34 @@ stage_2:
       volume_name: null
 
   # custom scripts in stage-2, run after stage-1 custom scripts
+  # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
   custom:
     # scripts run during build
     on_build: 
       - 'stage-2/custom/install-gui-tools.sh' # just an example, you can safely remove this
       - 'stage-2/custom/my-build-1.sh'
-      - 'stage-2/custom/my-build-2.sh'
+      - 'stage-2/custom/my-build-2.sh --enable-desktop --theme=default'
+      # Example with application-specific parameters:
+      # - 'stage-2/custom/install-ml-tools.sh --framework=pytorch --cuda-version=12.1'
+      # - 'stage-2/custom/setup-vscode.sh --extensions="python,docker,git" --settings-sync'
 
     # scripts run on first start
     on_first_run:
       - 'stage-2/custom/my-on-first-run-1.sh'
-      - 'stage-2/custom/my-on-first-run-2.sh'
+      - 'stage-2/custom/my-on-first-run-2.sh --setup-workspace --clone-repos'
+      # Example with workspace initialization:
+      # - 'stage-2/custom/init-project.sh --project-name="My App" --git-remote=origin'
 
     # scripts run on every start
     on_every_run:
       - 'stage-2/custom/my-on-every-run-1.sh'
-      - 'stage-2/custom/my-on-every-run-2.sh'
+      - 'stage-2/custom/my-on-every-run-2.sh --update-status --log-startup'
+      # Example with service management:
+      # - 'stage-2/custom/check-services.sh --services="nginx,redis" --restart-failed'
 
     # scripts run on user login
     on_user_login:
       - 'stage-2/custom/my-on-user-login-1.sh'
-      - 'stage-2/custom/my-on-user-login-2.sh'
+      - 'stage-2/custom/my-on-user-login-2.sh --welcome-message --check-updates'
+      # Example with development environment setup:
+      # - 'stage-2/custom/dev-setup.sh --activate-venv --cd-to-project --show-git-status'
