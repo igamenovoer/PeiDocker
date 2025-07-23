@@ -1,5 +1,6 @@
 """SSH configuration screen for simple mode wizard."""
 
+from pathlib import Path
 from typing import Optional
 
 from textual import on
@@ -9,8 +10,12 @@ from textual.screen import Screen
 from textual.widgets import Label, Input, Static, Button, RadioSet, RadioButton, Checkbox
 from textual.validation import Function
 
+from textual_fspicker import FileOpen
+
 from ...models.config import ProjectConfig, SSHUser
 from ...utils.file_utils import validate_ssh_public_key, get_ssh_key_from_system
+from ...widgets.inputs import PortNumberInput, UserIDInput
+from ...widgets.dialogs import ErrorDialog
 
 
 class SSHConfigScreen(Screen[None]):
@@ -87,7 +92,20 @@ class SSHConfigScreen(Screen[None]):
         self.ssh_enabled = project_config.stage_1.ssh.enable
         self.use_public_key = False
         self.use_private_key = False
-        self.root_enabled = project_config.stage_1.ssh.root_enabled
+        self.root_enabled = getattr(project_config.stage_1.ssh, 'root_enabled', False)
+    
+    def _get_or_create_first_user(self) -> tuple[str, 'SSHUserConfig']:
+        """Get the first SSH user or create one with default values."""
+        if self.project_config.stage_1.ssh.users:
+            username = next(iter(self.project_config.stage_1.ssh.users.keys()))
+            return username, self.project_config.stage_1.ssh.users[username] 
+        else:
+            # Create default user
+            from pei_docker.user_config import SSHUserConfig
+            default_user = SSHUserConfig(password="123456", uid=1100)
+            username = "me"
+            self.project_config.stage_1.ssh.users[username] = default_user
+            return username, default_user
     
     def compose(self) -> ComposeResult:
         """Compose the SSH configuration screen."""
@@ -110,7 +128,7 @@ class SSHConfigScreen(Screen[None]):
             
             # SSH configuration (shown when enabled)
             if self.ssh_enabled:
-                yield self._create_ssh_config_section()
+                yield from self._create_ssh_config_section()
     
     def _create_ssh_config_section(self) -> ComposeResult:
         """Create the SSH configuration section."""
@@ -120,29 +138,38 @@ class SSHConfigScreen(Screen[None]):
             # Basic SSH settings
             with Vertical(classes="field-group"):
                 yield Label("SSH Container Port:", classes="field-label")
-                yield Input(
+                yield PortNumberInput(
                     value=str(self.project_config.stage_1.ssh.port),
-                    placeholder="22",
-                    id="ssh_port",
-                    validators=[Function(self._validate_port, "Invalid port number")]
+                    id="ssh_port"
                 )
                 
                 yield Label("SSH Host Port:", classes="field-label")
-                yield Input(
+                yield PortNumberInput(
                     value=str(self.project_config.stage_1.ssh.host_port),
-                    placeholder="2222",
-                    id="ssh_host_port",
-                    validators=[Function(self._validate_port, "Invalid port number")]
+                    id="ssh_host_port"
                 )
                 
                 yield Label("SSH User:", classes="field-label")
-                ssh_user = self.project_config.stage_1.ssh.users[0] if self.project_config.stage_1.ssh.users else None
-                user_name = ssh_user.name if ssh_user else "me"
+                # Get first user from users dictionary or use default
+                if self.project_config.stage_1.ssh.users:
+                    first_user_name = next(iter(self.project_config.stage_1.ssh.users.keys()))
+                    ssh_user = self.project_config.stage_1.ssh.users[first_user_name]
+                    user_name = first_user_name
+                else:
+                    ssh_user = None
+                    user_name = "me"
                 yield Input(
                     value=user_name,
                     placeholder="me",
                     id="ssh_user",
                     validators=[Function(self._validate_username, "Invalid username")]
+                )
+                
+                yield Label("User ID:", classes="field-label")
+                user_uid = ssh_user.uid if ssh_user else 1100
+                yield UserIDInput(
+                    value=str(user_uid),
+                    id="ssh_uid"
                 )
                 
                 yield Label("SSH Password (no spaces or commas):", classes="field-label")
@@ -176,10 +203,12 @@ class SSHConfigScreen(Screen[None]):
                 if self.use_private_key:
                     with Vertical(classes="field-group"):
                         yield Label("Private Key File Path:", classes="field-label")
-                        yield Input(
-                            placeholder="Enter path to private key file or '~' for system key",
-                            id="ssh_privkey",
-                        )
+                        with Horizontal():
+                            yield Input(
+                                placeholder="Enter path to private key file or '~' for system key",
+                                id="ssh_privkey",
+                            )
+                            yield Button("Browse...", id="browse_privkey", variant="default")
                         yield Label("Enter '~' to use your system's default SSH private key", classes="field-help")
                 
                 yield Checkbox("Enable Root SSH Access", id="root_ssh", value=self.root_enabled)
@@ -226,7 +255,7 @@ class SSHConfigScreen(Screen[None]):
     @on(RadioSet.Changed, "#ssh_enable")
     def on_ssh_enable_changed(self, event: RadioSet.Changed) -> None:
         """Handle SSH enable/disable change."""
-        self.ssh_enabled = event.pressed.id == "ssh_yes"
+        self.ssh_enabled = event.value.id == "ssh_yes"
         self.project_config.stage_1.ssh.enable = self.ssh_enabled
         # Refresh the screen to show/hide SSH config
         self.refresh(recompose=True)
@@ -247,8 +276,24 @@ class SSHConfigScreen(Screen[None]):
     def on_root_ssh_changed(self, event: Checkbox.Changed) -> None:
         """Handle root SSH checkbox change."""
         self.root_enabled = event.checkbox.value
-        self.project_config.stage_1.ssh.root_enabled = self.root_enabled
+        # Note: root_enabled is not part of SSHConfig data model yet
+        # self.project_config.stage_1.ssh.root_enabled = self.root_enabled
         self.refresh(recompose=True)
+    
+    @on(Button.Pressed, "#browse_privkey")
+    def on_browse_privkey_pressed(self) -> None:
+        """Browse for SSH private key file."""
+        # Launch file picker using async worker
+        self.run_worker(self._browse_ssh_key_async())
+
+    async def _browse_ssh_key_async(self) -> None:
+        """Async worker to handle SSH key file browsing."""
+        key_path = await self.app.push_screen_wait(FileOpen())
+        if key_path:
+            privkey_input = self.query_one("#ssh_privkey", Input)
+            privkey_input.value = str(key_path)
+            # Trigger input change event
+            self.on_input_changed(Input.Changed(privkey_input, privkey_input.value))
     
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle input changes."""
@@ -256,12 +301,30 @@ class SSHConfigScreen(Screen[None]):
             return
         
         if event.input.id == "ssh_port":
-            if self._validate_port(event.value):
-                self.project_config.stage_1.ssh.port = int(event.value.strip())
+            try:
+                port = int(event.value.strip()) if event.value.strip() else 22
+                self.project_config.stage_1.ssh.port = port
+            except ValueError:
+                pass  # Invalid input, ignore
         
         elif event.input.id == "ssh_host_port":
-            if self._validate_port(event.value):
-                self.project_config.stage_1.ssh.host_port = int(event.value.strip())
+            try:
+                port = int(event.value.strip()) if event.value.strip() else 2222
+                self.project_config.stage_1.ssh.host_port = port
+            except ValueError:
+                pass  # Invalid input, ignore
+        
+        elif event.input.id == "ssh_uid":
+            try:
+                uid = int(event.value.strip()) if event.value.strip() else 1100
+                # Update or create SSH user with new UID
+                if not self.project_config.stage_1.ssh.users:
+                    self.project_config.stage_1.ssh.users.append(SSHUser(name="me", password="123456", uid=uid))
+                else:
+                    username, user = self._get_or_create_first_user()
+                    user.uid = uid
+            except ValueError:
+                pass  # Invalid input, ignore
         
         elif event.input.id == "ssh_user":
             if self._validate_username(event.value):
@@ -270,7 +333,10 @@ class SSHConfigScreen(Screen[None]):
                 if not self.project_config.stage_1.ssh.users:
                     self.project_config.stage_1.ssh.users.append(SSHUser(name=user_name, password="123456"))
                 else:
-                    self.project_config.stage_1.ssh.users[0].name = user_name
+                    # Update existing user's name by removing old entry and adding new one
+                    old_username, old_user = self._get_or_create_first_user()
+                    self.project_config.stage_1.ssh.users.pop(old_username)
+                    self.project_config.stage_1.ssh.users[user_name] = old_user
         
         elif event.input.id == "ssh_password":
             if self._validate_password(event.value):
@@ -278,7 +344,8 @@ class SSHConfigScreen(Screen[None]):
                 if not self.project_config.stage_1.ssh.users:
                     self.project_config.stage_1.ssh.users.append(SSHUser(name="me", password=event.value))
                 else:
-                    self.project_config.stage_1.ssh.users[0].password = event.value
+                    username, user = self._get_or_create_first_user()
+                    user.password = event.value
         
         elif event.input.id == "ssh_pubkey":
             if self._validate_public_key(event.value):
@@ -290,7 +357,8 @@ class SSHConfigScreen(Screen[None]):
                 
                 # Update SSH user public key
                 if self.project_config.stage_1.ssh.users:
-                    self.project_config.stage_1.ssh.users[0].pubkey_text = key_text
+                    username, user = self._get_or_create_first_user()
+                    user.pubkey_text = key_text
         
         elif event.input.id == "ssh_privkey":
             privkey_path = event.value.strip()
@@ -299,7 +367,8 @@ class SSHConfigScreen(Screen[None]):
             
             # Update SSH user private key
             if self.project_config.stage_1.ssh.users:
-                self.project_config.stage_1.ssh.users[0].privkey_file = privkey_path if privkey_path else None
+                username, user = self._get_or_create_first_user()
+                user.privkey_file = privkey_path if privkey_path else None
         
         elif event.input.id == "root_password":
             if self._validate_password(event.value):

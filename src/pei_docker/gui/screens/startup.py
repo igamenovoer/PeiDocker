@@ -5,7 +5,7 @@ from typing import Optional
 
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Center, Middle, Vertical
+from textual.containers import Center, Middle, Vertical, Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, Label, Static
 from textual.timer import Timer
@@ -98,7 +98,7 @@ class StartupScreen(Screen[None]):
                     
                     yield Static(self._get_system_status(), classes="system-status")
                     
-                    with Vertical(classes="actions"):
+                    with Horizontal(classes="actions"):
                         yield Button("Continue", id="continue", variant="primary")
                         yield Button("Quit", id="quit", variant="default")
                     

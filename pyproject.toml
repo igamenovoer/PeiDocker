@@ -36,7 +36,7 @@ dependencies = [
     "omegaconf>=2.3.0,<3",
     "attrs>=25.3.0,<26",
     "click>=8.2.1,<9",
-    "rich>=10.0.0,<14", "textual>=4.0.0,<5",
+    "rich>=10.0.0,<14", "textual>=4.0.0,<5", "textual-fspicker>=0.4.1,<0.5",
 ]
 
 [project.optional-dependencies]
@@ -45,13 +45,6 @@ docs = [
     "mkdocs-autorefs",
     "mkdocs-glightbox",
     "pymdown-extensions",
-]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "black",
-    "ruff",
-    "mypy",
 ]
 
 [project.urls]
@@ -68,11 +61,16 @@ pei-docker-gui = "pei_docker.gui.app:main"
 packages = ["src/pei_docker"]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
 
 [tool.black]
 line-length = 88
@@ -121,23 +119,35 @@ python = ">=3.11"
 [tool.pixi.pypi-dependencies]
 # Install the package itself in editable mode for development
 pei-docker = { path = ".", editable = true }
-# Development and publishing dependencies from PyPI
+
+# Dev feature for development dependencies
+[tool.pixi.feature.dev.pypi-dependencies]
+# Documentation dependencies
+mkdocs-material = ">=9.6.15,<10"
+mkdocs-autorefs = "*"
+mkdocs-glightbox = "*"
+pymdown-extensions = "*"
+# Build and publishing dependencies
 build = "*"
 twine = "*"
+# Development utilities
+textual-dev = ">=1.7.0,<2"
 
 [tool.pixi.tasks]
-# Development tasks  
+# Development tasks (run in dev environment)
+test = "pytest tests/"
+lint = "ruff check src/"
+format = "black src/ tests/"
+type-check = "mypy src/"
+
+# Documentation tasks (run in dev environment)
+docs-serve = "mkdocs serve"
+docs-build = "mkdocs build"
+
+# Legacy install task (for backwards compatibility)
 install-dev = 'pip install -e ".[dev]"'
-test = 'pip install -e ".[dev]" && pytest tests/'
-lint = 'pip install -e ".[dev]" && ruff check src/'
-format = 'pip install -e ".[dev]" && black src/ tests/'
-type-check = 'pip install -e ".[dev]" && mypy src/'
 
-# Documentation tasks  
-docs-serve = 'pip install -e ".[docs]" && mkdocs serve'
-docs-build = 'pip install -e ".[docs]" && mkdocs build'
-
-# Publishing tasks
+# Publishing tasks (run in dev environment since build/twine are there)
 build = "python -m build"
 publish-test = "python -m twine upload --repository testpypi dist/*"
 publish = "python -m twine upload dist/*"
@@ -145,3 +155,7 @@ clean = "rm -rf dist/ build/ *.egg-info/"
 
 [tool.pixi.environments]
 default = {solve-group = "default"}
+dev = {features = ["dev"], solve-group = "default"}
+
+[dependency-groups]
+dev = [ "pytest>=8.4.1,<9", "pytest-asyncio>=1.1.0,<2", "pytest-textual-snapshot>=1.1.0,<2", "pytest-cov>=6.2.1,<7", "black>=25.1.0,<26", "ruff>=0.12.4,<0.13", "mypy>=1.17.0,<2"]

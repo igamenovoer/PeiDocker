@@ -12,6 +12,8 @@ from textual.validation import Function
 
 from ...models.config import ProjectConfig
 from ...utils.docker_utils import check_docker_images_exist
+from ...widgets.inputs import DockerImageInput
+from ...widgets.dialogs import ErrorDialog
 
 
 class ProjectInfoScreen(Screen[None]):
@@ -111,11 +113,9 @@ class ProjectInfoScreen(Screen[None]):
                 
                 with Vertical(classes="field-group"):
                     yield Label("Base Docker Image:", classes="field-label")
-                    yield Input(
-                        value=self.project_config.stage_1.base_image,
-                        placeholder="ubuntu:24.04",
-                        id="base_image",
-                        validators=[Function(self._validate_base_image, "Invalid image format")]
+                    yield DockerImageInput(
+                        value=self.project_config.stage_1.image.base,
+                        id="base_image"
                     )
                     
                     yield Static(
@@ -168,11 +168,15 @@ class ProjectInfoScreen(Screen[None]):
                 self._update_image_names()
         
         elif event.input.id == "base_image":
-            self.base_image_valid = self._validate_base_image(event.value)
-            if self.base_image_valid:
-                self.project_config.stage_1.base_image = event.value.strip()
+            # DockerImageInput handles validation internally
+            image_value = event.value.strip()
+            if image_value:  # Only update if not empty
+                self.project_config.stage_1.image.base = image_value
                 # Check if image exists (async)
-                self._check_image_exists(event.value.strip())
+                self._check_image_exists(image_value)
+                self.base_image_valid = True
+            else:
+                self.base_image_valid = False
     
     def _update_image_names(self) -> None:
         """Update the image names display."""

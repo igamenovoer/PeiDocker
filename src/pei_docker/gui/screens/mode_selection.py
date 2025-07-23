@@ -5,13 +5,16 @@ from typing import Optional
 
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Center, Middle, Vertical, Horizontal
+from textual.containers import Center, Middle, Vertical, Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Label, Static, Input, DirectoryTree
 from textual.validation import Function
 
+from textual_fspicker import SelectDirectory
+
 from ..models.config import ProjectConfig
 from ..utils.file_utils import ensure_dir_exists, check_path_writable
+from ..widgets.dialogs import ErrorDialog
 
 
 class ModeSelectionScreen(Screen[None]):
@@ -25,6 +28,13 @@ class ModeSelectionScreen(Screen[None]):
     DEFAULT_CSS = """
     ModeSelectionScreen {
         background: $surface;
+        overflow: auto;
+    }
+    
+    VerticalScroll {
+        width: 100%;
+        height: 100%;
+        padding: 1 2;
     }
     
     .section {
@@ -95,6 +105,15 @@ class ModeSelectionScreen(Screen[None]):
         margin: 1 0;
         color: $text-muted;
     }
+    
+    Button {
+        margin: 0 1;
+    }
+    
+    Button:disabled {
+        color: $text-muted;
+        background: $surface-darken-1;
+    }
     """
     
     def __init__(self, project_config: ProjectConfig):
@@ -105,7 +124,7 @@ class ModeSelectionScreen(Screen[None]):
     
     def compose(self) -> ComposeResult:
         """Compose the mode selection screen."""
-        with Vertical():
+        with VerticalScroll():
             # Project directory section (only if not already set)
             if not self.project_config.project_dir:
                 with Static(classes="section"):
@@ -231,10 +250,18 @@ class ModeSelectionScreen(Screen[None]):
     
     @on(Button.Pressed, "#browse")
     def on_browse_pressed(self) -> None:
-        """Browse for directory."""
-        # TODO: Implement directory browser
-        # For now, just show a message
-        self.notify("Directory browser not yet implemented. Please type the path manually.")
+        """Browse for directory using file picker."""
+        # Launch directory picker using async worker
+        self.run_worker(self._browse_directory_async())
+
+    async def _browse_directory_async(self) -> None:
+        """Async worker to handle directory browsing."""
+        directory = await self.app.push_screen_wait(SelectDirectory())
+        if directory:
+            project_dir_input = self.query_one("#project_dir", Input)
+            project_dir_input.value = str(directory)
+            # Trigger validation
+            self.on_input_changed(Input.Changed(project_dir_input, project_dir_input.value))
     
     @on(Button.Pressed, "#back")
     def on_back_pressed(self) -> None:
@@ -253,17 +280,26 @@ class ModeSelectionScreen(Screen[None]):
     def action_continue(self) -> None:
         """Continue to selected mode."""
         if not self.project_dir_valid:
-            self.notify("Please enter a valid project directory first", severity="warning")
+            self.app.push_screen(ErrorDialog(
+                "Invalid Project Directory",
+                "Please enter a valid project directory first."
+            ))
             return
         
         # Ensure project directory exists
         if not ensure_dir_exists(self.project_config.project_dir):
-            self.notify("Cannot create project directory", severity="error") 
+            self.app.push_screen(ErrorDialog(
+                "Directory Creation Failed",
+                f"Cannot create project directory: {self.project_config.project_dir}"
+            ))
             return
         
         # Create project using the CLI create command logic
         if not self._create_project():
-            self.notify("Failed to create project", severity="error")
+            self.app.push_screen(ErrorDialog(
+                "Project Creation Failed",
+                "Failed to create project structure. Please check permissions and try again."
+            ))
             return
         
         if self.selected_mode == "simple":
@@ -293,7 +329,7 @@ class ModeSelectionScreen(Screen[None]):
             # This replicates the logic from the CLI create command
             this_dir = os.path.dirname(os.path.realpath(__file__))
             # Navigate up to the pei_docker package directory
-            pei_docker_dir = os.path.dirname(os.path.dirname(os.path.dirname(this_dir)))
+            pei_docker_dir = os.path.dirname(os.path.dirname(this_dir))
             project_template_dir = os.path.join(pei_docker_dir, 'project_files')
             
             if not os.path.exists(project_template_dir):

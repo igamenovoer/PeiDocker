@@ -34,7 +34,11 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "Bash(pdflatex:*)",
-      "Bash(xelatex:*)"
+      "Bash(xelatex:*)",
+      "WebFetch(domain:textual-fspicker.davep.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(pixi info:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

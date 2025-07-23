@@ -83,11 +83,27 @@ class SimpleWizardScreen(Screen[None]):
         """Create the wizard steps."""
         from .project_info import ProjectInfoScreen
         from .ssh_config import SSHConfigScreen
+        from .proxy_config import ProxyConfigScreen
+        from .apt_config import APTConfigScreen
+        from .port_mapping import PortMappingScreen
+        from .env_vars import EnvironmentVariablesScreen
+        from .device_config import DeviceConfigScreen
+        from .mounts import MountsScreen
+        from .entry_point import EntryPointScreen
+        from .custom_scripts import CustomScriptsScreen
         from .summary import SummaryScreen
         
         return [
             WizardStep("project_info", "Project Information", ProjectInfoScreen),
             WizardStep("ssh_config", "SSH Configuration", SSHConfigScreen),
+            WizardStep("proxy_config", "Proxy Configuration", ProxyConfigScreen),
+            WizardStep("apt_config", "APT Configuration", APTConfigScreen),
+            WizardStep("port_mapping", "Port Mapping", PortMappingScreen),
+            WizardStep("env_vars", "Environment Variables", EnvironmentVariablesScreen),
+            WizardStep("device_config", "Device Configuration", DeviceConfigScreen),
+            WizardStep("mounts", "Additional Mounts", MountsScreen),
+            WizardStep("entry_point", "Custom Entry Point", EntryPointScreen),
+            WizardStep("custom_scripts", "Custom Scripts", CustomScriptsScreen),
             WizardStep("summary", "Configuration Summary", SummaryScreen),
         ]
     
@@ -100,13 +116,12 @@ class SimpleWizardScreen(Screen[None]):
                           classes="wizard-title")
                 yield ProgressBar(
                     total=len(self.steps),
-                    progress=(self.current_step + 1),
                     classes="wizard-progress"
                 )
             
             # Current step content
             with Vertical(classes="wizard-content", id="step_content"):
-                yield self._get_current_step_screen()
+                yield from self._get_current_step_screen()
             
             # Navigation
             with Horizontal(classes="wizard-navigation"):
@@ -114,6 +129,11 @@ class SimpleWizardScreen(Screen[None]):
                     yield Button("Back", id="back", variant="default", disabled=self.current_step == 0)
                     yield Button("Next", id="next", variant="primary", disabled=self.current_step >= len(self.steps) - 1)
                     yield Button("Cancel", id="cancel", variant="default")
+    
+    def on_mount(self) -> None:
+        """Called when the screen is mounted."""
+        # Set initial progress bar value
+        self._update_step()
     
     def action_back(self) -> None:
         """Go to previous step."""
@@ -173,7 +193,7 @@ class SimpleWizardScreen(Screen[None]):
             step = self.steps[self.current_step]
             self.step_screens[self.current_step] = step.screen_class(self.project_config)
         
-        return self.step_screens[self.current_step].compose()
+        yield from self.step_screens[self.current_step].compose()
     
     def _update_step_content(self) -> None:
         """Update the step content area."""
@@ -185,9 +205,9 @@ class SimpleWizardScreen(Screen[None]):
             step = self.steps[self.current_step]
             self.step_screens[self.current_step] = step.screen_class(self.project_config)
         
-        # Mount the new content
+        # Mount the step screen widget directly
         step_screen = self.step_screens[self.current_step]
-        content_container.mount(*list(step_screen.compose()))
+        content_container.mount(step_screen)
     
     def _validate_current_step(self) -> bool:
         """Validate the current step before proceeding."""

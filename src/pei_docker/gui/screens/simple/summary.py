@@ -89,7 +89,7 @@ class SummaryScreen(Screen[None]):
                 with Static(classes="section"):
                     yield Label("Project Settings", classes="section-title")
                     yield Label(f"Name: {self.project_config.project_name}", classes="config-item")
-                    yield Label(f"Base Image: {self.project_config.stage_1.base_image}", classes="config-item")
+                    yield Label(f"Base Image: {self.project_config.stage_1.image.base}", classes="config-item")
                     yield Label(f"Output Directory: {self.project_config.project_dir}", classes="config-item")
                 
                 # SSH configuration
@@ -117,14 +117,114 @@ class SummaryScreen(Screen[None]):
                         yield Label("SSH Configuration", classes="section-title")
                         yield Label("✗ Disabled", classes="config-item")
                 
-                # Additional configuration (placeholder for other wizard steps)
+                # Proxy configuration
                 with Static(classes="section"):
-                    yield Label("Additional Configuration", classes="section-title")
-                    yield Label("Proxy: disabled", classes="config-item")
-                    yield Label("APT Mirror: default", classes="config-item")
-                    yield Label("GPU Support: disabled", classes="config-item")
-                    yield Label("Additional ports: none", classes="config-item")
-                    yield Label("Environment variables: none", classes="config-item")
+                    yield Label("Proxy Configuration", classes="section-title")
+                    if hasattr(self.project_config.stage_1, 'proxy') and self.project_config.stage_1.proxy.enabled:
+                        proxy = self.project_config.stage_1.proxy
+                        yield Label(f"✓ Enabled (port {proxy.port})", classes="config-item")
+                        usage = "build-time only" if proxy.build_only else "build and runtime"
+                        yield Label(f"Usage: {usage}", classes="config-item")
+                    else:
+                        yield Label("✗ Disabled", classes="config-item")
+                
+                # APT configuration  
+                with Static(classes="section"):
+                    yield Label("APT Configuration", classes="section-title")
+                    apt_mirror = getattr(self.project_config.stage_1, 'apt_mirror', 'default')
+                    yield Label(f"Mirror: {apt_mirror}", classes="config-item")
+                
+                # Port mappings
+                with Static(classes="section"):
+                    yield Label("Port Mappings", classes="section-title")
+                    additional_ports = getattr(self.project_config.stage_1, 'additional_ports', [])
+                    if additional_ports:
+                        for port in additional_ports:
+                            yield Label(f"• {port}", classes="config-item")
+                    else:
+                        yield Label("No additional ports configured", classes="config-item")
+                
+                # Environment variables
+                with Static(classes="section"):
+                    yield Label("Environment Variables", classes="section-title")
+                    env_vars = getattr(self.project_config.stage_1, 'environment_variables', [])
+                    if env_vars:
+                        for var in env_vars:
+                            yield Label(f"• {var}", classes="config-item")
+                    else:
+                        yield Label("No environment variables configured", classes="config-item")
+                
+                # Device configuration
+                with Static(classes="section"):
+                    yield Label("Device Configuration", classes="section-title")
+                    if hasattr(self.project_config.stage_1, 'device') and self.project_config.stage_1.device.gpu:
+                        yield Label("✓ GPU Support enabled", classes="config-item")
+                    else:
+                        yield Label("✗ GPU Support disabled", classes="config-item")
+                
+                # Mounts configuration
+                with Static(classes="section"):
+                    yield Label("Additional Mounts", classes="section-title")
+                    stage1_mounts = getattr(self.project_config.stage_1, 'mounts', [])
+                    stage2_mounts = getattr(self.project_config.stage_2, 'mounts', [])
+                    
+                    if stage1_mounts:
+                        yield Label("Stage-1 mounts:", classes="config-item")
+                        for mount in stage1_mounts:
+                            if mount.type == "auto-volume":
+                                yield Label(f"  • {mount.dst} (auto volume)", classes="config-item")
+                            else:
+                                yield Label(f"  • {mount.src} → {mount.dst} ({mount.type})", classes="config-item")
+                    
+                    if stage2_mounts:
+                        yield Label("Stage-2 mounts:", classes="config-item")
+                        for mount in stage2_mounts:
+                            if mount.type == "auto-volume":
+                                yield Label(f"  • {mount.dst} (auto volume)", classes="config-item")
+                            else:
+                                yield Label(f"  • {mount.src} → {mount.dst} ({mount.type})", classes="config-item")
+                    
+                    if not stage1_mounts and not stage2_mounts:
+                        yield Label("No additional mounts configured", classes="config-item")
+                
+                # Entry point configuration
+                with Static(classes="section"):
+                    yield Label("Custom Entry Points", classes="section-title")
+                    stage1_entrypoint = getattr(self.project_config.stage_1, 'entrypoint', '')
+                    stage2_entrypoint = getattr(self.project_config.stage_2, 'entrypoint', '')
+                    
+                    if stage1_entrypoint:
+                        yield Label(f"Stage-1: {stage1_entrypoint}", classes="config-item")
+                    if stage2_entrypoint:
+                        yield Label(f"Stage-2: {stage2_entrypoint}", classes="config-item")
+                    if not stage1_entrypoint and not stage2_entrypoint:
+                        yield Label("No custom entry points configured", classes="config-item")
+                
+                # Custom scripts configuration
+                with Static(classes="section"):
+                    yield Label("Custom Scripts", classes="section-title")
+                    stage1_scripts = getattr(self.project_config.stage_1, 'custom_scripts', {})
+                    stage2_scripts = getattr(self.project_config.stage_2, 'custom_scripts', {})
+                    
+                    has_scripts = False
+                    if stage1_scripts:
+                        for script_type, scripts in stage1_scripts.items():
+                            if scripts:
+                                yield Label(f"Stage-1 {script_type}:", classes="config-item")
+                                for script in scripts:
+                                    yield Label(f"  • {script}", classes="config-item")
+                                has_scripts = True
+                    
+                    if stage2_scripts:
+                        for script_type, scripts in stage2_scripts.items():
+                            if scripts:
+                                yield Label(f"Stage-2 {script_type}:", classes="config-item")
+                                for script in scripts:
+                                    yield Label(f"  • {script}", classes="config-item")
+                                has_scripts = True
+                    
+                    if not has_scripts:
+                        yield Label("No custom scripts configured", classes="config-item")
                 
                 # Configuration preview
                 with Static(classes="section"):
