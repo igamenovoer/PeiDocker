@@ -24,8 +24,7 @@ def cli():
               type=click.Path(exists=False, file_okay=False))
 @click.option('--with-examples', '-e', is_flag=True, default=True, 
               help='copy example files to the project dir')
-@click.option('--with-contrib', is_flag=True, default=True, help='copy contrib directory to the project dir')
-def create(project_dir : str, with_examples : bool, with_contrib : bool):
+def create(project_dir : str, with_examples : bool):
     logging.info(f'Creating PeiDocker project in {project_dir}')
     os.makedirs(project_dir, exist_ok=True)
     
@@ -67,14 +66,6 @@ def create(project_dir : str, with_examples : bool, with_contrib : bool):
         examples_dst_dir : str = f'{project_dir}/examples'
         logging.info(f'Copying examples from {examples_dir} to {examples_dst_dir}')
         shutil.copytree(examples_dir, examples_dst_dir, dirs_exist_ok=True)
-        
-    if with_contrib:
-        contribs_dir : str = f'{this_dir}/{Defaults.ContribDir}'
-        
-        # copy this dir to project_dir/contrib
-        contribs_dst_dir : str = f'{project_dir}/contrib'
-        logging.info(f'Copying contribs from {contribs_dir} to {contribs_dst_dir}')
-        shutil.copytree(contribs_dir, contribs_dst_dir, dirs_exist_ok=True)
         
     logging.info('Done')
         

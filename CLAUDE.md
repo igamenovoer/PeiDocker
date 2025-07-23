@@ -213,8 +213,8 @@ Based on recent commits and tasks:
 
 - Use `cn` (`https://cn.archive.ubuntu.com/`) apt mirror for testing the user config (yaml) and docker image building
 - Clean up the test docker image and container after finished
-- During test, when using `docker compose build`, always use `--no-cache` to ensure the scripts are updated.
-- Building takes time, do not interrupt the process, wait until it finishes
+- During test, if anything inside `pei_docker\project_files\installation` is modified, you need to use `docker compose build` with `--no-cache` to rebuild the image, otherwise the changes will not take effect
+- Docker image building takes time, do not interrupt the process, wait until it finishes
 
 ## Testing Notes
 
