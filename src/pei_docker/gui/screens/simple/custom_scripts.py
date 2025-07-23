@@ -5,7 +5,9 @@ from textual.containers import Container, Horizontal, Vertical, ScrollableContai
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet, ListView, ListItem, Label
 from textual.screen import Screen
 from textual.message import Message
-from typing import Dict, List
+from typing import Dict, List, cast
+
+from ...models.config import ProjectConfig
 
 
 class CustomScriptsScreen(Screen):
@@ -89,10 +91,13 @@ class CustomScriptsScreen(Screen):
         "on_user_login": "Run when user logs in via SSH"
     }
     
-    def __init__(self, stage1_scripts: Dict[str, List[str]] = None, stage2_scripts: Dict[str, List[str]] = None):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.stage1_scripts = stage1_scripts or {}
-        self.stage2_scripts = stage2_scripts or {}
+        self.project_config = project_config
+        
+        # Extract current scripts from project config
+        self.stage1_scripts = project_config.stage_1.custom_scripts or {}
+        self.stage2_scripts = project_config.stage_2.custom_scripts or {}
         self.current_script_type = "on_build"
         
         # Initialize empty lists for script types
@@ -169,18 +174,18 @@ class CustomScriptsScreen(Screen):
         """Handle radio button changes."""
         if event.radio_set.id == "stage1_enabled":
             self._update_stage1_settings_visibility()
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 # Clear all stage-1 scripts
                 for script_type in self.stage1_scripts:
                     self.stage1_scripts[script_type].clear()
                 self._update_scripts_list()
         elif event.radio_set.id == "stage2_enabled":
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 # Clear all stage-2 scripts
                 for script_type in self.stage2_scripts:
                     self.stage2_scripts[script_type].clear()
         elif event.radio_set.id == "script_type":
-            pressed_id = event.pressed_button.id if event.pressed_button else None
+            pressed_id = event.pressed.id if event.pressed else None
             if pressed_id and pressed_id.startswith("type_"):
                 self.current_script_type = pressed_id[5:]  # Remove "type_" prefix
                 self._update_scripts_list()
@@ -196,8 +201,8 @@ class CustomScriptsScreen(Screen):
         if event.button.id == "back":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
-            config = self._get_scripts_config()
-            self.post_message(self.ConfigReady(config))
+            stage1_scripts, stage2_scripts = self._get_scripts_config()
+            self.post_message(self.ConfigReady(stage1_scripts, stage2_scripts))
         elif event.button.id == "add_script":
             self._add_script()
     
@@ -215,7 +220,7 @@ class CustomScriptsScreen(Screen):
         stage1_settings = self.query_one("#stage1_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = stage1_yes_button.value if stage1_yes_button else False
         stage1_settings.display = is_enabled
     
@@ -275,14 +280,14 @@ class CustomScriptsScreen(Screen):
         stage1 = {}
         stage2 = {}
         
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage1_yes_button and stage1_yes_button.value:
             # Only include script types that have scripts
             for script_type, scripts in self.stage1_scripts.items():
                 if scripts:
                     stage1[script_type] = scripts.copy()
         
-        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage2_yes_button = cast(RadioButton, stage2_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage2_yes_button and stage2_yes_button.value:
             # Only include script types that have scripts
             for script_type, scripts in self.stage2_scripts.items():
@@ -290,6 +295,12 @@ class CustomScriptsScreen(Screen):
                     stage2[script_type] = scripts.copy()
         
         return stage1, stage2
+    
+    def save_configuration(self) -> None:
+        """Save current scripts configuration to project config."""
+        stage1_scripts, stage2_scripts = self._get_scripts_config()
+        self.project_config.stage_1.custom_scripts = stage1_scripts
+        self.project_config.stage_2.custom_scripts = stage2_scripts
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

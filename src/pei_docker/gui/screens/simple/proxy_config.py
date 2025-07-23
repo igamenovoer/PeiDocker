@@ -3,10 +3,11 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet
+from typing import cast
 from textual.screen import Screen
 from textual.message import Message
 
-from ...models.config import ProxyConfig
+from ...models.config import ProjectConfig, ProxyConfig
 
 
 class ProxyConfigScreen(Screen):
@@ -58,9 +59,12 @@ class ProxyConfigScreen(Screen):
     }
     """
     
-    def __init__(self, current_config: ProxyConfig = None):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.current_config = current_config or ProxyConfig()
+        self.project_config = project_config
+        
+        # Extract current proxy config from project config
+        self.current_config = project_config.stage_1.proxy or ProxyConfig()
         
     def compose(self) -> ComposeResult:
         """Create the proxy configuration form."""
@@ -71,7 +75,7 @@ class ProxyConfigScreen(Screen):
             
             with Vertical(classes="form-row"):
                 with RadioSet(id="proxy_enabled"):
-                    proxy_enabled = getattr(self.current_config, 'enable_globally', False) or False
+                    proxy_enabled = getattr(self.current_config, 'enable', False) or False
                     yield RadioButton("Yes", value=proxy_enabled)
                     yield RadioButton("No", value=not proxy_enabled)
                 yield Static("Use Proxy:")
@@ -96,12 +100,12 @@ class ProxyConfigScreen(Screen):
                     with RadioSet(id="proxy_usage"):
                         yield RadioButton(
                             "Build-time only (remove after build)",
-                            value=getattr(self.current_config, 'remove_after_build', False),
+                            value=getattr(self.current_config, 'build_only', False),
                             id="build_only"
                         )
                         yield RadioButton(
                             "Build and runtime (persistent)",
-                            value=not getattr(self.current_config, 'remove_after_build', False),
+                            value=not getattr(self.current_config, 'build_only', False),
                             id="persistent"
                         )
                 
@@ -122,12 +126,12 @@ class ProxyConfigScreen(Screen):
         
         # Set initial radio button selections
         proxy_enabled = self.query_one("#proxy_enabled", RadioSet)
-        proxy_enabled_val = getattr(self.current_config, 'enable_globally', False)
+        proxy_enabled_val = getattr(self.current_config, 'enable', False)
         # Note: RadioSet selection should be set via RadioButton values, not pressed attribute
         
         if proxy_enabled_val:
             proxy_usage = self.query_one("#proxy_usage", RadioSet)
-            build_only_val = getattr(self.current_config, 'remove_after_build', False)
+            build_only_val = getattr(self.current_config, 'build_only', False)
             # Note: RadioSet selection should be set via RadioButton values, not pressed attribute
     
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
@@ -147,14 +151,14 @@ class ProxyConfigScreen(Screen):
         proxy_settings = self.query_one("#proxy_settings")
         
         # Check which radio button is pressed by looking at their values
-        yes_button = proxy_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, proxy_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = yes_button.value if yes_button else False
         proxy_settings.display = is_enabled
     
     def _update_proxy_preview(self) -> None:
         """Update the proxy URL preview."""
         proxy_enabled = self.query_one("#proxy_enabled", RadioSet)
-        yes_button = proxy_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, proxy_enabled.query_one("RadioButton"))  # First button is "Yes"
         if not (yes_button and yes_button.value):
             return
             
@@ -168,7 +172,7 @@ class ProxyConfigScreen(Screen):
         """Validate the form data."""
         proxy_enabled = self.query_one("#proxy_enabled", RadioSet)
         
-        yes_button = proxy_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, proxy_enabled.query_one("RadioButton"))  # First button is "Yes"
         if yes_button and yes_button.value:
             port_input = self.query_one("#proxy_port", Input)
             port_str = port_input.value.strip()
@@ -188,10 +192,10 @@ class ProxyConfigScreen(Screen):
     def _get_config(self) -> ProxyConfig:
         """Get the current configuration from form."""
         proxy_enabled = self.query_one("#proxy_enabled", RadioSet)
-        yes_button = proxy_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, proxy_enabled.query_one("RadioButton"))  # First button is "Yes"
         
         if not (yes_button and yes_button.value):
-            return ProxyConfig(enabled=False)
+            return ProxyConfig(enable=False)
         
         port_input = self.query_one("#proxy_port", Input)
         proxy_usage = self.query_one("#proxy_usage", RadioSet)
@@ -201,10 +205,15 @@ class ProxyConfigScreen(Screen):
         build_only = build_only_button.value if build_only_button else False
         
         return ProxyConfig(
-            enabled=True,
+            enable=True,
             port=port,
             build_only=build_only
         )
+    
+    def save_configuration(self) -> None:
+        """Save current proxy configuration to project config."""
+        config = self._get_config()
+        self.project_config.stage_1.proxy = config
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

@@ -2,6 +2,10 @@
 
 import yaml
 from pathlib import Path
+from typing import cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...app import PeiDockerApp
 
 from textual import on
 from textual.app import ComposeResult
@@ -120,7 +124,7 @@ class SummaryScreen(Screen[None]):
                 # Proxy configuration
                 with Static(classes="section"):
                     yield Label("Proxy Configuration", classes="section-title")
-                    if hasattr(self.project_config.stage_1, 'proxy') and self.project_config.stage_1.proxy.enabled:
+                    if hasattr(self.project_config.stage_1, 'proxy') and self.project_config.stage_1.proxy.enable:
                         proxy = self.project_config.stage_1.proxy
                         yield Label(f"✓ Enabled (port {proxy.port})", classes="config-item")
                         usage = "build-time only" if proxy.build_only else "build and runtime"
@@ -137,7 +141,7 @@ class SummaryScreen(Screen[None]):
                 # Port mappings
                 with Static(classes="section"):
                     yield Label("Port Mappings", classes="section-title")
-                    additional_ports = getattr(self.project_config.stage_1, 'additional_ports', [])
+                    additional_ports = getattr(self.project_config.stage_1, 'ports', [])
                     if additional_ports:
                         for port in additional_ports:
                             yield Label(f"• {port}", classes="config-item")
@@ -147,7 +151,7 @@ class SummaryScreen(Screen[None]):
                 # Environment variables
                 with Static(classes="section"):
                     yield Label("Environment Variables", classes="section-title")
-                    env_vars = getattr(self.project_config.stage_1, 'environment_variables', [])
+                    env_vars = getattr(self.project_config.stage_1, 'environment', [])
                     if env_vars:
                         for var in env_vars:
                             yield Label(f"• {var}", classes="config-item")
@@ -157,7 +161,7 @@ class SummaryScreen(Screen[None]):
                 # Device configuration
                 with Static(classes="section"):
                     yield Label("Device Configuration", classes="section-title")
-                    if hasattr(self.project_config.stage_1, 'device') and self.project_config.stage_1.device.gpu:
+                    if hasattr(self.project_config.stage_1, 'device') and self.project_config.stage_1.device.device_type == 'gpu':
                         yield Label("✓ GPU Support enabled", classes="config-item")
                     else:
                         yield Label("✗ GPU Support disabled", classes="config-item")
@@ -190,8 +194,8 @@ class SummaryScreen(Screen[None]):
                 # Entry point configuration
                 with Static(classes="section"):
                     yield Label("Custom Entry Points", classes="section-title")
-                    stage1_entrypoint = getattr(self.project_config.stage_1, 'entrypoint', '')
-                    stage2_entrypoint = getattr(self.project_config.stage_2, 'entrypoint', '')
+                    stage1_entrypoint = getattr(self.project_config.stage_1, 'custom_entry', '')
+                    stage2_entrypoint = getattr(self.project_config.stage_2, 'custom_entry', '')
                     
                     if stage1_entrypoint:
                         yield Label(f"Stage-1: {stage1_entrypoint}", classes="config-item")
@@ -263,7 +267,7 @@ class SummaryScreen(Screen[None]):
         """Save and exit button pressed."""
         if self._save_configuration():
             self.notify("Configuration saved successfully!", severity="information")
-            self.app.action_quit_app()
+            cast('PeiDockerApp', self.app).action_quit_app()
         else:
             self.notify("Failed to save configuration", severity="error")
     
@@ -272,7 +276,7 @@ class SummaryScreen(Screen[None]):
         """Save and configure more button pressed."""
         if self._save_configuration():
             self.notify("Configuration saved! You can now edit the config file directly.", severity="information")
-            self.app.action_quit_app()
+            cast('PeiDockerApp', self.app).action_quit_app()
         else:
             self.notify("Failed to save configuration", severity="error")
     

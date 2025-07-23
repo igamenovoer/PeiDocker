@@ -1,6 +1,9 @@
 """Simple mode wizard controller."""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...app import PeiDockerApp
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
@@ -237,4 +240,4 @@ class SimpleWizardScreen(Screen[None]):
     
     def action_quit(self) -> None:
         """Quit the wizard."""
-        self.app.action_quit_app()
+        cast('PeiDockerApp', self.app).action_quit_app()

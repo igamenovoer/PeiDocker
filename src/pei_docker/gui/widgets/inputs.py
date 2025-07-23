@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from textual.validation import ValidationResult, Validator
 from textual.widgets import Input
@@ -96,7 +96,7 @@ class PortMappingValidator(Validator):
 class DockerImageInput(Input):
     """Specialized input for Docker image names with validation."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             placeholder="ubuntu:24.04",
             validators=[DockerImageValidator()],
@@ -107,7 +107,7 @@ class DockerImageInput(Input):
 class EnvironmentVariableInput(Input):
     """Specialized input for environment variables with KEY=VALUE validation."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             placeholder="NODE_ENV=production",
             validators=[EnvironmentVariableValidator()],
@@ -118,7 +118,7 @@ class EnvironmentVariableInput(Input):
 class PortMappingInput(Input):
     """Specialized input for port mappings with validation."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             placeholder="8080:80",
             validators=[PortMappingValidator()],
@@ -165,7 +165,7 @@ class UserIDValidator(Validator):
 class PortNumberInput(Input):
     """Specialized input for port numbers (1-65535)."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             type="integer",
             placeholder="Port number",
@@ -177,7 +177,7 @@ class PortNumberInput(Input):
 class UserIDInput(Input):
     """Specialized input for user IDs (1100-65535 to avoid system conflicts)."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             type="integer",
             placeholder="User ID",

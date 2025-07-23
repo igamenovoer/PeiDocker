@@ -3,10 +3,11 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, Button, RadioButton, RadioSet
+from typing import cast
 from textual.screen import Screen
 from textual.message import Message
 
-from ...models.config import DeviceConfig
+from ...models.config import ProjectConfig, DeviceConfig
 
 
 class DeviceConfigScreen(Screen):
@@ -68,9 +69,12 @@ class DeviceConfigScreen(Screen):
     }
     """
     
-    def __init__(self, current_config: DeviceConfig = None):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.current_config = current_config or DeviceConfig()
+        self.project_config = project_config
+        
+        # Extract current device config from project config
+        self.current_config = project_config.stage_1.device or DeviceConfig()
         
     def compose(self) -> ComposeResult:
         """Create the device configuration form."""
@@ -81,8 +85,9 @@ class DeviceConfigScreen(Screen):
             
             with Vertical(classes="form-row"):
                 with RadioSet(id="gpu_enabled"):
-                    yield RadioButton("Yes", value=self.current_config.gpu)
-                    yield RadioButton("No", value=not self.current_config.gpu)
+                    gpu_enabled = self.current_config.device_type == "gpu"
+                    yield RadioButton("Yes", value=gpu_enabled)
+                    yield RadioButton("No", value=not gpu_enabled)
                 yield Static("Enable GPU Support:")
             
             with Container(classes="gpu-info"):
@@ -119,12 +124,18 @@ class DeviceConfigScreen(Screen):
         gpu_enabled = self.query_one("#gpu_enabled", RadioSet)
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        yes_button = gpu_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, gpu_enabled.query_one("RadioButton"))  # First button is "Yes"
         gpu_value = yes_button.value if yes_button else False
         
+        device_type = "gpu" if gpu_value else "cpu"
         return DeviceConfig(
-            gpu=gpu_value
+            device_type=device_type
         )
+    
+    def save_configuration(self) -> None:
+        """Save current device configuration to project config."""
+        config = self._get_config()
+        self.project_config.stage_1.device = config
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

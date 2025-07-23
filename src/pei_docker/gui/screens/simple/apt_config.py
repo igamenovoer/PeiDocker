@@ -5,6 +5,9 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, Button, RadioButton, RadioSet
 from textual.screen import Screen
 from textual.message import Message
+from typing import cast
+
+from ...models.config import ProjectConfig
 
 
 class APTConfigScreen(Screen):
@@ -63,9 +66,12 @@ class APTConfigScreen(Screen):
         "cn": "Ubuntu Official China Mirror"
     }
     
-    def __init__(self, current_mirror: str = "default"):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.current_mirror = current_mirror
+        self.project_config = project_config
+        
+        # Extract current APT mirror from project config
+        self.current_mirror = project_config.stage_1.apt_mirror or "default"
         
     def compose(self) -> ComposeResult:
         """Create the APT configuration form."""
@@ -115,7 +121,7 @@ class APTConfigScreen(Screen):
             self._update_mirror_settings_visibility()
             
             # If disabling custom mirror, reset to default
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 # Reset to default mirror by setting the default radio button
                 default_button = self.query_one("#mirror_default", RadioButton)
                 default_button.value = True
@@ -126,7 +132,7 @@ class APTConfigScreen(Screen):
         mirror_settings = self.query_one("#mirror_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        yes_button = mirror_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, mirror_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = yes_button.value if yes_button else False
         mirror_settings.display = is_enabled
     
@@ -134,7 +140,7 @@ class APTConfigScreen(Screen):
         """Get the currently selected mirror."""
         mirror_enabled = self.query_one("#mirror_enabled", RadioSet)
         
-        yes_button = mirror_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, mirror_enabled.query_one("RadioButton"))  # First button is "Yes"
         if not (yes_button and yes_button.value):
             return "default"
         
@@ -142,14 +148,20 @@ class APTConfigScreen(Screen):
         # Find which mirror button is selected
         pressed_id = None
         for button in mirror_selection.query("RadioButton"):
-            if button.value:
-                pressed_id = button.id
+            radio_button = cast(RadioButton, button)
+            if radio_button.value:
+                pressed_id = radio_button.id
                 break
         
         if pressed_id and pressed_id.startswith("mirror_"):
             return pressed_id[7:]  # Remove "mirror_" prefix
         
         return "default"
+    
+    def save_configuration(self) -> None:
+        """Save current APT mirror configuration to project config."""
+        selected_mirror = self._get_selected_mirror()
+        self.project_config.stage_1.apt_mirror = selected_mirror
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

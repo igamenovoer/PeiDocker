@@ -3,10 +3,12 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet, ListView, ListItem, Label
+from typing import cast
 from textual.screen import Screen
 from textual.message import Message
 import re
 
+from ...models.config import ProjectConfig
 from ...utils.file_utils import validate_port_mapping
 from ...widgets.inputs import PortMappingInput
 from ...widgets.dialogs import ErrorDialog
@@ -82,10 +84,23 @@ class PortMappingScreen(Screen):
     }
     """
     
-    def __init__(self, current_mappings: list[str] = None, ssh_port: str = "2222:22"):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.current_mappings = current_mappings or []
-        self.ssh_port = ssh_port
+        self.project_config = project_config
+        
+        # Extract current mappings from project config
+        self.current_mappings = project_config.stage_1.ports or []
+        
+        # Extract SSH port configuration
+        ssh_config = project_config.stage_1.ssh
+        if ssh_config.enable:
+            self.ssh_port = f"{ssh_config.host_port}:{ssh_config.port}"
+        else:
+            self.ssh_port = "2222:22"  # Default fallback
+    
+    def save_configuration(self) -> None:
+        """Save current port mappings to project configuration."""
+        self.project_config.stage_1.ports = self.current_mappings.copy()
         
     def compose(self) -> ComposeResult:
         """Create the port mapping configuration form."""
@@ -145,7 +160,7 @@ class PortMappingScreen(Screen):
             self._update_port_settings_visibility()
             
             # If disabling port mappings, clear the list
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 self.current_mappings.clear()
                 self._update_port_list()
     
@@ -160,6 +175,7 @@ class PortMappingScreen(Screen):
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             config = self._get_port_mappings()
+            self.save_configuration()
             self.post_message(self.ConfigReady(config))
         elif event.button.id == "add_port":
             self._add_port_mapping()
@@ -170,7 +186,7 @@ class PortMappingScreen(Screen):
         port_settings = self.query_one("#port_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        yes_button = port_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, port_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = yes_button.value if yes_button else False
         port_settings.display = is_enabled
     
@@ -224,7 +240,7 @@ class PortMappingScreen(Screen):
         """Get the current port mappings."""
         port_enabled = self.query_one("#port_enabled", RadioSet)
         
-        yes_button = port_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, port_enabled.query_one("RadioButton"))  # First button is "Yes"
         if not (yes_button and yes_button.value):
             return []
         

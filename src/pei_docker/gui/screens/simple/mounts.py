@@ -1,12 +1,15 @@
 """Additional Mounts Configuration Screen for Simple Mode Wizard."""
 
+from __future__ import annotations
+
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet, ListView, ListItem, Label
+from typing import cast
 from textual.screen import Screen
 from textual.message import Message
 
-from ...models.config import MountConfig
+from ...models.config import ProjectConfig, MountConfig
 
 
 class MountsScreen(Screen):
@@ -79,10 +82,13 @@ class MountsScreen(Screen):
         "done": "Done (finish mounting)"
     }
     
-    def __init__(self, stage1_mounts: list[MountConfig] = None, stage2_mounts: list[MountConfig] = None):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.stage1_mounts = stage1_mounts or []
-        self.stage2_mounts = stage2_mounts or []
+        self.project_config = project_config
+        
+        # Extract current mounts from project config (convert dict to list for GUI)
+        self.stage1_mounts = list(project_config.stage_1.mounts.values()) if project_config.stage_1.mounts else []
+        self.stage2_mounts = list(project_config.stage_2.mounts.values()) if project_config.stage_2.mounts else []
         self.current_mount_type = "auto-volume"
         
     def compose(self) -> ComposeResult:
@@ -159,14 +165,14 @@ class MountsScreen(Screen):
         """Handle radio button changes."""
         if event.radio_set.id == "stage1_enabled":
             self._update_stage1_settings_visibility()
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 self.stage1_mounts.clear()
                 self._update_mount_lists()
         elif event.radio_set.id == "stage2_enabled":
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 self.stage2_mounts.clear()
         elif event.radio_set.id == "mount_type":
-            pressed_id = event.pressed_button.id if event.pressed_button else None
+            pressed_id = event.pressed.id if event.pressed else None
             if pressed_id and pressed_id.startswith("type_"):
                 self.current_mount_type = pressed_id[5:]  # Remove "type_" prefix
                 self._update_mount_form_visibility()
@@ -176,8 +182,8 @@ class MountsScreen(Screen):
         if event.button.id == "back":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
-            config = self._get_mounts_config()
-            self.post_message(self.ConfigReady(config))
+            stage1_mounts, stage2_mounts = self._get_mounts_config()
+            self.post_message(self.ConfigReady(stage1_mounts, stage2_mounts))
         elif event.button.id == "add_mount":
             self._add_mount()
     
@@ -187,7 +193,7 @@ class MountsScreen(Screen):
         stage1_settings = self.query_one("#stage1_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = stage1_yes_button.value if stage1_yes_button else False
         stage1_settings.display = is_enabled
     
@@ -229,15 +235,15 @@ class MountsScreen(Screen):
         
         # Check for duplicate destination paths
         for existing_mount in self.stage1_mounts:
-            if existing_mount.dst == dest_path:
+            if existing_mount.dst_path == dest_path:
                 self.notify("Destination path already exists", severity="error")
                 return
         
         # Create mount configuration
         mount_config = MountConfig(
-            type=self.current_mount_type,
-            src=source if source else None,
-            dst=dest_path
+            mount_type=self.current_mount_type,
+            src_path=source if source else None,
+            dst_path=dest_path
         )
         
         self.stage1_mounts.append(mount_config)
@@ -259,14 +265,14 @@ class MountsScreen(Screen):
             stage1_list.append(item)
         else:
             for mount in self.stage1_mounts:
-                if mount.type == "auto-volume":
-                    description = f"• {mount.dst} (auto volume)"
-                elif mount.type == "manual-volume":
-                    description = f"• {mount.src} → {mount.dst} (volume)"
-                elif mount.type == "host-dir":
-                    description = f"• {mount.src} → {mount.dst} (host)"
+                if mount.mount_type == "auto-volume":
+                    description = f"• {mount.dst_path} (auto volume)"
+                elif mount.mount_type == "manual-volume":
+                    description = f"• {mount.src_path} → {mount.dst_path} (volume)"
+                elif mount.mount_type == "host-dir":
+                    description = f"• {mount.src_path} → {mount.dst_path} (host)"
                 else:
-                    description = f"• {mount.dst} ({mount.type})"
+                    description = f"• {mount.dst_path} ({mount.mount_type})"
                 
                 item = ListItem(Label(description))
                 stage1_list.append(item)
@@ -276,13 +282,20 @@ class MountsScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
         
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         stage1 = self.stage1_mounts.copy() if (stage1_yes_button and stage1_yes_button.value) else []
         
-        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage2_yes_button = cast(RadioButton, stage2_enabled.query_one("RadioButton"))  # First button is "Yes"
         stage2 = self.stage2_mounts.copy() if (stage2_yes_button and stage2_yes_button.value) else []
         
         return stage1, stage2
+    
+    def save_configuration(self) -> None:
+        """Save current mounts configuration to project config."""
+        stage1_mounts, stage2_mounts = self._get_mounts_config()
+        # Convert list back to dict format for data model
+        self.project_config.stage_1.mounts = {f"mount_{i}": mount for i, mount in enumerate(stage1_mounts)}
+        self.project_config.stage_2.mounts = {f"mount_{i}": mount for i, mount in enumerate(stage2_mounts)}
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

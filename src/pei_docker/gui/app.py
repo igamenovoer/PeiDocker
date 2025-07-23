@@ -68,7 +68,7 @@ class PeiDockerApp(App[None]):
         self.exit()
 
 
-def main():
+def main() -> None:
     """Main entry point for the GUI application."""
     parser = argparse.ArgumentParser(
         description="PeiDocker Terminal GUI",

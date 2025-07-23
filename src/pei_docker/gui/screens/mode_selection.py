@@ -1,7 +1,10 @@
 """Mode selection screen for the PeiDocker GUI."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..app import PeiDockerApp
 
 from textual import on
 from textual.app import ComposeResult
@@ -310,7 +313,7 @@ class ModeSelectionScreen(Screen[None]):
             self.app.push_screen("simple_wizard")
         else:
             # TODO: Navigate to advanced mode
-            self.notify("Advanced mode not yet implemented", severity="info")
+            self.notify("Advanced mode not yet implemented", severity="information")
     
     def _create_project(self) -> bool:
         """Create the project directory structure."""
@@ -364,4 +367,4 @@ class ModeSelectionScreen(Screen[None]):
     
     def action_quit(self) -> None:
         """Quit the application."""
-        self.app.action_quit_app()
+        cast('PeiDockerApp', self.app).action_quit_app()

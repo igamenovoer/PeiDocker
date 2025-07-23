@@ -1,6 +1,6 @@
 """Configuration data models for the GUI."""
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -82,7 +82,7 @@ class ProjectConfig:
     stage_1: Stage1Config = field(default_factory=Stage1Config)
     stage_2: Stage2Config = field(default_factory=Stage2Config)
     
-    def to_user_config_dict(self) -> Dict:
+    def to_user_config_dict(self) -> Dict[str, Any]:
         """Convert to user_config.yml compatible dictionary."""
         config = {}
         

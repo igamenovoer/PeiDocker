@@ -1,7 +1,10 @@
 """Startup screen for the PeiDocker GUI."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..app import PeiDockerApp
 
 from textual import on
 from textual.app import ComposeResult
@@ -171,12 +174,12 @@ class StartupScreen(Screen[None]):
         # Check if project directory is already set
         if self.project_config.project_dir:
             # Skip directory selection, go directly to mode selection
-            self.app.action_goto_mode_selection()
+            cast('PeiDockerApp', self.app).action_goto_mode_selection()
         else:
             # Need to get project directory first
             # For now, we'll go to mode selection and handle directory selection there
-            self.app.action_goto_mode_selection()
+            cast('PeiDockerApp', self.app).action_goto_mode_selection()
     
     def action_quit(self) -> None:
         """Quit the application."""
-        self.app.action_quit_app()
+        cast('PeiDockerApp', self.app).action_quit_app()

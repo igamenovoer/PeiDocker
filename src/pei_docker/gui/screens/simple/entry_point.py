@@ -8,10 +8,12 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet
 from textual.screen import Screen
 from textual.message import Message
+from typing import cast
 import os
 
 from textual_fspicker import FileOpen
 
+from ...models.config import ProjectConfig
 from ...utils.file_utils import validate_file_path
 from ...widgets.dialogs import ErrorDialog
 
@@ -84,10 +86,13 @@ class EntryPointScreen(Screen):
     }
     """
     
-    def __init__(self, stage1_entrypoint: str = "", stage2_entrypoint: str = ""):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.stage1_entrypoint = stage1_entrypoint
-        self.stage2_entrypoint = stage2_entrypoint
+        self.project_config = project_config
+        
+        # Extract current entry points from project config
+        self.stage1_entrypoint = project_config.stage_1.custom_entry or ""
+        self.stage2_entrypoint = project_config.stage_2.custom_entry or ""
         
     def compose(self) -> ComposeResult:
         """Create the entry point configuration form."""
@@ -162,7 +167,7 @@ class EntryPointScreen(Screen):
             self._update_settings_visibility()
             
             # Clear script path if disabling
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 if event.radio_set.id == "stage1_enabled":
                     stage1_script = self.query_one("#stage1_script", Input)
                     stage1_script.value = ""
@@ -177,8 +182,8 @@ class EntryPointScreen(Screen):
         elif event.button.id == "next":
             is_valid, error_msg = self._validate_form()
             if is_valid:
-                config = self._get_entry_point_config()
-                self.post_message(self.ConfigReady(config))
+                stage1_entrypoint, stage2_entrypoint = self._get_entry_point_config()
+                self.post_message(self.ConfigReady(stage1_entrypoint, stage2_entrypoint))
             else:
                 self.notify(error_msg, severity="error")
         elif event.button.id == "browse_stage1":
@@ -195,11 +200,11 @@ class EntryPointScreen(Screen):
         stage2_settings = self.query_one("#stage2_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         stage1_is_enabled = stage1_yes_button.value if stage1_yes_button else False
         stage1_settings.display = stage1_is_enabled
         
-        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes" 
+        stage2_yes_button = cast(RadioButton, stage2_enabled.query_one("RadioButton"))  # First button is "Yes" 
         stage2_is_enabled = stage2_yes_button.value if stage2_yes_button else False
         stage2_settings.display = stage2_is_enabled
     
@@ -220,7 +225,7 @@ class EntryPointScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
         
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage1_yes_button and stage1_yes_button.value:
             stage1_script = self.query_one("#stage1_script", Input)
             script_path = stage1_script.value.strip()
@@ -235,7 +240,7 @@ class EntryPointScreen(Screen):
             if os.path.isabs(script_path) and not os.path.exists(script_path):
                 return False, f"Stage-1 entry point script not found: {script_path}"
         
-        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage2_yes_button = cast(RadioButton, stage2_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage2_yes_button and stage2_yes_button.value:
             stage2_script = self.query_one("#stage2_script", Input)
             script_path = stage2_script.value.strip()
@@ -260,17 +265,23 @@ class EntryPointScreen(Screen):
         stage1_script = ""
         stage2_script = ""
         
-        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_yes_button = cast(RadioButton, stage1_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage1_yes_button and stage1_yes_button.value:
             stage1_input = self.query_one("#stage1_script", Input)
             stage1_script = stage1_input.value.strip()
         
-        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage2_yes_button = cast(RadioButton, stage2_enabled.query_one("RadioButton"))  # First button is "Yes"
         if stage2_yes_button and stage2_yes_button.value:
             stage2_input = self.query_one("#stage2_script", Input)
             stage2_script = stage2_input.value.strip()
         
         return stage1_script, stage2_script
+    
+    def save_configuration(self) -> None:
+        """Save current entry point configuration to project config."""
+        stage1_entrypoint, stage2_entrypoint = self._get_entry_point_config()
+        self.project_config.stage_1.custom_entry = stage1_entrypoint
+        self.project_config.stage_2.custom_entry = stage2_entrypoint
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

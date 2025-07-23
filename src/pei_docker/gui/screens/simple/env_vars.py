@@ -3,9 +3,11 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.widgets import Static, Input, Button, RadioButton, RadioSet, ListView, ListItem, Label
+from typing import cast
 from textual.screen import Screen
 from textual.message import Message
 
+from ...models.config import ProjectConfig
 from ...utils.file_utils import validate_environment_variable
 from ...widgets.inputs import EnvironmentVariableInput
 from ...widgets.dialogs import ErrorDialog
@@ -80,9 +82,12 @@ class EnvironmentVariablesScreen(Screen):
     }
     """
     
-    def __init__(self, current_vars: list[str] = None):
+    def __init__(self, project_config: ProjectConfig):
         super().__init__()
-        self.current_vars = current_vars or []
+        self.project_config = project_config
+        
+        # Extract current environment variables from project config
+        self.current_vars = project_config.stage_1.environment or []
         
     def compose(self) -> ComposeResult:
         """Create the environment variables configuration form."""
@@ -141,7 +146,7 @@ class EnvironmentVariablesScreen(Screen):
             self._update_env_settings_visibility()
             
             # If disabling environment variables, clear the list
-            if event.pressed_button.label == "No":
+            if event.pressed and event.pressed.label == "No":
                 self.current_vars.clear()
                 self._update_env_list()
     
@@ -166,7 +171,7 @@ class EnvironmentVariablesScreen(Screen):
         env_settings = self.query_one("#env_settings")
         
         # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
-        yes_button = env_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, env_enabled.query_one("RadioButton"))  # First button is "Yes"
         is_enabled = yes_button.value if yes_button else False
         env_settings.display = is_enabled
     
@@ -238,11 +243,15 @@ class EnvironmentVariablesScreen(Screen):
         """Get the current environment variables."""
         env_enabled = self.query_one("#env_enabled", RadioSet)
         
-        yes_button = env_enabled.query_one("RadioButton")  # First button is "Yes"
+        yes_button = cast(RadioButton, env_enabled.query_one("RadioButton"))  # First button is "Yes"
         if not (yes_button and yes_button.value):
             return []
         
         return self.current_vars.copy()
+    
+    def save_configuration(self) -> None:
+        """Save current environment variables to project configuration."""
+        self.project_config.stage_1.environment = self.current_vars.copy()
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""
