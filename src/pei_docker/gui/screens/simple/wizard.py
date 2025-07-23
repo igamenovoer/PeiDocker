@@ -196,7 +196,9 @@ class SimpleWizardScreen(Screen[None]):
             step = self.steps[self.current_step]
             self.step_screens[self.current_step] = step.screen_class(self.project_config)
         
-        yield from self.step_screens[self.current_step].compose()
+        current_screen = self.step_screens[self.current_step]
+        assert current_screen is not None, "Screen should not be None after initialization"
+        yield from current_screen.compose()
     
     def _update_step_content(self) -> None:
         """Update the step content area."""
@@ -210,6 +212,7 @@ class SimpleWizardScreen(Screen[None]):
         
         # Mount the step screen widget directly
         step_screen = self.step_screens[self.current_step]
+        assert step_screen is not None, "Screen should not be None after initialization"
         content_container.mount(step_screen)
     
     def _validate_current_step(self) -> bool:
@@ -218,8 +221,10 @@ class SimpleWizardScreen(Screen[None]):
             return True
         
         step_screen = self.step_screens[self.current_step]
+        assert step_screen is not None, "Screen should not be None after None check"
         if hasattr(step_screen, 'is_valid'):
-            return step_screen.is_valid()
+            result = step_screen.is_valid()
+            return bool(result)  # Ensure we return a bool, not Any
         
         return True
     

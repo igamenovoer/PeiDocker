@@ -84,10 +84,10 @@ class ProjectConfig:
     
     def to_user_config_dict(self) -> Dict[str, Any]:
         """Convert to user_config.yml compatible dictionary."""
-        config = {}
+        config: Dict[str, Any] = {}
         
         # Stage 1
-        stage1_dict = {
+        stage1_dict: Dict[str, Any] = {
             "image": {
                 "base": self.stage_1.base_image,
                 "output": self.stage_1.output_image
@@ -95,7 +95,7 @@ class ProjectConfig:
         }
         
         if self.stage_1.ssh.enable:
-            users_dict = {}
+            users_dict: Dict[str, Any] = {}
             for user in self.stage_1.ssh.users:
                 users_dict[user.name] = {
                     "password": user.password,
@@ -140,7 +140,7 @@ class ProjectConfig:
             stage1_dict["device"] = {"type": self.stage_1.device.device_type}
         
         if self.stage_1.mounts:
-            mount_dict = {}
+            stage1_mount_dict: Dict[str, Any] = {}
             for name, mount in self.stage_1.mounts.items():
                 mount_config = {
                     "type": mount.mount_type,
@@ -150,8 +150,8 @@ class ProjectConfig:
                     mount_config["src_path"] = mount.src_path
                 if mount.name:
                     mount_config["name"] = mount.name
-                mount_dict[name] = mount_config
-            stage1_dict["mount"] = mount_dict
+                stage1_mount_dict[name] = mount_config
+            stage1_dict["mount"] = stage1_mount_dict
         
         if self.stage_1.custom_entry:
             stage1_dict["custom"] = {"on_entry": self.stage_1.custom_entry}
@@ -166,13 +166,13 @@ class ProjectConfig:
         # Stage 2 (if needed)
         if (self.stage_2.mounts or self.stage_2.custom_entry or 
             self.stage_2.custom_scripts or self.stage_2.output_image):
-            stage2_dict = {}
+            stage2_dict: Dict[str, Any] = {}
             
             if self.stage_2.output_image:
                 stage2_dict["image"] = {"output": self.stage_2.output_image}
             
             if self.stage_2.mounts:
-                mount_dict = {}
+                stage2_mount_dict: Dict[str, Any] = {}
                 for name, mount in self.stage_2.mounts.items():
                     mount_config = {
                         "type": mount.mount_type,
@@ -182,8 +182,8 @@ class ProjectConfig:
                         mount_config["src_path"] = mount.src_path
                     if mount.name:
                         mount_config["name"] = mount.name
-                    mount_dict[name] = mount_config
-                stage2_dict["mount"] = mount_dict
+                    stage2_mount_dict[name] = mount_config
+                stage2_dict["mount"] = stage2_mount_dict
             
             if self.stage_2.custom_entry:
                 stage2_dict["custom"] = {"on_entry": self.stage_2.custom_entry}

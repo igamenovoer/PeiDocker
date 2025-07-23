@@ -2,7 +2,7 @@
 
 import subprocess
 import shutil
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any, cast
 
 
 def check_docker_available() -> Tuple[bool, Optional[str]]:
@@ -41,7 +41,7 @@ def check_docker_images_exist(image_names: List[str]) -> List[Tuple[str, bool]]:
     return results
 
 
-def get_docker_info() -> Optional[dict]:
+def get_docker_info() -> Optional[Dict[Any, Any]]:
     """Get Docker system information."""
     try:
         result = subprocess.run(
@@ -52,7 +52,7 @@ def get_docker_info() -> Optional[dict]:
         )
         if result.returncode == 0:
             import json
-            return json.loads(result.stdout)
+            return cast(Dict[Any, Any], json.loads(result.stdout))
         return None
     except Exception:
         return None

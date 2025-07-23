@@ -236,7 +236,7 @@ class SSHConfigScreen(Screen[None]):
     
     def _validate_password(self, value: str) -> bool:
         """Validate password (no spaces or commas)."""
-        return value and ' ' not in value and ',' not in value
+        return bool(value) and ' ' not in value and ',' not in value
     
     def _validate_public_key(self, value: str) -> bool:
         """Validate SSH public key."""
@@ -252,7 +252,7 @@ class SSHConfigScreen(Screen[None]):
     @on(RadioSet.Changed, "#ssh_enable")
     def on_ssh_enable_changed(self, event: RadioSet.Changed) -> None:
         """Handle SSH enable/disable change."""
-        self.ssh_enabled = event.value.id == "ssh_yes"
+        self.ssh_enabled = event.pressed.id == "ssh_yes" if event.pressed else False
         self.project_config.stage_1.ssh.enable = self.ssh_enabled
         # Refresh the screen to show/hide SSH config
         self.refresh(recompose=True)
@@ -343,7 +343,7 @@ class SSHConfigScreen(Screen[None]):
         
         elif event.input.id == "ssh_pubkey":
             if self._validate_public_key(event.value):
-                key_text = event.value.strip()
+                key_text: Optional[str] = event.value.strip()
                 if key_text == '~':
                     # Try to get system SSH key
                     system_key = get_ssh_key_from_system()

@@ -5,10 +5,10 @@ from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, Checkbox, Input
 from textual.widget import Widget
 from textual.message import Message
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .inputs import DockerImageInput, PortNumberInput, UserIDInput
-from ..models.config import ProjectConfig, SSHConfig
+from ..models.config import ProjectConfig, SSHConfig, Stage1Config
 
 
 class ConfigUpdated(Message):
@@ -47,7 +47,7 @@ class ProjectConfigForm(Widget):
     }
     """
     
-    def __init__(self, initial_config: ProjectConfig = None):
+    def __init__(self, initial_config: Optional[ProjectConfig] = None):
         super().__init__()
         self.config = initial_config or ProjectConfig()
     
@@ -93,19 +93,17 @@ class ProjectConfigForm(Widget):
     def _validate_and_save(self) -> None:
         """Validate form data and save configuration."""
         try:
-            config_data = {
-                "project_name": self.query_one("#project_name", Input).value,
-                "project_dir": self.query_one("#project_dir", Input).value,
-                "stage_1": {
-                    "base_image": self.query_one("#base_image", DockerImageInput).value,
-                }
-            }
-            
-            # Validate with Pydantic (will raise ValidationError if invalid)
-            validated_config = ProjectConfig(**config_data)
+            # Create config with proper dataclass structure
+            validated_config = ProjectConfig(
+                project_name=self.query_one("#project_name", Input).value,
+                project_dir=self.query_one("#project_dir", Input).value,
+                stage_1=Stage1Config(
+                    base_image=self.query_one("#base_image", DockerImageInput).value
+                )
+            )
             
             # Send message to parent
-            self.post_message(ConfigUpdated(validated_config.dict()))
+            self.post_message(ConfigUpdated(validated_config.to_user_config_dict()))
             self.notify("✓ Project configuration is valid!", severity="information")
             
         except Exception as e:
@@ -155,7 +153,7 @@ class SSHConfigForm(Widget):
     }
     """
     
-    def __init__(self, initial_config: SSHConfig = None):
+    def __init__(self, initial_config: Optional[SSHConfig] = None):
         super().__init__()
         self.config = initial_config or SSHConfig()
     

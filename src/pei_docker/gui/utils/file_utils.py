@@ -4,7 +4,7 @@ import os
 import shutil
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, cast
 
 
 def ensure_dir_exists(path: str) -> bool:
@@ -52,7 +52,8 @@ def load_user_config(file_path: str) -> Optional[Dict[str, Any]]:
     """Load configuration from user_config.yml file."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
+            result = yaml.safe_load(f)
+            return cast(Dict[str, Any], result) if result is not None else None
     except (OSError, yaml.YAMLError):
         return None
 
