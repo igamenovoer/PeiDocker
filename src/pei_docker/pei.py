@@ -71,15 +71,16 @@ def create(project_dir : str, with_examples : bool):
         
 # generate the docker compose file from the config file
 @click.command()
-@click.option('--project-dir', '-p', help='project directory', required=True, 
-              type=click.Path(exists=False, file_okay=False))
+@click.option('--project-dir', '-p', help='project directory (default: current working directory)', required=False, 
+              default=None, type=click.Path(exists=False, file_okay=False))
 @click.option('--config', '-c', default=f'{Defaults.OutputConfigName}', help='config file name, relative to the project dir', 
               type=click.Path(exists=False, file_okay=True, dir_okay=False))
 @click.option('--full-compose', '-f', is_flag=True, default=False, help='generate full compose file with x-??? sections')
 def configure(project_dir:str, config:str, full_compose:bool):
-    logging.info(f'Configuring PeiDocker project from {project_dir}/{config}')
+    if project_dir is None:
+        project_dir = os.getcwd()
     
-    import os
+    logging.info(f'Configuring PeiDocker project from {project_dir}/{config}')
     # is config file a relative path?
     # if yes, then append to project dir
     # if no, then use as is

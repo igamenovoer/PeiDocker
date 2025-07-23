@@ -28,7 +28,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(pei-docker-cli:*)",
       "Bash(pip uninstall:*)",
-      "Bash(pixi install:*)"
+      "Bash(pixi install:*)",
+      "Bash(pip install:*)",
+      "Bash(ssh:*)"
     ],
     "deny": []
   }

@@ -40,14 +40,18 @@ stage_1:
 
 Usage:
 ```bash
-# Use default port (2222)
+# Use default port (2222) from within project directory
+cd ./my-project
+pei-docker-cli configure
+
+# Or specify project directory explicitly
 pei-docker-cli configure -p ./my-project
 
 # Use custom port (3333)
 export SSH_HOST_PORT=3333  # Linux/macOS
 # or
 $env:SSH_HOST_PORT='3333'  # Windows PowerShell
-pei-docker-cli configure -p ./my-project
+pei-docker-cli configure
 ```
 
 #### Example 2: Flexible Mount Paths
@@ -68,7 +72,13 @@ stage_2:
 
 Usage:
 ```bash
-# Windows PowerShell
+# Windows PowerShell - from within project directory
+cd ./my-project
+$env:PROJECT_DATA_PATH='D:\my-project\data'
+$env:TOOLS_PATH='D:\shared-tools'
+pei-docker-cli configure
+
+# Or specify project directory explicitly
 $env:PROJECT_DATA_PATH='D:\my-project\data'
 $env:TOOLS_PATH='D:\shared-tools'
 pei-docker-cli configure -p ./my-project
@@ -76,7 +86,7 @@ pei-docker-cli configure -p ./my-project
 # Linux/macOS
 export PROJECT_DATA_PATH='/home/user/project-data'
 export TOOLS_PATH='/usr/local/shared-tools'
-pei-docker-cli configure -p ./my-project
+pei-docker-cli configure
 ```
 
 #### Example 3: Environment-Specific Base Images
@@ -90,17 +100,18 @@ stage_1:
 
 This allows you to use different base images for different environments:
 ```bash
-# Development (default Ubuntu)
-pei-docker-cli configure -p ./my-project
+# Development (default Ubuntu) from within project directory
+cd ./my-project
+pei-docker-cli configure
 
 # GPU development
 $env:BASE_IMAGE='nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04'
-pei-docker-cli configure -p ./my-project
+pei-docker-cli configure
 
 # Production
 $env:BASE_IMAGE='ubuntu:22.04'
 $env:OUTPUT_IMAGE='my-production-app'
-pei-docker-cli configure -p ./my-project
+pei-docker-cli configure
 ```
 
 ### Advanced Usage
@@ -451,8 +462,10 @@ stage_2:
   
   custom:
     on_first_run:
-      - stage-2/system/conda/auto-install-miniconda.sh
-      - stage-2/system/invoke-ai/install-invoke-ai-conda.sh
+      # Note: This example uses pip-based InvokeAI installation
+      # For conda-based installation, refer to scripts in src/pei_docker/project_files/installation/stage-2/system/conda/
+      # However, pixi is now the recommended package manager for PeiDocker
+      - stage-2/system/invoke-ai/install-invoke-ai-pip.sh
 
     on_every_run:
       # normally, you can start InvokeAI manually using stage-2/system/invoke-ai/run-invoke-ai-mutli-user.sh

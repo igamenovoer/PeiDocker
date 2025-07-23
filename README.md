@@ -152,6 +152,11 @@ pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
 Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs. Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
+# From within the project directory
+cd ./build
+pei-docker-cli configure
+
+# Or specify project directory explicitly
 pei-docker-cli configure -p ./build
 
 # Optional: Use a different config file

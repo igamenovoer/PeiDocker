@@ -36,7 +36,7 @@ dependencies = [
     "omegaconf>=2.3.0,<3",
     "attrs>=25.3.0,<26",
     "click>=8.2.1,<9",
-    "rich>=10.0.0,<14",
+    "rich>=10.0.0,<14", "textual>=4.0.0,<5",
 ]
 
 [project.optional-dependencies]

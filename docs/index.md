@@ -35,6 +35,11 @@ pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
 * Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
+# From within the project directory
+cd ./build
+pei-docker-cli configure
+
+# Or specify project directory explicitly
 pei-docker-cli configure -p ./build
 
 # Optional: Use a different config file
@@ -78,14 +83,17 @@ pei-docker-cli configure [OPTIONS]
 ```
 
 **Options:**
-- `-p, --project-dir DIRECTORY`: Project directory (required)
+- `-p, --project-dir DIRECTORY`: Project directory (default: current working directory)
 - `-c, --config FILE`: Config file name, relative to the project dir (default: `user_config.yml`)
-- `-f, --full-compose`: Generate full compose file with x-??? sections (default: false)
+- `-f, --full-compose`: Generate full compose file with extended sections (default: false)
 - `--help`: Show help message
 
 **Examples:**
 ```sh
-# Use default config file (user_config.yml)
+# Use current directory as project directory with default config
+pei-docker-cli configure
+
+# Use default config file (user_config.yml) in specific directory
 pei-docker-cli configure -p ./my-project
 
 # Use custom config file
@@ -93,6 +101,9 @@ pei-docker-cli configure -p ./my-project -c prod-config.yml
 
 # Generate full compose file with extended sections
 pei-docker-cli configure -p ./my-project -f
+
+# Use current directory with custom config file
+pei-docker-cli configure -c prod-config.yml
 ```
 
 For detailed CLI options and advanced usage, see the [CLI Reference](cli_reference.md).

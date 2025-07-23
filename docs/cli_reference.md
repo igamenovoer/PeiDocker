@@ -43,7 +43,7 @@
 
 | Option | Description |
 | --- | --- |
-| `-p`, `--project-dir DIRECTORY` | project directory (required) |
+| `-p`, `--project-dir DIRECTORY` | project directory (default: current working directory) |
 | `-c`, `--config FILE` | config file name, relative to the project dir |
 | `-f`, `--full-compose` | generate full compose file with x-??? sections |
 | `--help` | Show this message and exit. |
