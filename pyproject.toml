@@ -62,6 +62,7 @@ Issues = "https://github.com/igamenovoer/PeiDocker/issues"
 
 [project.scripts]
 pei-docker-cli = "pei_docker.pei:cli"
+pei-docker-gui = "pei_docker.gui.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pei_docker"]

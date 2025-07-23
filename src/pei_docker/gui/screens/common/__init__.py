@@ -1,0 +1,1 @@
+"""Common GUI components package."""

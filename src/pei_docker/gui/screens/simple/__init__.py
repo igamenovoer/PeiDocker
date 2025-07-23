@@ -1,0 +1,1 @@
+"""Simple mode screens package."""

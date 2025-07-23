@@ -235,3 +235,7 @@ Make sure you know what platform you are working on.
 Windows specific:
 - WSL provides `sshpass` for your testing
 - Use powershell to run commands
+
+## Platform-Specific Guidelines
+
+- When using CLI commands, use PowerShell

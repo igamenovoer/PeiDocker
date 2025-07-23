@@ -30,7 +30,11 @@
       "Bash(pip uninstall:*)",
       "Bash(pixi install:*)",
       "Bash(pip install:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(pdflatex:*)",
+      "Bash(xelatex:*)"
     ],
     "deny": []
   }
