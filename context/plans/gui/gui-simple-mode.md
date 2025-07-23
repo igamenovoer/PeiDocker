@@ -1,8 +1,8 @@
-# PeiDocker GUI - Simple Mode Interaction Design
+# PeiDocker GUI - Simple Mode Only Interaction Design
 
 ## Overview
 
-Simple mode provides a guided, wizard-like interface that walks users through creating a PeiDocker project using a series of sequential questions. The interface focuses on the most common configuration options and hides advanced features to reduce complexity.
+The GUI provides **ONLY a simple mode** - a guided, wizard-like interface that walks users through creating a PeiDocker project using a series of sequential configuration steps. Each step has its own dedicated GUI screen. There is no advanced mode. The interface focuses on the most common configuration options with streamlined navigation and memory-based state management.
 
 ## Architecture & File Structure
 
@@ -13,28 +13,28 @@ src/pei_docker/gui/
 ├── screens/
 │   ├── __init__.py
 │   ├── startup.py            # Project directory selection and validation
-│   ├── mode_selection.py     # Simple vs Advanced mode selection
 │   ├── simple/
 │   │   ├── __init__.py
 │   │   ├── wizard.py         # Main wizard orchestrator
-│   │   ├── project_info.py   # Project name and base image
-│   │   ├── ssh_config.py     # SSH configuration screen
-│   │   ├── proxy_config.py   # Proxy configuration screen
-│   │   ├── apt_config.py     # APT mirror configuration
-│   │   ├── port_mapping.py   # Additional port mappings
-│   │   ├── env_vars.py       # Environment variables
-│   │   ├── device_config.py  # GPU/device configuration
-│   │   ├── mounts.py         # Additional mount points
-│   │   ├── entry_point.py    # Custom entry point scripts
-│   │   ├── custom_scripts.py # Custom hook scripts
-│   │   └── summary.py        # Configuration summary and save
-│   └── common/
-│       ├── __init__.py
-│       ├── widgets.py        # Reusable custom widgets
-│       └── validators.py     # Input validation functions
+│   │   ├── project_info.py   # Step 1: Project name and base image
+│   │   ├── ssh_config.py     # Step 2: SSH configuration
+│   │   ├── proxy_config.py   # Step 3: Proxy configuration
+│   │   ├── apt_config.py     # Step 4: APT mirror configuration
+│   │   ├── port_mapping.py   # Step 5: Additional port mappings
+│   │   ├── env_vars.py       # Step 6: Environment variables
+│   │   ├── device_config.py  # Step 7: GPU/device configuration
+│   │   ├── mounts.py         # Step 8: Additional mount points
+│   │   ├── entry_point.py    # Step 9: Custom entry point scripts
+│   │   ├── custom_scripts.py # Step 10: Custom hook scripts
+│   │   └── summary.py        # Step 11: Configuration summary and save
 ├── models/
 │   ├── __init__.py
 │   └── config.py            # Configuration data models
+├── widgets/
+│   ├── __init__.py
+│   ├── inputs.py            # Custom input widgets with validation
+│   ├── forms.py             # Reusable form components
+│   └── dialogs.py           # Dialog widgets
 └── utils/
     ├── __init__.py
     ├── docker_utils.py      # Docker command utilities
@@ -56,59 +56,51 @@ src/pei_docker/gui/
       │
       ▼
 ┌─────────────────┐    --project-dir provided
-│ Project Dir     │ ──────────────────► Skip to Mode Selection
+│ Project Dir     │ ──────────────────► Skip to Simple Wizard
 │   Selection     │
 └─────┬───────────┘
       │
       ▼
 ┌─────────────────┐
-│ Mode Selection  │
-│ Simple/Advanced │
-└─────┬───────────┘
-      │ Simple Mode
-      ▼
-┌─────────────────┐
-│ Simple Wizard   │
+│ Simple Wizard   │ ◄── Double ESC from any step
 │   Controller    │
 └─────┬───────────┘
       │
       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Project Info    │───►│ SSH Config      │───►│ Proxy Config    │
+│ 1: Project Info │───►│ 2: SSH Config   │───►│ 3: Proxy Config │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
+      ▲                        ▲                        ▲
       │                        │                        │
       ▼                        ▼                        ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ APT Config      │───►│ Port Mapping    │───►│ Environment     │
-└─────────────────┘    └─────────────────┘    │   Variables     │
-                                              └─────────────────┘
-                                                      │
-                                                      ▼
-                                              ┌─────────────────┐
-                                              │ Device Config   │
-                                              └─────┬───────────┘
-                                                    │
-                                                    ▼
-                                              ┌─────────────────┐
-                                              │    Mounts       │
-                                              └─────┬───────────┘
-                                                    │
-                                                    ▼
-                                              ┌─────────────────┐
-                                              │  Entry Point    │
-                                              └─────┬───────────┘
-                                                    │
-                                                    ▼
-                                              ┌─────────────────┐
-                                              │ Custom Scripts  │
-                                              └─────┬───────────┘
-                                                    │
-                                                    ▼
-                                              ┌─────────────────┐
-                                              │    Summary      │
-                                              │   & Save        │
+│ 4: APT Config   │───►│ 5: Port Mapping │───►│ 6: Environment  │
+└─────────────────┘    └─────────────────┘    │    Variables    │
+      ▲                        ▲              └─────────────────┘
+      │                        │                        ▲
+      ▼                        ▼                        │
+┌─────────────────┐    ┌─────────────────┐              ▼
+│ 7: Device Config│───►│ 8: Mounts       │    ┌─────────────────┐
+└─────────────────┘    └─────────────────┘    │ 9: Entry Point  │
+      ▲                        ▲              └─────────────────┘
+      │                        │                        ▲
+      ▼                        ▼                        │
+┌─────────────────┐    ┌─────────────────┐              ▼
+│10: Custom       │───►│11: Summary      │    ┌─────────────────┐
+│    Scripts      │    │   & Save        │    │ [Persistent     │
+└─────────────────┘    │ [Save|Back|     │    │  after save]    │
+                       │  Cancel]        │    │ Navigate ←→     │
+                       └─────────────────┘    │ Save again      │
                                               └─────────────────┘
 ```
+
+**Navigation Rules:**
+- Each step: `prev` | `next` buttons (bi-directional)
+- Final step: `prev` | `save` | `cancel` buttons  
+- Double ESC: Return to main menu from any step
+- Single ESC: Clear current input or go to previous state
+- Memory-only changes until save
+- After save: remain on summary page, continue navigation
 
 ## Detailed Screen Designs
 
@@ -182,57 +174,27 @@ src/pei_docker/gui/
 - Auto-suggest project name from directory name
 - Check for existing Docker images and warn if found
 - Validate directory path and create if needed
+- After completion, proceed directly to Simple Wizard (no mode selection)
 
-### 3. Mode Selection Screen
+### 3. Simple Mode - Wizard Controller
 
-**Layout:**
-```
-╭─ Configuration Mode ───────────────────────────────────────╮
-│                                                             │
-│  Choose how you'd like to configure your project:          │
-│                                                             │
-│  ┌─ Simple Mode ─────────────────────────────────────────┐  │
-│  │ ✓ Guided step-by-step configuration                  │  │
-│  │ ✓ Common options only                                 │  │
-│  │ ✓ Perfect for beginners                               │  │
-│  │ ✓ Quick setup                                         │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                             │
-│  ┌─ Advanced Mode ───────────────────────────────────────┐  │
-│  │ ✓ Complete control over all options                   │  │
-│  │ ✓ Form-based editing                                  │  │
-│  │ ✓ Stage-1 and Stage-2 configuration                  │  │
-│  │ ✓ Expert features                                     │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                             │
-│  Selected: ● Simple Mode  ○ Advanced Mode                  │
-│                                                             │
-│  [Back] [Continue]                                          │
-│                                                             │
-│  Use arrow keys to select, Enter to continue               │
-╰─────────────────────────────────────────────────────────────╯
-```
-
-**Behavior:**
-- Default selection: Simple Mode
-- Arrow keys or mouse to select
-- Enter to continue with selected mode
-
-### 4. Simple Mode - Wizard Controller
-
-The wizard controller manages the flow between different configuration screens, maintaining state and enabling navigation.
+The wizard controller manages the flow between 11 configuration screens, maintaining state in memory until save and enabling unlimited back/forth navigation.
 
 **Navigation Features:**
-- Progress indicator showing current step
-- Back/Next buttons
-- Skip options for optional sections
-- Form validation before proceeding
+- Progress indicator showing current step (1-11)
+- `prev` | `next` buttons on each step (bi-directional navigation)
+- Final step has `prev` | `save` | `cancel` buttons
+- Double ESC: Return to main menu from any step
+- Single ESC: Clear current input or go to previous state
+- Memory-only state until explicit save
+- After save: persistent final page with continued navigation ability
+- Form validation before proceeding to next step
 
-### 5. Project Information Screen
+### 4. Project Information Screen
 
 **Layout:**
 ```
-╭─ Project Information ──────────────────────── Step 1 of 12 ╮
+╭─ Project Information ──────────────────────── Step 1 of 11 ╮
 │                                                             │
 │  Basic project settings:                                    │
 │                                                             │
@@ -254,7 +216,7 @@ The wizard controller manages the flow between different configuration screens, 
 │                                                             │
 │  ✓ Image exists on Docker Hub                              │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 │                                                             │
 │  * Required field                                           │
 ╰─────────────────────────────────────────────────────────────╯
@@ -266,11 +228,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Check Docker Hub for image existence (optional, non-blocking)
 - Prevent empty project names
 
-### 6. SSH Configuration Screen
+### 5. SSH Configuration Screen
 
 **Layout:**
 ```
-╭─ SSH Configuration ───────────────────────── Step 2 of 12 ╮
+╭─ SSH Configuration ───────────────────────── Step 2 of 11 ╮
 │                                                             │
 │  Configure SSH access to your container:                   │
 │                                                             │
@@ -299,7 +261,12 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ ••••••                                                  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                             │
-│  [Back] [Next]                                              │
+│  SSH User UID:                                              │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ 1100                                                    │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -328,7 +295,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ └───────────────────────────────────────────────────┘ │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -339,11 +306,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Password validation (no spaces/commas)
 - Toggle password visibility
 
-### 7. Proxy Configuration Screen
+### 6. Proxy Configuration Screen
 
 **Layout:**
 ```
-╭─ Proxy Configuration ─────────────────────── Step 3 of 12 ╮
+╭─ Proxy Configuration ─────────────────────── Step 3 of 11 ╮
 │                                                             │
 │  Configure HTTP proxy for container networking:            │
 │                                                             │
@@ -366,7 +333,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ Proxy URL will be: http://host.docker.internal:8080  │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -376,11 +343,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Preview proxy URL format
 - Explain build vs runtime proxy usage
 
-### 8. APT Configuration Screen
+### 7. APT Configuration Screen
 
 **Layout:**
 ```
-╭─ APT Repository Configuration ────────────── Step 4 of 12 ╮
+╭─ APT Repository Configuration ────────────── Step 4 of 11 ╮
 │                                                             │
 │  Choose APT repository mirror for faster package downloads:│
 │                                                             │
@@ -401,7 +368,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ in specific geographic regions.                       │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -410,11 +377,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Geographic information for each mirror
 - Preview of mirror benefits
 
-### 9. Port Mapping Screen
+### 8. Port Mapping Screen
 
 **Layout:**
 ```
-╭─ Additional Port Mapping ─────────────────── Step 5 of 12 ╮
+╭─ Additional Port Mapping ─────────────────── Step 5 of 11 ╮
 │                                                             │
 │  Map additional ports from host to container:               │
 │  (SSH port is already configured)                          │
@@ -440,7 +407,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ Press Enter with empty input to finish               │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -450,11 +417,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Prevent duplicate mappings
 - Show SSH port as read-only
 
-### 10. Environment Variables Screen
+### 9. Environment Variables Screen
 
 **Layout:**
 ```
-╭─ Environment Variables ───────────────────── Step 6 of 12 ╮
+╭─ Environment Variables ───────────────────── Step 6 of 11 ╮
 │                                                             │
 │  Set custom environment variables for the container:       │
 │                                                             │
@@ -479,7 +446,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ Press Enter with empty input to finish               │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -489,11 +456,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Dynamic list management
 - Show current variables list
 
-### 11. Device Configuration Screen
+### 10. Device Configuration Screen
 
 **Layout:**
 ```
-╭─ Device Configuration ────────────────────── Step 7 of 12 ╮
+╭─ Device Configuration ────────────────────── Step 7 of 11 ╮
 │                                                             │
 │  Configure hardware device access:                         │
 │                                                             │
@@ -514,7 +481,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ • nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04       │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -523,11 +490,11 @@ The wizard controller manages the flow between different configuration screens, 
 - No automatic GPU detection
 - Suggest compatible base images
 
-### 12. Additional Mounts Screen
+### 11. Additional Mounts Screen
 
 **Layout:**
 ```
-╭─ Additional Mounts ───────────────────────── Step 8 of 12 ╮
+╭─ Additional Mounts ───────────────────────── Step 8 of 11 ╮
 │                                                             │
 │  Configure additional volume mounts:                       │
 │                                                             │
@@ -556,7 +523,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  Stage-2 Mounts: ○ Yes  ● No                               │
 │  ⚠ Stage-2 mounts will completely replace Stage-1 mounts  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -566,11 +533,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Warning about Stage-2 override behavior
 - Support for different mount types
 
-### 13. Custom Entry Point Screen
+### 12. Custom Entry Point Screen
 
 **Layout:**
 ```
-╭─ Custom Entry Point ──────────────────────── Step 9 of 12 ╮
+╭─ Custom Entry Point ──────────────────────── Step 9 of 11 ╮
 │                                                             │
 │  Configure custom entry point scripts:                     │
 │                                                             │
@@ -591,7 +558,7 @@ The wizard controller manages the flow between different configuration screens, 
 │  Stage-2 Entry Point: ○ Yes  ● No                          │
 │  ⚠ Stage-2 entry point will override Stage-1 entry point  │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -601,11 +568,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Warning about Stage-2 override behavior
 - Copy script to project directory
 
-### 14. Custom Scripts Screen
+### 13. Custom Scripts Screen
 
 **Layout:**
 ```
-╭─ Custom Scripts ──────────────────────────── Step 10 of 12 ╮
+╭─ Custom Scripts ──────────────────────────── Step 10 of 11 ╮
 │                                                             │
 │  Configure custom lifecycle scripts:                       │
 │                                                             │
@@ -633,7 +600,7 @@ The wizard controller manages the flow between different configuration screens, 
 │                                                             │
 │  Stage-2 Custom Scripts: ○ Yes  ● No                       │
 │                                                             │
-│  [Back] [Next]                                              │
+│  [Prev] [Next]                                              │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
@@ -643,11 +610,11 @@ The wizard controller manages the flow between different configuration screens, 
 - Support command-line arguments
 - Validate script paths
 
-### 15. Configuration Summary Screen
+### 14. Configuration Summary Screen
 
 **Layout:**
 ```
-╭─ Configuration Summary ───────────────────── Step 11 of 12 ╮
+╭─ Configuration Summary ───────────────────── Step 11 of 11 ╮
 │                                                             │
 │  Review your configuration:                                 │
 │                                                             │
@@ -671,25 +638,32 @@ The wizard controller manages the flow between different configuration screens, 
 │  │ Environment: NODE_ENV=production                       │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                             │
-│  [Back] [Save & Exit] [Save & Configure More]              │
+│  [Prev] [Save] [Cancel]                                     │
 │                                                             │
-│  Save actions will create user_config.yml in project dir   │
+│  Save creates user_config.yml in project dir & stays here  │
+│  Continue navigating back/forth and save again as needed   │
 ╰─────────────────────────────────────────────────────────────╯
 ```
 
 **Behavior:**
 - Comprehensive configuration review
 - Organized by logical sections
-- Options to save and exit or continue to advanced mode
+- Save: Write user_config.yml and remain on this page
+- Prev: Navigate back to any previous step for changes
+- Cancel: Return to main menu without saving
+- After save: persistent page with continued navigation ability
 - Generate user_config.yml file
 
 ## Key Features & Behaviors
 
 ### Navigation
-- **Progress Indicator**: Shows current step and total steps
-- **Back/Next Buttons**: Navigate between screens
-- **Skip Options**: Optional sections can be skipped
+- **Progress Indicator**: Shows current step (1-11) and total steps
+- **Prev/Next Buttons**: Bi-directional navigation between screens
+- **Double ESC**: Return to main menu from any step
+- **Single ESC**: Clear current input or go to previous state
+- **Final Page**: Prev | Save | Cancel buttons
 - **Keyboard Shortcuts**: Tab, Enter, Escape, arrow keys
+- **Unlimited Navigation**: Go back and forth between steps indefinitely
 
 ### Validation
 - **Real-time Validation**: Input validation as user types
@@ -698,10 +672,12 @@ The wizard controller manages the flow between different configuration screens, 
 - **Format Checking**: Port ranges, key formats, file paths
 
 ### State Management
-- **Configuration State**: Maintain user choices across screens
-- **Undo/Redo**: Allow going back to change previous choices
-- **Auto-save**: Temporary state preservation
-- **Reset Options**: Clear all and start over
+- **Memory-Only Changes**: All configuration changes kept in memory until save
+- **Configuration State**: Maintain user choices across screens during navigation
+- **No Auto-save**: Only write user_config.yml when user explicitly saves
+- **Persistent Final Page**: After save, remain on summary page for more changes
+- **Iterative Workflow**: Navigate, modify, save repeatedly as needed
+- **Reset Options**: Clear all and start over from main menu
 
 ### Accessibility
 - **Keyboard Navigation**: Full keyboard accessibility
@@ -736,4 +712,27 @@ The wizard controller manages the flow between different configuration screens, 
 - **Directory Creation**: Automatic directory structure setup
 - **Permission Handling**: Proper file permissions
 
-This design provides a comprehensive, user-friendly wizard interface that guides users through creating PeiDocker projects while maintaining simplicity and preventing configuration errors.
+## Key Design Changes from Original
+
+This updated design reflects the new simple-mode-only approach with these critical changes:
+
+### Removed Features
+- **Advanced Mode**: Completely removed - only simple mode wizard exists
+- **Mode Selection Screen**: No longer needed, go directly to wizard
+- **Auto-save**: No automatic file writing during navigation
+
+### Enhanced Features  
+- **Memory-First State**: All changes kept in memory until explicit save
+- **Persistent Final Page**: After save, stay on summary page for more iterations
+- **Enhanced Navigation**: Unlimited back/forth movement with double-ESC to main menu
+- **SSH User UID**: Added UID field (default 1100) to avoid system user conflicts
+- **Iterative Workflow**: Save multiple times after making changes
+
+### Navigation Behavior
+- **Each Step**: [Prev] | [Next] buttons
+- **Final Step**: [Prev] | [Save] | [Cancel] buttons  
+- **Double ESC**: Return to main menu from anywhere
+- **Single ESC**: Clear input or go to previous state
+- **Post-Save**: Continue navigation and save again as needed
+
+This design provides a streamlined, single-mode wizard interface that guides users through PeiDocker project creation while maintaining maximum flexibility for configuration changes and iterations.
