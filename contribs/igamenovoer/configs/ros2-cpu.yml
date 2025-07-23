@@ -52,8 +52,8 @@ stage_1:
       - 'stage-1/custom/install-dev-tools.sh'
       - 'stage-1/contrib/igamenovoer/install-cpp-libs.sh'
       - 'stage-1/system/ros2/setup-locale.sh'
-      - 'stage-1/system/ros2/setup-ros2-repo.sh'
-      - 'stage-1/system/ros2/install-ros2.sh'
+      - 'stage-1/system/ros2/setup-ros2-repo.sh --repo tuna'
+      - 'stage-1/system/ros2/install-ros2.sh --distro jazzy --with-gui --with-nav2-full'
       - 'stage-1/system/ros2/init-rosdep.sh'
 
   mount:

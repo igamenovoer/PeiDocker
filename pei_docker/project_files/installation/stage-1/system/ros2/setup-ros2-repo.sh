@@ -4,10 +4,10 @@
 print_usage() {
     echo "Usage: $0 [--repo <repository_name>]"
     echo "Options:"
-    echo "  --repo    Specify the ROS2 repository to use (default: tuna)"
+    echo "  --repo    Specify the ROS2 repository to use (default: ros2)"
     echo "            Valid options: tuna, ros2"
     echo "Example:"
-    echo "  $0 --repo ros2"
+    echo "  $0 --repo tuna"
 }
 
 # require sudo permission
@@ -17,7 +17,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # Parse command line arguments
-ROS2_REPO_NAME="tuna"
+ROS2_REPO_NAME="ros2"
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
