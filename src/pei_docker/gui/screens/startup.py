@@ -1,7 +1,7 @@
 """Startup screen for the PeiDocker GUI."""
 
 from pathlib import Path
-from typing import Optional, cast, TYPE_CHECKING
+from typing import Any, Optional, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..app import PeiDockerApp
@@ -200,8 +200,19 @@ class StartupScreen(Screen[None]):
         try:
             import os
             import shutil
+            import tempfile
             from pei_docker.config_processor import Defaults
             from ..utils.file_utils import ensure_dir_exists
+            
+            # Use importlib.resources for Python 3.9+ or importlib_resources for older versions
+            try:
+                from importlib import resources as pkg_resources
+            except ImportError:
+                try:
+                    import importlib_resources as pkg_resources  # type: ignore
+                except ImportError:
+                    # Fallback to the old path-based approach with corrected path calculation
+                    return self._create_project_fallback()
             
             project_dir = self.project_config.project_dir
             
@@ -210,13 +221,88 @@ class StartupScreen(Screen[None]):
                 return False
             
             # Copy all the files and folders from project_files to the output dir
-            # This replicates the logic from the CLI create command
+            # Using importlib.resources for proper pip install compatibility
+            try:
+                project_files_ref = pkg_resources.files('pei_docker.project_files')
+                
+                # Copy project_files directory contents
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Extract project_files to temporary directory first
+                    temp_project_files = os.path.join(temp_dir, 'project_files')
+                    os.makedirs(temp_project_files, exist_ok=True)
+                    
+                    # Recursively copy all files from the package resource
+                    self._copy_resource_tree(project_files_ref, temp_project_files)
+                    
+                    # Now copy from temp to actual project directory
+                    for item in os.listdir(temp_project_files):
+                        s = os.path.join(temp_project_files, item)
+                        d = os.path.join(project_dir, item)
+                        if os.path.isdir(s):
+                            shutil.copytree(s, d, dirs_exist_ok=True)
+                        else:
+                            shutil.copy2(s, d)
+                
+                # Copy config and compose template files
+                templates_ref = pkg_resources.files('pei_docker.templates')
+                
+                # Copy config template
+                config_template_ref = templates_ref / 'config-template-full.yml'
+                if config_template_ref.is_file():
+                    dst_config_template = os.path.join(project_dir, Defaults.OutputConfigName)
+                    with open(dst_config_template, 'w', encoding='utf-8') as f:
+                        f.write(config_template_ref.read_text(encoding='utf-8'))
+                
+                # Copy compose template
+                compose_template_ref = templates_ref / 'base-image-gen.yml'
+                if compose_template_ref.is_file():
+                    dst_compose_template = os.path.join(project_dir, Defaults.OutputComposeTemplateName)
+                    with open(dst_compose_template, 'w', encoding='utf-8') as f:
+                        f.write(compose_template_ref.read_text(encoding='utf-8'))
+                
+                return True
+                
+            except Exception as resource_error:
+                self.log.error(f"Failed to access package resources: {resource_error}")
+                # Fallback to old path-based approach with corrected path
+                return self._create_project_fallback()
+            
+        except Exception as e:
+            self.log.error(f"Failed to create project: {e}")
+            return False
+    
+    def _copy_resource_tree(self, resource_ref: Any, dest_dir: str) -> None:
+        """Recursively copy resource tree to destination directory."""
+        import os
+        
+        os.makedirs(dest_dir, exist_ok=True)
+        
+        for item in resource_ref.iterdir():
+            dest_path = os.path.join(dest_dir, item.name)
+            
+            if item.is_file():
+                with open(dest_path, 'wb') as f:
+                    f.write(item.read_bytes())
+            elif item.is_dir():
+                self._copy_resource_tree(item, dest_path)
+    
+    def _create_project_fallback(self) -> bool:
+        """Fallback method using corrected path calculation for development."""
+        try:
+            import os
+            import shutil
+            from pei_docker.config_processor import Defaults
+            
+            project_dir = self.project_config.project_dir
+            
+            # Corrected path calculation: only 2 levels up to reach pei_docker package root
             this_dir = os.path.dirname(os.path.realpath(__file__))
-            # Navigate up to the pei_docker package directory
-            pei_docker_dir = os.path.dirname(os.path.dirname(os.path.dirname(this_dir)))
+            # Navigate up to the pei_docker package directory (corrected from 3 to 2 levels)
+            pei_docker_dir = os.path.dirname(os.path.dirname(this_dir))
             project_template_dir = os.path.join(pei_docker_dir, 'project_files')
             
             if not os.path.exists(project_template_dir):
+                self.log.error(f"Project template directory not found: {project_template_dir}")
                 return False
             
             for item in os.listdir(project_template_dir):
@@ -243,7 +329,7 @@ class StartupScreen(Screen[None]):
             return True
             
         except Exception as e:
-            self.log.error(f"Failed to create project: {e}")
+            self.log.error(f"Fallback project creation failed: {e}")
             return False
     
     def action_quit(self) -> None:
