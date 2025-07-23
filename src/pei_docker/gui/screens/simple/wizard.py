@@ -26,8 +26,9 @@ class SimpleWizardScreen(Screen[None]):
     """Main controller for the simple mode wizard."""
     
     BINDINGS = [
-        ("b", "back", "Back"),
+        ("b", "back", "Prev"),
         ("n", "next", "Next"),
+        ("escape", "handle_escape", "Escape"),
         ("q", "quit", "Quit"),
     ]
     
@@ -81,6 +82,7 @@ class SimpleWizardScreen(Screen[None]):
         self.current_step = 0
         self.steps = self._create_steps()
         self.step_screens = [None] * len(self.steps)  # Cache for step screens
+        self.escape_count = 0  # Track ESC key presses for double ESC handling
         
     def _create_steps(self) -> List[WizardStep]:
         """Create the wizard steps."""
@@ -129,8 +131,11 @@ class SimpleWizardScreen(Screen[None]):
             # Navigation
             with Horizontal(classes="wizard-navigation"):
                 with Horizontal(classes="nav-buttons"):
-                    yield Button("Back", id="back", variant="default", disabled=self.current_step == 0)
-                    yield Button("Next", id="next", variant="primary", disabled=self.current_step >= len(self.steps) - 1)
+                    yield Button("Prev", id="prev", variant="default", disabled=self.current_step == 0)
+                    if self.current_step >= len(self.steps) - 1:
+                        yield Button("Save", id="save", variant="success")
+                    else:
+                        yield Button("Next", id="next", variant="primary")
                     yield Button("Cancel", id="cancel", variant="default")
     
     def on_mount(self) -> None:
@@ -154,17 +159,40 @@ class SimpleWizardScreen(Screen[None]):
         if self.current_step < len(self.steps) - 1:
             self.current_step += 1
             self._update_step()
-        elif self.current_step == len(self.steps) - 1:
-            # On the last step, this should be "Finish"
-            self.action_finish()
     
-    def action_finish(self) -> None:
-        """Finish the wizard."""
+    def action_save(self) -> None:
+        """Save the configuration (final step only)."""
         if self._validate_current_step():
             # The summary screen will handle saving
-            self.notify("Configuration completed!", severity="information")
+            summary_screen = self.step_screens[self.current_step]
+            if summary_screen and hasattr(summary_screen, 'save_configuration'):
+                if summary_screen.save_configuration():
+                    self.notify("Configuration saved successfully!", severity="information")
+                else:
+                    self.notify("Failed to save configuration", severity="error")
         else:
-            self.notify("Please correct the errors before finishing", severity="warning")
+            self.notify("Please correct the errors before saving", severity="warning")
+    
+    def action_handle_escape(self) -> None:
+        """Handle escape key presses."""
+        self.escape_count += 1
+        
+        # Reset escape count after 1 second if not double-pressed
+        self.set_timer(1.0, self._reset_escape_count)
+        
+        if self.escape_count >= 2:
+            # Double ESC - return to main menu (startup screen)
+            self.escape_count = 0
+            self.app.pop_screen()  # Return to startup screen
+        else:
+            # Single ESC - delegate to current step screen for input clearing
+            current_screen = self.step_screens[self.current_step]
+            if current_screen and hasattr(current_screen, 'handle_escape'):
+                current_screen.handle_escape()
+    
+    def _reset_escape_count(self) -> None:
+        """Reset escape count after timeout."""
+        self.escape_count = 0
     
     def _update_step(self) -> None:
         """Update the current step display."""
@@ -176,19 +204,29 @@ class SimpleWizardScreen(Screen[None]):
         progress_bar.progress = self.current_step + 1
         
         # Update navigation buttons
-        back_btn = self.query_one("#back", Button)
-        back_btn.disabled = self.current_step == 0
-        
-        next_btn = self.query_one("#next", Button)
-        if self.current_step >= len(self.steps) - 1:
-            next_btn.label = "Finish"
-            next_btn.variant = "success"
-        else:
-            next_btn.label = "Next"
-            next_btn.variant = "primary"
+        try:
+            prev_btn = self.query_one("#prev", Button) 
+            prev_btn.disabled = self.current_step == 0
+        except:
+            pass  # Button might not exist yet
         
         # Update the step content
         self._update_step_content()
+        
+        # Re-mount navigation area with correct buttons
+        nav_container = self.query_one(".wizard-navigation")
+        nav_container.remove_children()
+        
+        nav_buttons = Horizontal(classes="nav-buttons")
+        nav_buttons.mount(Button("Prev", id="prev", variant="default", disabled=self.current_step == 0))
+        
+        if self.current_step >= len(self.steps) - 1:
+            nav_buttons.mount(Button("Save", id="save", variant="success"))
+        else:
+            nav_buttons.mount(Button("Next", id="next", variant="primary"))
+            
+        nav_buttons.mount(Button("Cancel", id="cancel", variant="default"))
+        nav_container.mount(nav_buttons)
     
     def _get_current_step_screen(self) -> ComposeResult:
         """Get the current step screen content."""
@@ -228,15 +266,20 @@ class SimpleWizardScreen(Screen[None]):
         
         return True
     
-    @on(Button.Pressed, "#back")
-    def on_back_pressed(self) -> None:
-        """Back button pressed."""
+    @on(Button.Pressed, "#prev")
+    def on_prev_pressed(self) -> None:
+        """Prev button pressed."""
         self.action_back()
     
     @on(Button.Pressed, "#next")
     def on_next_pressed(self) -> None:
         """Next button pressed."""
         self.action_next()
+    
+    @on(Button.Pressed, "#save")
+    def on_save_pressed(self) -> None:
+        """Save button pressed."""
+        self.action_save()
     
     @on(Button.Pressed, "#cancel")
     def on_cancel_pressed(self) -> None:

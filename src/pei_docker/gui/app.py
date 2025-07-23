@@ -11,7 +11,6 @@ from textual.widgets import Header, Footer
 
 from .models.config import ProjectConfig
 from .screens.startup import StartupScreen
-from .screens.mode_selection import ModeSelectionScreen
 from .utils.docker_utils import check_docker_available
 
 
@@ -54,14 +53,16 @@ class PeiDockerApp(App[None]):
         """Called when the app is mounted."""
         # Install all screens
         self.install_screen(StartupScreen(self.project_config, self.docker_available, self.docker_version), "startup")
-        self.install_screen(ModeSelectionScreen(self.project_config), "mode_selection")
         
         # Start with startup screen
         self.push_screen("startup")
     
-    def action_goto_mode_selection(self) -> None:
-        """Navigate to mode selection screen."""
-        self.push_screen("mode_selection")
+    def action_goto_simple_wizard(self) -> None:
+        """Navigate directly to simple wizard screen."""
+        from .screens.simple.wizard import SimpleWizardScreen
+        wizard_screen = SimpleWizardScreen(self.project_config)
+        self.install_screen(wizard_screen, "simple_wizard")
+        self.push_screen("simple_wizard")
     
     def action_quit_app(self) -> None:
         """Quit the application."""

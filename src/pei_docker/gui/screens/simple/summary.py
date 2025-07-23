@@ -238,11 +238,12 @@ class SummaryScreen(Screen[None]):
                 
                 # Actions
                 with Horizontal(classes="actions"):
-                    yield Button("Back", id="back", variant="default")
-                    yield Button("Save & Exit", id="save_exit", variant="success")
-                    yield Button("Save & Configure More", id="save_continue", variant="primary")
+                    yield Button("Prev", id="prev", variant="default")
+                    yield Button("Save", id="save", variant="success")
+                    yield Button("Cancel", id="cancel", variant="default")
                 
-                yield Label("Save actions will create user_config.yml in project directory", classes="save-info")
+                yield Label("Save creates user_config.yml in project directory & stays here", classes="save-info")
+                yield Label("Continue navigating back/forth and save again as needed", classes="save-info")
     
     def _generate_config_yaml(self) -> str:
         """Generate YAML preview of the configuration."""
@@ -257,30 +258,26 @@ class SummaryScreen(Screen[None]):
         except Exception as e:
             return f"Error generating configuration: {e}"
     
-    @on(Button.Pressed, "#back")
-    def on_back_pressed(self) -> None:
-        """Back button pressed."""
+    @on(Button.Pressed, "#prev")
+    def on_prev_pressed(self) -> None:
+        """Prev button pressed."""
         self.action_back()
     
-    @on(Button.Pressed, "#save_exit")
-    def on_save_exit_pressed(self) -> None:
-        """Save and exit button pressed."""
-        if self._save_configuration():
-            self.notify("Configuration saved successfully!", severity="information")
-            cast('PeiDockerApp', self.app).action_quit_app()
+    @on(Button.Pressed, "#save")
+    def on_save_pressed(self) -> None:
+        """Save button pressed - save and remain on page."""
+        if self.save_configuration():
+            self.notify("Configuration saved successfully! You can continue making changes.", severity="information")
         else:
             self.notify("Failed to save configuration", severity="error")
     
-    @on(Button.Pressed, "#save_continue")
-    def on_save_continue_pressed(self) -> None:
-        """Save and configure more button pressed."""
-        if self._save_configuration():
-            self.notify("Configuration saved! You can now edit the config file directly.", severity="information")
-            cast('PeiDockerApp', self.app).action_quit_app()
-        else:
-            self.notify("Failed to save configuration", severity="error")
+    @on(Button.Pressed, "#cancel")
+    def on_cancel_pressed(self) -> None:
+        """Cancel button pressed."""
+        # Return to startup screen (main menu)
+        cast('PeiDockerApp', self.app).action_quit_app()
     
-    def _save_configuration(self) -> bool:
+    def save_configuration(self) -> bool:
         """Save the configuration to user_config.yml."""
         try:
             # Ensure output image names are set
@@ -295,11 +292,26 @@ class SummaryScreen(Screen[None]):
             
             # Save to file
             config_path = Path(self.project_config.project_dir) / "user_config.yml"
-            return save_user_config(config_dict, str(config_path))
+            success = save_user_config(config_dict, str(config_path))
+            
+            if success:
+                # Refresh the YAML preview to show saved content
+                self.refresh()
+            
+            return success
         
         except Exception as e:
             self.log.error(f"Failed to save configuration: {e}")
             return False
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - no special action for final screen."""
+        pass  # Summary screen doesn't need special escape handling
+    
+    def is_valid(self) -> bool:
+        """Check if the configuration is valid for saving."""
+        # Summary screen is always valid if we got here
+        return bool(self.project_config.project_name and self.project_config.project_dir)
     
     def action_back(self) -> None:
         """Go back to previous screen."""

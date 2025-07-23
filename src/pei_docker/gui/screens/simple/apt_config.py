@@ -105,7 +105,7 @@ class APTConfigScreen(Screen):
                 )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -163,6 +163,10 @@ class APTConfigScreen(Screen):
         selected_mirror = self._get_selected_mirror()
         self.project_config.stage_1.apt_mirror = selected_mirror
     
+    def handle_escape(self) -> None:
+        """Handle escape key press - no inputs to clear in this screen."""
+        pass  # APT config screen has no text inputs to clear
+    
     class ConfigReady(Message):
         """Message sent when configuration is ready."""
         
@@ -176,7 +180,7 @@ class APTConfigScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             selected_mirror = self._get_selected_mirror()

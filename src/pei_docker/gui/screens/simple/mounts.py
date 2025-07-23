@@ -149,7 +149,7 @@ class MountsScreen(Screen):
             )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -179,7 +179,7 @@ class MountsScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             stage1_mounts, stage2_mounts = self._get_mounts_config()
@@ -296,6 +296,20 @@ class MountsScreen(Screen):
         # Convert list back to dict format for data model
         self.project_config.stage_1.mounts = {f"mount_{i}": mount for i, mount in enumerate(stage1_mounts)}
         self.project_config.stage_2.mounts = {f"mount_{i}": mount for i, mount in enumerate(stage2_mounts)}
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current inputs."""
+        try:
+            dest_input = self.query_one("#dest_path", Input)
+            dest_input.value = ""
+        except:
+            pass  # Input might not exist or be visible
+        
+        try:
+            source_input = self.query_one("#source_path", Input)
+            source_input.value = ""
+        except:
+            pass  # Input might not exist or be visible
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

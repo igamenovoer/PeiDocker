@@ -173,12 +173,78 @@ class StartupScreen(Screen[None]):
         
         # Check if project directory is already set
         if self.project_config.project_dir:
-            # Skip directory selection, go directly to mode selection
-            cast('PeiDockerApp', self.app).action_goto_mode_selection()
+            # Project directory already set via --project-dir, create project and go to wizard
+            if self._create_project():
+                cast('PeiDockerApp', self.app).action_goto_simple_wizard()
+            else:
+                self.notify("Failed to create project structure", severity="error")
         else:
-            # Need to get project directory first
-            # For now, we'll go to mode selection and handle directory selection there
-            cast('PeiDockerApp', self.app).action_goto_mode_selection()
+            # Need to get project directory first, then go to wizard
+            from ..widgets.dialogs import ProjectDirectoryDialog
+            project_dir_dialog = ProjectDirectoryDialog(self.project_config)
+            self.app.push_screen(project_dir_dialog, self._on_project_dir_selected)
+    
+    def _on_project_dir_selected(self, result: Optional[str]) -> None:
+        """Handle project directory selection result."""
+        if result:
+            self.project_config.project_dir = result
+            self.project_config.project_name = Path(result).name
+            if self._create_project():
+                cast('PeiDockerApp', self.app).action_goto_simple_wizard()
+            else:
+                self.notify("Failed to create project structure", severity="error")
+        # If result is None, user cancelled, so stay on startup screen
+    
+    def _create_project(self) -> bool:
+        """Create the project directory structure."""
+        try:
+            import os
+            import shutil
+            from pei_docker.config_processor import Defaults
+            from ..utils.file_utils import ensure_dir_exists
+            
+            project_dir = self.project_config.project_dir
+            
+            # Ensure project directory exists
+            if not ensure_dir_exists(project_dir):
+                return False
+            
+            # Copy all the files and folders from project_files to the output dir
+            # This replicates the logic from the CLI create command
+            this_dir = os.path.dirname(os.path.realpath(__file__))
+            # Navigate up to the pei_docker package directory
+            pei_docker_dir = os.path.dirname(os.path.dirname(os.path.dirname(this_dir)))
+            project_template_dir = os.path.join(pei_docker_dir, 'project_files')
+            
+            if not os.path.exists(project_template_dir):
+                return False
+            
+            for item in os.listdir(project_template_dir):
+                s = os.path.join(project_template_dir, item)
+                d = os.path.join(project_dir, item)
+                if os.path.isdir(s):
+                    shutil.copytree(s, d, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(s, d)
+            
+            # Copy config and compose template files
+            templates_dir = os.path.join(pei_docker_dir, 'templates')
+            
+            src_config_template = os.path.join(templates_dir, 'config-template-full.yml')
+            dst_config_template = os.path.join(project_dir, Defaults.OutputConfigName)
+            if os.path.exists(src_config_template):
+                shutil.copy2(src_config_template, dst_config_template)
+            
+            src_compose_template = os.path.join(templates_dir, 'base-image-gen.yml')
+            dst_compose_template = os.path.join(project_dir, Defaults.OutputComposeTemplateName)
+            if os.path.exists(src_compose_template):
+                shutil.copy2(src_compose_template, dst_compose_template)
+            
+            return True
+            
+        except Exception as e:
+            self.log.error(f"Failed to create project: {e}")
+            return False
     
     def action_quit(self) -> None:
         """Quit the application."""

@@ -159,7 +159,7 @@ class CustomScriptsScreen(Screen):
                 yield Static("Stage-2 Custom Scripts:")
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -198,7 +198,7 @@ class CustomScriptsScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             stage1_scripts, stage2_scripts = self._get_scripts_config()
@@ -301,6 +301,14 @@ class CustomScriptsScreen(Screen):
         stage1_scripts, stage2_scripts = self._get_scripts_config()
         self.project_config.stage_1.custom_scripts = stage1_scripts
         self.project_config.stage_2.custom_scripts = stage2_scripts
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current input."""
+        try:
+            script_input = self.query_one("#script_input", Input)
+            script_input.value = ""
+        except:
+            pass  # Input might not exist or be visible
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

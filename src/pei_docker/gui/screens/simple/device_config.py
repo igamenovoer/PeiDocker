@@ -110,7 +110,7 @@ class DeviceConfigScreen(Screen):
                     yield Static("• nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04")
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -137,6 +137,10 @@ class DeviceConfigScreen(Screen):
         config = self._get_config()
         self.project_config.stage_1.device = config
     
+    def handle_escape(self) -> None:
+        """Handle escape key press - no inputs to clear in this screen."""
+        pass  # Device config screen has no text inputs to clear
+    
     class ConfigReady(Message):
         """Message sent when configuration is ready."""
         
@@ -150,7 +154,7 @@ class DeviceConfigScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             config = self._get_config()

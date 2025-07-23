@@ -129,7 +129,7 @@ class EnvironmentVariablesScreen(Screen):
                 )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -157,7 +157,7 @@ class EnvironmentVariablesScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             config = self._get_environment_variables()
@@ -252,6 +252,14 @@ class EnvironmentVariablesScreen(Screen):
     def save_configuration(self) -> None:
         """Save current environment variables to project configuration."""
         self.project_config.stage_1.environment = self.current_vars.copy()
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current input."""
+        try:
+            env_input = self.query_one("#env_input", Input)
+            env_input.value = ""
+        except:
+            pass  # Input might not exist or be visible
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""

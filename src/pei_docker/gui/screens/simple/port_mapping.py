@@ -101,6 +101,14 @@ class PortMappingScreen(Screen):
     def save_configuration(self) -> None:
         """Save current port mappings to project configuration."""
         self.project_config.stage_1.ports = self.current_mappings.copy()
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current input."""
+        try:
+            port_input = self.query_one("#port_input", Input)
+            port_input.value = ""
+        except:
+            pass  # Input might not exist or be visible
         
     def compose(self) -> ComposeResult:
         """Create the port mapping configuration form."""
@@ -143,7 +151,7 @@ class PortMappingScreen(Screen):
                 )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -171,7 +179,7 @@ class PortMappingScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             config = self._get_port_mappings()

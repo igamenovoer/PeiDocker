@@ -116,7 +116,7 @@ class ProxyConfigScreen(Screen):
                 )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -215,6 +215,14 @@ class ProxyConfigScreen(Screen):
         config = self._get_config()
         self.project_config.stage_1.proxy = config
     
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current input."""
+        try:
+            proxy_port = self.query_one("#proxy_port", Input)
+            proxy_port.value = ""
+        except:
+            pass  # Input might not exist or be visible
+    
     class ConfigReady(Message):
         """Message sent when configuration is ready."""
         
@@ -228,7 +236,7 @@ class ProxyConfigScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             is_valid, error_msg = self._validate_form()

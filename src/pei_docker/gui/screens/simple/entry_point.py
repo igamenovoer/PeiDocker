@@ -151,7 +151,7 @@ class EntryPointScreen(Screen):
             )
         
         with Horizontal(classes="button-bar"):
-            yield Button("Back", id="back", variant="default")
+            yield Button("Prev", id="prev", variant="default")
             yield Button("Next", id="next", variant="primary")
     
     def on_mount(self) -> None:
@@ -177,7 +177,7 @@ class EntryPointScreen(Screen):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "back":
+        if event.button.id == "prev":
             self.post_message(self.BackPressed())
         elif event.button.id == "next":
             is_valid, error_msg = self._validate_form()
@@ -282,6 +282,20 @@ class EntryPointScreen(Screen):
         stage1_entrypoint, stage2_entrypoint = self._get_entry_point_config()
         self.project_config.stage_1.custom_entry = stage1_entrypoint
         self.project_config.stage_2.custom_entry = stage2_entrypoint
+    
+    def handle_escape(self) -> None:
+        """Handle escape key press - clear current inputs."""
+        try:
+            stage1_script = self.query_one("#stage1_script", Input)
+            stage1_script.value = ""
+        except:
+            pass  # Input might not exist or be visible
+        
+        try:
+            stage2_script = self.query_one("#stage2_script", Input)
+            stage2_script.value = ""
+        except:
+            pass  # Input might not exist or be visible
     
     class ConfigReady(Message):
         """Message sent when configuration is ready."""
