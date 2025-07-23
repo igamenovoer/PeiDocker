@@ -132,6 +132,8 @@ build = "*"
 twine = "*"
 # Development utilities
 textual-dev = ">=1.7.0,<2"
+# Type stubs
+types-PyYAML = "*"
 
 [tool.pixi.tasks]
 # Development tasks (run in dev environment)

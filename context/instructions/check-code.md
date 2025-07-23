@@ -1,5 +1,5 @@
 - just check the code, DO NOT modify it
-- save a report in context/hints/checked-(pick_a_name).md, with the following header:
+- save a report in context/logs/check/checked-<time>-(pick_a_name).md, with the following header:
   - **Title**: Code Check Report
   - **Date**: (current date)
   - **Status**: (status of the check, e.g., "All checks passed" or "Errors found")

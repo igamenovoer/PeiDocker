@@ -2,27 +2,39 @@
 
 This guide covers comprehensive strategies for testing Textual TUI (Terminal User Interface) applications in Python, including unit testing, integration testing, mocking, and snapshot testing.
 
+> **⚠️ IMPORTANT: Testing Modes**
+> 
+> This guide covers TWO distinct types of testing:
+> - **🤖 HEADLESS TESTING**: Tests that run completely without GUI using `run_test()` - recommended for automated testing
+> - **🖥️ GUI TESTING**: Tests that require running actual Textual applications with visible interface - mainly for snapshot testing and visual verification
+> 
+> Each section is clearly marked with appropriate icons to indicate the testing mode.
+
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Setting Up the Testing Environment](#setting-up-the-testing-environment)
-3. [Basic Testing with Textual's Pilot](#basic-testing-with-textuals-pilot)
-4. [Unit Testing Patterns](#unit-testing-patterns)
-5. [Integration Testing](#integration-testing)
-6. [Mocking External Dependencies](#mocking-external-dependencies)
-7. [Snapshot Testing](#snapshot-testing)
-8. [Advanced Testing Patterns](#advanced-testing-patterns)
-9. [Auto-Operating Textual GUI Applications](#auto-operating-textual-gui-applications)
-10. [Best Practices](#best-practices)
-11. [Common Pitfalls and Solutions](#common-pitfalls-and-solutions)
+3. [🤖 Basic Testing with Textual's Pilot (Headless)](#basic-testing-with-textuals-pilot)
+4. [🤖 Unit Testing Patterns (Headless)](#unit-testing-patterns)
+5. [🤖 Integration Testing (Headless)](#integration-testing)
+6. [🤖 Mocking External Dependencies (Headless)](#mocking-external-dependencies)
+7. [🖥️ Snapshot Testing (Requires GUI)](#snapshot-testing)
+8. [🤖 Advanced Testing Patterns (Headless)](#advanced-testing-patterns)
+9. [🤖/🖥️ Auto-Operating Textual GUI Applications (Mixed)](#auto-operating-textual-gui-applications)
+10. [🤖 Best Practices (Headless)](#best-practices)
+11. [🤖 Common Pitfalls and Solutions (Headless)](#common-pitfalls-and-solutions)
 
 ## Overview
 
-Textual is an async framework that requires special considerations when testing:
+**🤖 HEADLESS TESTING MODE**: Textual is an async framework that provides excellent headless testing capabilities that require special considerations:
+
 - **Async Nature**: All tests must be async and use `asyncio`
-- **Headless Mode**: Tests run without displaying UI using `run_test()`
-- **Pilot Object**: Simulates user interactions (clicks, key presses)
+- **Headless Mode**: Tests run completely without displaying UI using `run_test()` - no visible terminal required
+- **Pilot Object**: Simulates user interactions (clicks, key presses) programmatically
 - **State Verification**: Assert changes in app state after interactions
+- **Automated CI/CD**: Perfect for continuous integration pipelines
+
+**Key Advantage**: All testing described in sections 3-6 and 8-11 runs completely headless without requiring any GUI display.
 
 ## Setting Up the Testing Environment
 
@@ -50,7 +62,9 @@ asyncio_mode = "auto"
 
 This eliminates the need for `@pytest.mark.asyncio` on every async test.
 
-## Basic Testing with Textual's Pilot
+## 🤖 Basic Testing with Textual's Pilot (Headless)
+
+> **Mode**: Headless - No GUI required. Tests run completely in background without any visible interface.
 
 ### Simple App Example
 
@@ -138,7 +152,9 @@ async def test_button_clicks():
         assert app.screen.styles.background == Color.parse("blue")
 ```
 
-## Unit Testing Patterns
+## 🤖 Unit Testing Patterns (Headless)
+
+> **Mode**: Headless - No GUI required. All unit tests run in background without visible interface.
 
 ### Testing Individual Components
 
@@ -185,7 +201,9 @@ async def test_custom_message_handling():
         assert app.some_state_variable == "expected_value"
 ```
 
-## Integration Testing
+## 🤖 Integration Testing (Headless)
+
+> **Mode**: Headless - No GUI required. Integration tests run completely in background.
 
 ### Testing Component Interactions
 
@@ -234,7 +252,9 @@ async def test_screen_navigation():
         assert isinstance(app.screen, MainScreen)
 ```
 
-## Mocking External Dependencies
+## 🤖 Mocking External Dependencies (Headless)
+
+> **Mode**: Headless - No GUI required. All mocking tests run completely in background.
 
 ### Mocking API Calls
 
@@ -312,13 +332,25 @@ async def test_database_interaction(mocker):
         assert "User saved" in str(status.renderable)
 ```
 
-## Snapshot Testing
+## 🖥️ Snapshot Testing (Requires GUI)
+
+> **⚠️ Mode**: GUI Required - These tests require running actual Textual applications with visible interface to capture visual snapshots. Not suitable for headless CI/CD environments without display capabilities.
 
 ### Installing and Setup
 
 ```bash
 pip install pytest-textual-snapshot
 ```
+
+> **🤖 Headless Alternative**: For headless environments, consider testing the rendered output as strings instead of visual snapshots:
+> ```python
+> async def test_widget_content_headless():
+>     app = MyApp()
+>     async with app.run_test() as pilot:
+>         widget = app.query_one("#my-widget")
+>         content = str(widget.renderable)
+>         assert "expected content" in content
+> ```
 
 ### Basic Snapshot Test
 
@@ -363,7 +395,9 @@ def test_app_with_setup(snap_compare):
     )
 ```
 
-## Advanced Testing Patterns
+## 🤖 Advanced Testing Patterns (Headless)
+
+> **Mode**: Headless - No GUI required. All advanced testing patterns run completely in background.
 
 ### Testing Timers and Scheduled Tasks
 
@@ -443,7 +477,9 @@ async def test_data_table_operations():
         assert table.row_count == 1
 ```
 
-## Auto-Operating Textual GUI Applications
+## 🤖/🖥️ Auto-Operating Textual GUI Applications (Mixed Modes)
+
+> **Mode**: Mixed - Some automation methods are headless (🤖), others may require GUI display (🖥️). Each method is clearly marked below.
 
 This section covers how to programmatically control and automate Textual GUI applications without manual interaction, enabling batch processing, scheduled operations, and unattended execution.
 
@@ -451,14 +487,16 @@ This section covers how to programmatically control and automate Textual GUI app
 
 There are several strategies to auto-operate Textual applications:
 
-1. **Headless Automation with Pilot**: Use Textual's testing framework for scripted interactions
-2. **Command-Line Integration**: Design apps to accept parameters and run specific workflows
-3. **Configuration-Driven Automation**: Use config files to control app behavior
-4. **API-Driven Automation**: Expose programmatic interfaces within your app
-5. **Batch Mode Operation**: Run apps in non-interactive modes
-6. **Script-Based Workflows**: Combine multiple automation techniques
+1. **🤖 Headless Automation with Pilot**: Use Textual's testing framework for scripted interactions (Fully Headless)
+2. **🤖 Command-Line Integration**: Design apps to accept parameters and run specific workflows (Headless)
+3. **🤖 Configuration-Driven Automation**: Use config files to control app behavior (Headless)
+4. **🤖 API-Driven Automation**: Expose programmatic interfaces within your app (Headless)
+5. **🤖 Batch Mode Operation**: Run apps in non-interactive modes (Headless)
+6. **🤖 Script-Based Workflows**: Combine multiple automation techniques (Headless)
 
-### Method 1: Headless Automation with Pilot
+### 🤖 Method 1: Headless Automation with Pilot (Fully Headless)
+
+> **Mode**: Headless - Runs completely without GUI display using `run_test()`
 
 The most straightforward approach is to use Textual's built-in `run_test()` method and Pilot class for automation.
 
@@ -567,7 +605,9 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Method 2: Configuration-Driven Automation
+### 🤖 Method 2: Configuration-Driven Automation (Headless)
+
+> **Mode**: Headless - Apps read config files and execute workflows without GUI display
 
 Design your app to read configuration files and execute predefined workflows.
 
@@ -676,7 +716,9 @@ if __name__ == "__main__":
     app.run()
 ```
 
-### Method 3: Command Line Integration
+### 🤖 Method 3: Command Line Integration (Headless)
+
+> **Mode**: Headless - Apps controlled via command-line arguments, can run without display when using `--headless` flag
 
 Create apps that can be controlled via command-line arguments for batch operation.
 
@@ -783,7 +825,9 @@ if __name__ == "__main__":
 # python cli_controlled_app.py --operation analyze --input data.csv
 ```
 
-### Method 4: Scheduled Automation
+### 🤖 Method 4: Scheduled Automation (Headless)
+
+> **Mode**: Headless - Perfect for cron jobs and scheduled tasks without display requirements
 
 Use system scheduling tools to run automated workflows.
 
@@ -883,7 +927,9 @@ if __name__ == "__main__":
 # Cron example: 0 6 * * * /usr/bin/python3 /path/to/scheduled_automation.py
 ```
 
-### Method 5: API-Driven Automation
+### 🤖 Method 5: API-Driven Automation (Headless)
+
+> **Mode**: Headless - Apps expose internal APIs for programmatic control without GUI
 
 Create apps that expose internal APIs for programmatic control.
 
@@ -1017,7 +1063,9 @@ if __name__ == "__main__":
     asyncio.run(automate_via_api())
 ```
 
-### Method 6: Environment Variable Control
+### 🤖 Method 6: Environment Variable Control (Headless)
+
+> **Mode**: Headless - Apps controlled by environment variables, perfect for containerized deployments
 
 Use environment variables to control app behavior for different automation scenarios.
 
@@ -1255,7 +1303,9 @@ jobs:
 
 This comprehensive automation section provides multiple approaches for running Textual applications without manual interaction, from simple headless automation to complex scheduled workflows integrated with external systems.
 
-## Best Practices
+## 🤖 Best Practices (Headless Testing)
+
+> **Mode**: Headless - All best practices focus on headless testing approaches that work in CI/CD environments
 
 ### 1. Test Structure and Organization
 
@@ -1354,7 +1404,9 @@ async def test_button_click_calls_increment_method():
     pass
 ```
 
-## Common Pitfalls and Solutions
+## 🤖 Common Pitfalls and Solutions (Headless Testing)
+
+> **Mode**: Headless - Solutions for common issues in headless testing environments
 
 ### 1. Race Conditions and Timing Issues
 
@@ -1465,10 +1517,12 @@ async def test_performance():
 
 ## Running Tests
 
-### Basic Test Execution
+### 🤖 Basic Test Execution (Headless)
+
+All tests marked with 🤖 in this guide run completely headless and are suitable for CI/CD:
 
 ```bash
-# Run all tests
+# Run all headless tests (sections 3-6, 8-11)
 pytest
 
 # Run specific test file
@@ -1484,7 +1538,7 @@ pytest -v
 pytest --cov=my_app
 ```
 
-### Snapshot Test Management
+### 🖥️ Snapshot Test Management (Requires GUI)
 
 ```bash
 # Run tests and update snapshots if they look correct
@@ -1494,12 +1548,12 @@ pytest --snapshot-update
 pytest --snapshot-no-compare
 ```
 
-### Continuous Integration
+### 🤖 Continuous Integration (Headless)
 
-Example GitHub Actions workflow:
+Example GitHub Actions workflow for headless testing only:
 
 ```yaml
-name: Tests
+name: Headless Tests
 on: [push, pull_request]
 
 jobs:
@@ -1514,9 +1568,44 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+        # Note: NOT installing pytest-textual-snapshot for headless CI
+    - name: Run headless tests only
+      run: |
+        # Run tests but exclude snapshot tests
+        pytest -v -k "not snapshot" 
+        # Or specifically run headless test files
+        pytest test_headless_*.py
+```
+
+### 🖥️ CI with Display Support (For Snapshot Tests)
+
+For snapshot testing, you need a CI environment with display capabilities:
+
+```yaml
+name: Tests with Snapshots
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+    - name: Set up virtual display
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
         pip install pytest pytest-asyncio pytest-textual-snapshot
-    - name: Run tests
-      run: pytest
+    - name: Run all tests with virtual display
+      run: |
+        xvfb-run -a pytest
     - name: Upload snapshot report
       uses: actions/upload-artifact@v2
       if: failure()
@@ -1525,4 +1614,38 @@ jobs:
         path: snapshot_report.html
 ```
 
-This comprehensive guide should help you build robust, maintainable tests for your Textual applications. Remember to start with simple tests and gradually add more complex scenarios as your application grows.
+## 📋 Quick Reference: Testing Mode Summary
+
+### 🤖 Headless Testing (Recommended for Automation)
+**No GUI Required - Perfect for CI/CD**
+
+- ✅ **Unit Testing Patterns** (Section 4)
+- ✅ **Integration Testing** (Section 5) 
+- ✅ **Mocking External Dependencies** (Section 6)
+- ✅ **Advanced Testing Patterns** (Section 8)
+- ✅ **Auto-Operating Applications** (Section 9)
+- ✅ **Best Practices** (Section 10)
+- ✅ **Common Pitfalls Solutions** (Section 11)
+
+**Key Benefits:**
+- Runs in Docker containers
+- Works in GitHub Actions/CI without display setup
+- Fast execution
+- Perfect for automated testing pipelines
+- No X11/display dependencies
+
+### 🖥️ GUI Testing (Limited Use Cases)
+**Requires Display - Use Sparingly**
+
+- ⚠️ **Snapshot Testing** (Section 7) - Requires visual display for screenshot comparison
+
+**Requirements:**
+- Virtual display (xvfb) in CI environments
+- Terminal/display access for local testing
+- Additional setup complexity
+
+### 💡 Recommendation
+
+**For 95% of testing needs, use headless testing (🤖)**. Only use GUI testing (🖥️) when you specifically need visual regression testing via snapshots. For visual verification, consider testing the rendered text content as strings instead of visual snapshots.
+
+This comprehensive guide should help you build robust, maintainable tests for your Textual applications. Remember to start with simple headless tests and gradually add more complex scenarios as your application grows.

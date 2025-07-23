@@ -5,3 +5,7 @@ you are tasked to debug the source code, follow these guidelines to debug:
 - we are using `pixi` as python package manager, so use `pixi run` to run python code for deployment, **and `pixi run -e dev` for development tasks**
 - for any interactive process that may block the terminal, timeout within 10 seconds
 - NEVER modify pyproject.toml directly due to missing packages, use pixi installation commands instead
+
+## for textual gui testing
+
+- If you are going to test `textual` based GUI application, DO NOT run them directly, use **headless** testing methods as presented in `context/hints/howto-test-textual-gui-applications.md`

@@ -38,7 +38,10 @@
       "WebFetch(domain:textual-fspicker.davep.dev)",
       "WebFetch(domain:github.com)",
       "Bash(pixi info:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ],
     "deny": []
   }
