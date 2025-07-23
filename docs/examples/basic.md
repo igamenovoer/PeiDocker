@@ -36,7 +36,7 @@ With this `user_config.yml` in side your project dir, do the followings to build
 ```bash
 # assuming the project dir is /path/to/project
 
-python -m pei_docker.pei configure --project-dir=/path/to/project
+pei-docker-cli configure --project-dir=/path/to/project
 
 cd /path/to/project
 docker compose build stage-1 --progress=plain --no-cache
@@ -740,7 +740,7 @@ stage_2:
 # assuming the project dir is /path/to/project
 
 # generate docker-compose.yml
-python -m pei_docker.pei configure --project-dir=/path/to/project
+pei-docker-cli configure --project-dir=/path/to/project
 
 cd /path/to/project
 

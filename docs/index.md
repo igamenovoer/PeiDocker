@@ -25,23 +25,23 @@ pip install click omegaconf attrs cattrs
 cd /path/to/PeiDocker
 
 # Create a new project in ./build or any other directory
-python -m pei_docker.pei create -p ./build
+pei-docker-cli create -p ./build
 
 # Optional: Create without examples or contrib files
-python -m pei_docker.pei create -p ./build --no-with-examples --no-with-contrib
+pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
 ```
 
 * Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs.
 * Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
-python -m pei_docker.pei configure -p ./build
+pei-docker-cli configure -p ./build
 
 # Optional: Use a different config file
-python -m pei_docker.pei configure -p ./build -c my-custom-config.yml
+pei-docker-cli configure -p ./build -c my-custom-config.yml
 
 # Optional: Generate full compose file with extended sections
-python -m pei_docker.pei configure -p ./build -f
+pei-docker-cli configure -p ./build -f
 ```
 
 ## CLI Commands Reference
@@ -51,7 +51,7 @@ python -m pei_docker.pei configure -p ./build -f
 Creates a new PeiDocker project with template files and examples.
 
 ```sh
-python -m pei_docker.pei create [OPTIONS]
+pei-docker-cli create [OPTIONS]
 ```
 
 **Options:**
@@ -63,10 +63,10 @@ python -m pei_docker.pei create [OPTIONS]
 **Examples:**
 ```sh
 # Create project with all templates and examples
-python -m pei_docker.pei create -p ./my-project
+pei-docker-cli create -p ./my-project
 
 # Create minimal project without examples
-python -m pei_docker.pei create -p ./minimal-project --no-with-examples --no-with-contrib
+pei-docker-cli create -p ./minimal-project --no-with-examples --no-with-contrib
 ```
 
 ### `configure` command
@@ -74,7 +74,7 @@ python -m pei_docker.pei create -p ./minimal-project --no-with-examples --no-wit
 Processes the configuration file and generates docker-compose.yml and related files.
 
 ```sh
-python -m pei_docker.pei configure [OPTIONS]
+pei-docker-cli configure [OPTIONS]
 ```
 
 **Options:**
@@ -86,13 +86,13 @@ python -m pei_docker.pei configure [OPTIONS]
 **Examples:**
 ```sh
 # Use default config file (user_config.yml)
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 
 # Use custom config file
-python -m pei_docker.pei configure -p ./my-project -c prod-config.yml
+pei-docker-cli configure -p ./my-project -c prod-config.yml
 
 # Generate full compose file with extended sections
-python -m pei_docker.pei configure -p ./my-project -f
+pei-docker-cli configure -p ./my-project -f
 ```
 
 For detailed CLI options and advanced usage, see the [CLI Reference](cli_reference.md).

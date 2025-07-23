@@ -15,29 +15,33 @@ PeiDocker is a sophisticated Docker automation framework that transforms YAML co
 
 ## Development Environment
 
-PeiDocker uses Pixi for package management. Install dependencies:
+PeiDocker uses Pixi integrated with pyproject.toml for package management. Install dependencies:
 ```bash
 # Install pixi if not already installed
 curl -fsSL https://pixi.sh/install.sh | bash
 
-# Install project dependencies 
+# Install project dependencies (this will also install the package in editable mode)
 pixi install
 
-# Run development commands
-pixi run python -m pei_docker.pei create -p ./build
+# Run development commands using pixi tasks
+pixi run pei-docker-cli create -p ./build
+
+# Or use installed CLI directly
+pei-docker-cli create -p ./build
 ```
 
 ## Common Development Commands
 
 ```bash
 # Create a new project
-python -m pei_docker.pei create -p ./build
+pixi run pei-docker-cli create -p ./build
+# or directly: pei-docker-cli create -p ./build
 
-# Configure the project (generates docker-compose.yml)
-python -m pei_docker.pei configure -p ./build
+# Configure the project (generates docker-compose.yml)  
+pixi run pei-docker-cli configure -p ./build
 
 # Remove project images and containers
-python -m pei_docker.pei remove -p ./build
+pixi run pei-docker-cli remove -p ./build
 
 # Build Docker images
 cd build
@@ -49,6 +53,14 @@ docker compose up stage-2
 
 # Access container via SSH
 ssh -i ssh_keys/admin admin@localhost -p 2222
+
+# Development tasks with pixi
+pixi run test          # Run tests 
+pixi run lint          # Check code quality
+pixi run format        # Format code
+pixi run type-check    # Type checking
+pixi run build         # Build package for PyPI
+pixi run clean         # Clean build artifacts
 
 # Documentation
 pixi run docs-serve    # Serve docs locally

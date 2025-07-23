@@ -41,13 +41,13 @@ stage_1:
 Usage:
 ```bash
 # Use default port (2222)
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 
 # Use custom port (3333)
 export SSH_HOST_PORT=3333  # Linux/macOS
 # or
 $env:SSH_HOST_PORT='3333'  # Windows PowerShell
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 ```
 
 #### Example 2: Flexible Mount Paths
@@ -71,12 +71,12 @@ Usage:
 # Windows PowerShell
 $env:PROJECT_DATA_PATH='D:\my-project\data'
 $env:TOOLS_PATH='D:\shared-tools'
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 
 # Linux/macOS
 export PROJECT_DATA_PATH='/home/user/project-data'
 export TOOLS_PATH='/usr/local/shared-tools'
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 ```
 
 #### Example 3: Environment-Specific Base Images
@@ -91,16 +91,16 @@ stage_1:
 This allows you to use different base images for different environments:
 ```bash
 # Development (default Ubuntu)
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 
 # GPU development
 $env:BASE_IMAGE='nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04'
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 
 # Production
 $env:BASE_IMAGE='ubuntu:22.04'
 $env:OUTPUT_IMAGE='my-production-app'
-python -m pei_docker.pei configure -p ./my-project
+pei-docker-cli configure -p ./my-project
 ```
 
 ### Advanced Usage

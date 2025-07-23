@@ -1,8 +1,8 @@
 # CLI Reference
 
-## `pei_docker`
+## `pei-docker-cli`
 
-**Usage:** `python -m pei_docker.pei [OPTIONS] COMMAND [ARGS]...`
+**Usage:** `pei-docker-cli [OPTIONS] COMMAND [ARGS]...`
 
 ### Options
 
@@ -22,7 +22,7 @@
 
 ## `create`
 
-**Usage:** `python -m pei_docker.pei create [OPTIONS]`
+**Usage:** `pei-docker-cli create [OPTIONS]`
 
 ### Options
 
@@ -37,7 +37,7 @@
 
 ## `configure`
 
-**Usage:** `python -m pei_docker.pei configure [OPTIONS]`
+**Usage:** `pei-docker-cli configure [OPTIONS]`
 
 ### Options
 
@@ -52,7 +52,7 @@
 
 ## `remove`
 
-**Usage:** `python -m pei_docker.pei remove [OPTIONS]`
+**Usage:** `pei-docker-cli remove [OPTIONS]`
 
 ### Options
 

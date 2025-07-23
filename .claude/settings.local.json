@@ -24,7 +24,11 @@
       "Bash(docker run:*)",
       "Bash(mv:*)",
       "Bash(python:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pei-docker-cli:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pixi install:*)"
     ],
     "deny": []
   }
