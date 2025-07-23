@@ -27,8 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from pei_docker.gui.app import PeiDockerApp
 from pei_docker.gui.screens.simple.wizard import SimpleWizardScreen
-from pei_docker.gui.models.config import ProjectConfig
-from pei_docker.user_config import StageConfig, ImageConfig, SSHConfig, SSHUserConfig
+from pei_docker.gui.models.config import ProjectConfig, Stage1Config, SSHConfig, SSHUser
 
 
 class TestCompleteWizardFlowTCWIZARD001:
@@ -60,16 +59,15 @@ class TestCompleteWizardFlowTCWIZARD001:
         config.project_name = "test-container"
         
         # Initialize stage_1 config to prevent AttributeError
-        config.stage_1 = StageConfig()
-        config.stage_1.image = ImageConfig()
-        config.stage_1.image.base = "ubuntu:24.04"
+        config.stage_1 = Stage1Config()
+        config.stage_1.base_image = "ubuntu:24.04"
         config.stage_1.ssh = SSHConfig()
         config.stage_1.ssh.enable = True
         config.stage_1.ssh.host_port = 2222
         config.stage_1.ssh.port = 22
-        config.stage_1.ssh.users = {
-            "testuser": SSHUserConfig(password="testpass123", uid=1100)
-        }
+        config.stage_1.ssh.users = [
+            SSHUser(name="testuser", password="testpass123", uid=1100)
+        ]
         
         return config
     
@@ -117,7 +115,7 @@ class TestCompleteWizardFlowTCWIZARD001:
             
             # Simulate entering project data
             project_config.project_name = test_data["project_name"]
-            project_config.stage_1.image.base = test_data["base_image"]
+            project_config.stage_1.base_image = test_data["base_image"]
             
             # Navigate through all steps
             total_steps = len(wizard.steps)
@@ -149,19 +147,20 @@ class TestCompleteWizardFlowTCWIZARD001:
         if step_name == "project_info":
             # Step 1-3: Project name and base image
             wizard.project_config.project_name = test_data["project_name"]
-            wizard.project_config.stage_1.image.base = test_data["base_image"]
+            wizard.project_config.stage_1.base_image = test_data["base_image"]
         
         elif step_name == "ssh_config":
             # Step 4-6: SSH configuration
             wizard.project_config.stage_1.ssh.enable = test_data["ssh_enabled"]
             wizard.project_config.stage_1.ssh.host_port = test_data["ssh_host_port"]
             wizard.project_config.stage_1.ssh.port = test_data["ssh_container_port"]
-            wizard.project_config.stage_1.ssh.users = {
-                test_data["ssh_username"]: SSHUserConfig(
+            wizard.project_config.stage_1.ssh.users = [
+                SSHUser(
+                    name=test_data["ssh_username"],
                     password=test_data["ssh_password"], 
                     uid=1100
                 )
-            }
+            ]
         
         elif step_name in ["proxy_config", "apt_config", "port_mapping", "env_vars", 
                           "device_config", "mounts", "entry_point", "custom_scripts"]:
@@ -178,7 +177,7 @@ class TestCompleteWizardFlowTCWIZARD001:
         
         # Verify project information
         assert config.project_name == expected_data["project_name"]
-        assert config.stage_1.image.base == expected_data["base_image"]
+        assert config.stage_1.base_image == expected_data["base_image"]
         
         # Verify SSH configuration
         assert config.stage_1.ssh.enable == expected_data["ssh_enabled"]
@@ -245,7 +244,7 @@ class TestCompleteWizardFlowTCWIZARD001:
                 config_dict = {
                     'stage_1': {
                         'image': {
-                            'base': user_config.stage_1.image.base
+                            'base': user_config.stage_1.base_image
                         },
                         'ssh': {
                             'enable': user_config.stage_1.ssh.enable,
@@ -391,7 +390,7 @@ class TestCompleteWizardFlowTCWIZARD001:
             
             # Set data at project_info step
             project_config.project_name = test_data["project_name"]
-            project_config.stage_1.image.base = test_data["base_image"]
+            project_config.stage_1.base_image = test_data["base_image"]
             
             # Navigate forward a few steps
             for _ in range(3):
@@ -406,7 +405,7 @@ class TestCompleteWizardFlowTCWIZARD001:
             
             # Verify data is still preserved
             assert project_config.project_name == test_data["project_name"]
-            assert project_config.stage_1.image.base == test_data["base_image"]
+            assert project_config.stage_1.base_image == test_data["base_image"]
             
             print("SUCCESS: Wizard step data persistence verified")
     
@@ -491,7 +490,7 @@ class TestWizardIntegrationTCWIZARD001:
         # Initialize stage configs
         project_config.stage_1 = StageConfig()
         project_config.stage_1.image = ImageConfig()
-        project_config.stage_1.image.base = "ubuntu:24.04"
+        project_config.stage_1.base_image = "ubuntu:24.04"
         project_config.stage_1.ssh = SSHConfig()
         
         app.project_config = project_config
@@ -575,7 +574,7 @@ if __name__ == "__main__":
             config.project_name = "test-container"
             config.stage_1 = StageConfig()
             config.stage_1.image = ImageConfig()
-            config.stage_1.image.base = "ubuntu:24.04"
+            config.stage_1.base_image = "ubuntu:24.04"
             config.stage_1.ssh = SSHConfig()
             config.stage_1.ssh.enable = True
             config.stage_1.ssh.host_port = 2222

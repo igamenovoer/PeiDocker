@@ -3,6 +3,11 @@
   - **Title**: Code Check Report
   - **Date**: (current date)
   - **Status**: (status of the check, e.g., "All checks passed" or "Errors found")
-- the report should contain problems found, and suggestions for improvement or bugfix
+
+- the report should contain
+- - description of symtoms
+- - problems found
+- - suggestions for improvement or bugfix
+
 - use `context7` to find documentations if needed or in doubt
 - use online search to find best practices or solutions if needed or in doubt

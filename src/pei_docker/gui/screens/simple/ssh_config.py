@@ -94,18 +94,16 @@ class SSHConfigScreen(Screen[None]):
         self.use_private_key = False
         self.root_enabled = getattr(project_config.stage_1.ssh, 'root_enabled', False)
     
-    def _get_or_create_first_user(self) -> tuple[str, 'SSHUserConfig']:
+    def _get_or_create_first_user(self) -> 'SSHUser':
         """Get the first SSH user or create one with default values."""
+        from ...models.config import SSHUser
         if self.project_config.stage_1.ssh.users:
-            username = next(iter(self.project_config.stage_1.ssh.users.keys()))
-            return username, self.project_config.stage_1.ssh.users[username] 
+            return self.project_config.stage_1.ssh.users[0]
         else:
             # Create default user
-            from pei_docker.user_config import SSHUserConfig
-            default_user = SSHUserConfig(password="123456", uid=1100)
-            username = "me"
-            self.project_config.stage_1.ssh.users[username] = default_user
-            return username, default_user
+            default_user = SSHUser(name="me", password="123456", uid=1100)
+            self.project_config.stage_1.ssh.users.append(default_user)
+            return default_user
     
     def compose(self) -> ComposeResult:
         """Compose the SSH configuration screen."""
@@ -150,11 +148,10 @@ class SSHConfigScreen(Screen[None]):
                 )
                 
                 yield Label("SSH User:", classes="field-label")
-                # Get first user from users dictionary or use default
+                # Get first user from users list or use default
                 if self.project_config.stage_1.ssh.users:
-                    first_user_name = next(iter(self.project_config.stage_1.ssh.users.keys()))
-                    ssh_user = self.project_config.stage_1.ssh.users[first_user_name]
-                    user_name = first_user_name
+                    ssh_user = self.project_config.stage_1.ssh.users[0]
+                    user_name = ssh_user.name
                 else:
                     ssh_user = None
                     user_name = "me"
@@ -321,7 +318,8 @@ class SSHConfigScreen(Screen[None]):
                 if not self.project_config.stage_1.ssh.users:
                     self.project_config.stage_1.ssh.users.append(SSHUser(name="me", password="123456", uid=uid))
                 else:
-                    username, user = self._get_or_create_first_user()
+                    user = self._get_or_create_first_user()
+                    username = user.name
                     user.uid = uid
             except ValueError:
                 pass  # Invalid input, ignore
@@ -334,18 +332,14 @@ class SSHConfigScreen(Screen[None]):
                     self.project_config.stage_1.ssh.users.append(SSHUser(name=user_name, password="123456"))
                 else:
                     # Update existing user's name by removing old entry and adding new one
-                    old_username, old_user = self._get_or_create_first_user()
-                    self.project_config.stage_1.ssh.users.pop(old_username)
-                    self.project_config.stage_1.ssh.users[user_name] = old_user
+                    old_user = self._get_or_create_first_user()
+                    old_user.name = user_name  # Update the user's name directly
         
         elif event.input.id == "ssh_password":
             if self._validate_password(event.value):
                 # Update SSH user password
-                if not self.project_config.stage_1.ssh.users:
-                    self.project_config.stage_1.ssh.users.append(SSHUser(name="me", password=event.value))
-                else:
-                    username, user = self._get_or_create_first_user()
-                    user.password = event.value
+                user = self._get_or_create_first_user()
+                user.password = event.value
         
         elif event.input.id == "ssh_pubkey":
             if self._validate_public_key(event.value):
@@ -357,7 +351,8 @@ class SSHConfigScreen(Screen[None]):
                 
                 # Update SSH user public key
                 if self.project_config.stage_1.ssh.users:
-                    username, user = self._get_or_create_first_user()
+                    user = self._get_or_create_first_user()
+                    username = user.name
                     user.pubkey_text = key_text
         
         elif event.input.id == "ssh_privkey":
@@ -367,7 +362,8 @@ class SSHConfigScreen(Screen[None]):
             
             # Update SSH user private key
             if self.project_config.stage_1.ssh.users:
-                username, user = self._get_or_create_first_user()
+                user = self._get_or_create_first_user()
+                username = user.name
                 user.privkey_file = privkey_path if privkey_path else None
         
         elif event.input.id == "root_password":

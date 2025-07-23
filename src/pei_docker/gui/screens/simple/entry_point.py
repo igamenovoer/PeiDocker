@@ -153,12 +153,8 @@ class EntryPointScreen(Screen):
         """Set up initial state when screen is mounted."""
         self._update_settings_visibility()
         
-        # Set initial radio button selections
-        stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
-        stage1_enabled.pressed = "Yes" if self.stage1_entrypoint else "No"
-        
-        stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
-        stage2_enabled.pressed = "Yes" if self.stage2_entrypoint else "No"
+        # Set initial radio button selections - already handled by value parameters in compose()
+        # RadioButton values are set during compose() based on stage entrypoints
     
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """Handle radio button changes."""
@@ -166,7 +162,7 @@ class EntryPointScreen(Screen):
             self._update_settings_visibility()
             
             # Clear script path if disabling
-            if event.pressed == "No":
+            if event.pressed_button.label == "No":
                 if event.radio_set.id == "stage1_enabled":
                     stage1_script = self.query_one("#stage1_script", Input)
                     stage1_script.value = ""
@@ -198,8 +194,14 @@ class EntryPointScreen(Screen):
         stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
         stage2_settings = self.query_one("#stage2_settings")
         
-        stage1_settings.display = stage1_enabled.pressed == "Yes"
-        stage2_settings.display = stage2_enabled.pressed == "Yes"
+        # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1_is_enabled = stage1_yes_button.value if stage1_yes_button else False
+        stage1_settings.display = stage1_is_enabled
+        
+        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes" 
+        stage2_is_enabled = stage2_yes_button.value if stage2_yes_button else False
+        stage2_settings.display = stage2_is_enabled
     
     def _browse_script_file(self, input_id: str) -> None:
         """Browse for script file using file picker."""
@@ -218,7 +220,8 @@ class EntryPointScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
         
-        if stage1_enabled.pressed == "Yes":
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage1_yes_button and stage1_yes_button.value:
             stage1_script = self.query_one("#stage1_script", Input)
             script_path = stage1_script.value.strip()
             
@@ -232,7 +235,8 @@ class EntryPointScreen(Screen):
             if os.path.isabs(script_path) and not os.path.exists(script_path):
                 return False, f"Stage-1 entry point script not found: {script_path}"
         
-        if stage2_enabled.pressed == "Yes":
+        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage2_yes_button and stage2_yes_button.value:
             stage2_script = self.query_one("#stage2_script", Input)
             script_path = stage2_script.value.strip()
             
@@ -256,11 +260,13 @@ class EntryPointScreen(Screen):
         stage1_script = ""
         stage2_script = ""
         
-        if stage1_enabled.pressed == "Yes":
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage1_yes_button and stage1_yes_button.value:
             stage1_input = self.query_one("#stage1_script", Input)
             stage1_script = stage1_input.value.strip()
         
-        if stage2_enabled.pressed == "Yes":
+        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage2_yes_button and stage2_yes_button.value:
             stage2_input = self.query_one("#stage2_script", Input)
             stage2_script = stage2_input.value.strip()
         

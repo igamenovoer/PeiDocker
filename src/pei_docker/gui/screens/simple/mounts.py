@@ -152,25 +152,21 @@ class MountsScreen(Screen):
         self._update_mount_form_visibility()
         self._update_mount_lists()
         
-        # Set initial radio button selections
-        stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
-        stage1_enabled.pressed = "Yes" if self.stage1_mounts else "No"
-        
-        stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
-        stage2_enabled.pressed = "Yes" if self.stage2_mounts else "No"
+        # Set initial radio button selections - already handled by value parameters in compose()
+        # RadioButton values are set during compose() based on existing mounts
     
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """Handle radio button changes."""
         if event.radio_set.id == "stage1_enabled":
             self._update_stage1_settings_visibility()
-            if event.pressed == "No":
+            if event.pressed_button.label == "No":
                 self.stage1_mounts.clear()
                 self._update_mount_lists()
         elif event.radio_set.id == "stage2_enabled":
-            if event.pressed == "No":
+            if event.pressed_button.label == "No":
                 self.stage2_mounts.clear()
         elif event.radio_set.id == "mount_type":
-            pressed_id = event.pressed
+            pressed_id = event.pressed_button.id if event.pressed_button else None
             if pressed_id and pressed_id.startswith("type_"):
                 self.current_mount_type = pressed_id[5:]  # Remove "type_" prefix
                 self._update_mount_form_visibility()
@@ -190,7 +186,9 @@ class MountsScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage1_settings = self.query_one("#stage1_settings")
         
-        is_enabled = stage1_enabled.pressed == "Yes"
+        # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        is_enabled = stage1_yes_button.value if stage1_yes_button else False
         stage1_settings.display = is_enabled
     
     def _update_mount_form_visibility(self) -> None:
@@ -278,8 +276,11 @@ class MountsScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
         
-        stage1 = self.stage1_mounts.copy() if stage1_enabled.pressed == "Yes" else []
-        stage2 = self.stage2_mounts.copy() if stage2_enabled.pressed == "Yes" else []
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage1 = self.stage1_mounts.copy() if (stage1_yes_button and stage1_yes_button.value) else []
+        
+        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        stage2 = self.stage2_mounts.copy() if (stage2_yes_button and stage2_yes_button.value) else []
         
         return stage1, stage2
     

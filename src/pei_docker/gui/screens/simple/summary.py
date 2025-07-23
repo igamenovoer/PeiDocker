@@ -89,7 +89,7 @@ class SummaryScreen(Screen[None]):
                 with Static(classes="section"):
                     yield Label("Project Settings", classes="section-title")
                     yield Label(f"Name: {self.project_config.project_name}", classes="config-item")
-                    yield Label(f"Base Image: {self.project_config.stage_1.image.base}", classes="config-item")
+                    yield Label(f"Base Image: {self.project_config.stage_1.base_image}", classes="config-item")
                     yield Label(f"Output Directory: {self.project_config.project_dir}", classes="config-item")
                 
                 # SSH configuration

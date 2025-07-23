@@ -1,4 +1,4 @@
-follow these guidelines to debug code:
+you are tasked to debug the source code, follow these guidelines to debug:
 - ALWAYS use `context7` to find documentations if you encouter problems calling 3rd python library, or if you think needed or in doubt
 - use online search to find best practices or solutions if needed or in doubt
 - DO NOT use unicode emojis in your code or print statements

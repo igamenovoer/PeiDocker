@@ -114,7 +114,7 @@ class ProjectInfoScreen(Screen[None]):
                 with Vertical(classes="field-group"):
                     yield Label("Base Docker Image:", classes="field-label")
                     yield DockerImageInput(
-                        value=self.project_config.stage_1.image.base,
+                        value=self.project_config.stage_1.base_image,
                         id="base_image"
                     )
                     
@@ -171,7 +171,7 @@ class ProjectInfoScreen(Screen[None]):
             # DockerImageInput handles validation internally
             image_value = event.value.strip()
             if image_value:  # Only update if not empty
-                self.project_config.stage_1.image.base = image_value
+                self.project_config.stage_1.base_image = image_value
                 # Check if image exists (async)
                 self._check_image_exists(image_value)
                 self.base_image_valid = True

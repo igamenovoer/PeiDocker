@@ -162,29 +162,25 @@ class CustomScriptsScreen(Screen):
         self._update_stage1_settings_visibility()
         self._update_scripts_list()
         
-        # Set initial radio button selections
-        stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
-        stage1_enabled.pressed = "Yes" if self._has_stage1_scripts() else "No"
-        
-        stage2_enabled = self.query_one("#stage2_enabled", RadioSet)
-        stage2_enabled.pressed = "Yes" if self._has_stage2_scripts() else "No"
+        # Set initial radio button selections - already handled by value parameters in compose()
+        # RadioButton values are set during compose() based on existing scripts
     
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """Handle radio button changes."""
         if event.radio_set.id == "stage1_enabled":
             self._update_stage1_settings_visibility()
-            if event.pressed == "No":
+            if event.pressed_button.label == "No":
                 # Clear all stage-1 scripts
                 for script_type in self.stage1_scripts:
                     self.stage1_scripts[script_type].clear()
                 self._update_scripts_list()
         elif event.radio_set.id == "stage2_enabled":
-            if event.pressed == "No":
+            if event.pressed_button.label == "No":
                 # Clear all stage-2 scripts
                 for script_type in self.stage2_scripts:
                     self.stage2_scripts[script_type].clear()
         elif event.radio_set.id == "script_type":
-            pressed_id = event.pressed
+            pressed_id = event.pressed_button.id if event.pressed_button else None
             if pressed_id and pressed_id.startswith("type_"):
                 self.current_script_type = pressed_id[5:]  # Remove "type_" prefix
                 self._update_scripts_list()
@@ -218,7 +214,9 @@ class CustomScriptsScreen(Screen):
         stage1_enabled = self.query_one("#stage1_enabled", RadioSet)
         stage1_settings = self.query_one("#stage1_settings")
         
-        is_enabled = stage1_enabled.pressed == "Yes"
+        # Check if "Yes" button is pressed by looking at first RadioButton ("Yes")
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        is_enabled = stage1_yes_button.value if stage1_yes_button else False
         stage1_settings.display = is_enabled
     
     def _add_script(self) -> None:
@@ -277,13 +275,15 @@ class CustomScriptsScreen(Screen):
         stage1 = {}
         stage2 = {}
         
-        if stage1_enabled.pressed == "Yes":
+        stage1_yes_button = stage1_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage1_yes_button and stage1_yes_button.value:
             # Only include script types that have scripts
             for script_type, scripts in self.stage1_scripts.items():
                 if scripts:
                     stage1[script_type] = scripts.copy()
         
-        if stage2_enabled.pressed == "Yes":
+        stage2_yes_button = stage2_enabled.query_one("RadioButton")  # First button is "Yes"
+        if stage2_yes_button and stage2_yes_button.value:
             # Only include script types that have scripts
             for script_type, scripts in self.stage2_scripts.items():
                 if scripts:
