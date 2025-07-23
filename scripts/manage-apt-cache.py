@@ -100,18 +100,34 @@ echo "Setting up APT cache from tmp directory..."
 
 # Create cache directory
 mkdir -p /apt-cache
+mkdir -p /var/cache/apt/archives
 
 # Copy .deb files from tmp to cache directory
 if [ -d "$PEI_STAGE_DIR_{stage[-1]}/tmp" ]; then
     find "$PEI_STAGE_DIR_{stage[-1]}/tmp" -name "*.deb" -exec cp {{}} /apt-cache/ \\;
-    echo "Copied cached packages to /apt-cache"
+    find "$PEI_STAGE_DIR_{stage[-1]}/tmp" -name "*.deb" -exec cp {{}} /var/cache/apt/archives/ \\;
+    echo "Copied cached packages to /apt-cache and /var/cache/apt/archives"
 fi
+
+# Configure APT to keep downloaded packages
+echo 'APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/01keep-packages
+echo 'Dir::Cache::Archives "/var/cache/apt/archives";' >> /etc/apt/apt.conf.d/01keep-packages
 
 # Set up APT to use the cache
 export PEI_APT_CACHE_DIR="/apt-cache"
 if [ -f "$PEI_STAGE_DIR_{stage[-1]}/system/apt/enable-external-cache.sh" ]; then
     $PEI_STAGE_DIR_{stage[-1]}/system/apt/enable-external-cache.sh /apt-cache
 fi
+
+# Create a script to collect packages after installation
+cat > /collect-packages.sh << 'EOF'
+#!/bin/bash
+echo "Collecting downloaded packages..."
+mkdir -p "$PEI_STAGE_DIR_{stage[-1]}/tmp"
+find /var/cache/apt/archives -name "*.deb" -exec cp {{}} "$PEI_STAGE_DIR_{stage[-1]}/tmp/" \\;
+echo "Packages collected to $PEI_STAGE_DIR_{stage[-1]}/tmp"
+EOF
+chmod +x /collect-packages.sh
 """
         
         with open(cache_setup_script, 'w') as f:

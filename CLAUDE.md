@@ -217,4 +217,9 @@ Based on recent commits and tasks:
 - Building takes time, do not interrupt the process, wait until it finishes
 
 ## Testing Notes
+
+Make sure you know what platform you are working on.
+
+Windows specific:
 - WSL provides `sshpass` for your testing
+- Use powershell to run commands
