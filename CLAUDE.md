@@ -208,3 +208,13 @@ Based on recent commits and tasks:
 - `tests/scripts/`: Automated testing and validation scripts
 - `context/tasks/`: Development tasks, implementation plans, and specifications
 - `pixi.toml`: Package dependencies and development tasks
+
+## Mirrors and Testing Strategies
+
+- Use `cn` (`https://cn.archive.ubuntu.com/`) apt mirror for testing the user config (yaml) and docker image building
+- Clean up the test docker image and container after finished
+- During test, when using `docker compose build`, always use `--no-cache` to ensure the scripts are updated.
+- Building takes time, do not interrupt the process, wait until it finishes
+
+## Testing Notes
+- WSL provides `sshpass` for your testing

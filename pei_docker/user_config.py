@@ -228,6 +228,18 @@ class CustomScriptConfig:
     on_first_run : list[str] = field(factory=list)
     on_every_run : list[str] = field(factory=list)
     on_user_login : list[str] = field(factory=list)
+    on_entry : list[str] = field(factory=list)
+    
+    def __attrs_post_init__(self):
+        # Validate on_entry constraints - should have at most one entry point
+        if len(self.on_entry) > 1:
+            raise ValueError(f'on_entry can have at most one entry point per stage, got {len(self.on_entry)}: {self.on_entry}')
+    
+    def get_entry_script(self) -> str | None:
+        """Get the single entry script path, or None if not specified"""
+        if len(self.on_entry) == 0:
+            return None
+        return self.on_entry[0]
     
 class StorageTypes:
     AutoVolume = 'auto-volume'

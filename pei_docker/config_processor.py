@@ -104,6 +104,30 @@ class PeiConfigProcessor:
             
         return cls.from_config(config, compose, project_dir)
     
+    def _parse_script_and_args(self, script_with_args: str) -> Tuple[str, list[str]]:
+        ''' Parse a script specification that may include arguments.
+        
+        parameters
+        ----------
+        script_with_args : str
+            Script path with optional arguments, e.g., 'stage-1/custom/my-script.sh --arg1 --arg2=value'
+            
+        returns
+        -------
+        Tuple[str, list[str]]
+            (script_path, args_list) where script_path is the first token and args_list contains remaining tokens
+        '''
+        try:
+            tokens = shlex.split(script_with_args)
+            if not tokens:
+                raise ValueError(f"Empty script specification: {script_with_args}")
+            
+            script_path = tokens[0]
+            args = tokens[1:] if len(tokens) > 1 else []
+            return script_path, args
+        except ValueError as e:
+            raise ValueError(f"Failed to parse script specification '{script_with_args}': {e}")
+    
     def _check_custom_scripts(self, custom_config : CustomScriptConfig) -> bool:
         ''' check if all custom scripts listed in the config exist, and update the stage config
         
@@ -149,6 +173,15 @@ class PeiConfigProcessor:
                 host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script}'
                 if not os.path.exists(host_path):
                     logging.warning(f'Script {host_path} not found')
+                    
+        on_entry_script = custom_config.get_entry_script()
+        if on_entry_script is not None:
+            # Parse script path and arguments
+            script_path, _ = self._parse_script_and_args(on_entry_script)
+            # check if the on_entry script exists
+            host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script_path}'
+            if not os.path.exists(host_path):
+                logging.warning(f'Script {host_path} not found')
                 
         return True
     
@@ -637,11 +670,13 @@ class PeiConfigProcessor:
                 on_first_run_list = []
                 on_every_run_list = []
                 on_user_login_list = []
+                on_entry_script = None
             else:
                 on_build_list = stage_config.custom.on_build
                 on_first_run_list = stage_config.custom.on_first_run
                 on_every_run_list = stage_config.custom.on_every_run
                 on_user_login_list = stage_config.custom.on_user_login
+                on_entry_script = stage_config.custom.get_entry_script()
             
             on_build_script = self._generate_script_text('on-build', on_build_list)
             filename_build = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-build.sh'
@@ -670,6 +705,30 @@ class PeiConfigProcessor:
             logging.info(f'Writing to {filename_user_login}')
             with open(filename_user_login, 'w+') as f:
                 f.write(on_user_login_script)
+                
+            # Handle custom entry point
+            if on_entry_script is not None:
+                # Parse script path and default arguments
+                script_path, default_args = self._parse_script_and_args(on_entry_script)
+                
+                # Store script path
+                custom_entry_path_file = f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-path'
+                os.makedirs(os.path.dirname(custom_entry_path_file), exist_ok=True)
+                logging.info(f'Writing custom entry path to {custom_entry_path_file}')
+                # Convert the script path to absolute path within the container
+                container_script_path = f'$PEI_STAGE_DIR_{name.replace("stage-", "").upper()}/{script_path}'
+                with open(custom_entry_path_file, 'w+') as f:
+                    f.write(container_script_path)
+                
+                # Store default arguments
+                custom_entry_args_file = f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-args'
+                logging.info(f'Writing custom entry default args to {custom_entry_args_file}')
+                with open(custom_entry_args_file, 'w+') as f:
+                    # Join arguments with spaces, properly escaping for shell
+                    if default_args:
+                        f.write(' '.join(shlex.quote(arg) for arg in default_args))
+                    else:
+                        f.write('')  # Empty file for no default arguments
             
     
     def process(self, remove_extra : bool = True, generate_custom_script_files : bool = True) -> DictConfig:
@@ -701,11 +760,23 @@ class PeiConfigProcessor:
         # convert environment from list to dict
         if isinstance(config_dict, dict):
             for stage in ['stage_1', 'stage_2']:
-                if stage not in config_dict or 'environment' not in config_dict[stage]:
+                if stage not in config_dict:
                     continue
-                env = config_dict[stage]['environment']
-                if env is not None and isinstance(env, list):
-                    config_dict[stage]['environment'] = env_str_to_dict(env)
+                
+                # Handle environment conversion
+                if 'environment' in config_dict[stage]:
+                    env = config_dict[stage]['environment']
+                    if env is not None and isinstance(env, list):
+                        config_dict[stage]['environment'] = env_str_to_dict(env)
+                
+                # Handle on_entry conversion from string to list
+                if 'custom' in config_dict[stage] and config_dict[stage]['custom'] is not None:
+                    custom = config_dict[stage]['custom']
+                    if 'on_entry' in custom and custom['on_entry'] is not None:
+                        on_entry = custom['on_entry']
+                        if isinstance(on_entry, str):
+                            # Convert string to single-element list
+                            config_dict[stage]['custom']['on_entry'] = [on_entry]
         
         # parse the user config
         user_config : UserConfig = cattrs.structure(config_dict, UserConfig)

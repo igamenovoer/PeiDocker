@@ -1,0 +1,26 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-test-entry:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2228
+    users:
+      testuser:
+        password: 'test123'
+        uid: 1200
+
+  # Skip mirror configuration due to network issues
+  # apt:
+  #   repo_source: 'tuna'
+  #   keep_repo_after_build: true
+
+  custom:
+    on_entry:
+      - 'stage-1/custom/test-entry.sh --mode=default --count=3'
+
+stage_2:
+  image:
+    output: pei-test-entry:stage-2

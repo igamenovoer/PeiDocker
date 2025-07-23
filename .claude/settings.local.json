@@ -17,7 +17,14 @@
       "Bash(docker compose build:*)",
       "Bash(docker compose:*)",
       "Bash(sshpass:*)",
-      "Bash(wsl sshpass:*)"
+      "Bash(wsl sshpass:*)",
+      "Bash(ls:*)",
+      "Bash(docker image rm:*)",
+      "Bash(true)",
+      "Bash(docker run:*)",
+      "Bash(mv:*)",
+      "Bash(python:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }
