@@ -4,6 +4,30 @@
 
 The GUI provides **ONLY a simple mode** - a guided, wizard-like interface that walks users through creating a PeiDocker project using a series of sequential configuration steps. Each step has its own dedicated GUI screen. There is no advanced mode. The interface focuses on the most common configuration options with streamlined navigation and memory-based state management.
 
+## Screen Numbering Convention
+
+The GUI uses a consistent screen numbering system where:
+
+- **Screen 0 (SC-0)**: Application Startup Screen - Entry point with system validation
+- **Screen 1 (SC-1)**: Project Directory Selection Screen - Project location setup
+- **Screen 2 (SC-2)**: Simple Mode Wizard Controller - Orchestrates the 11-step configuration wizard
+- **Screens 3-13 (SC-3 to SC-13)**: Configuration wizard screens (Steps 1-11 of the wizard)
+
+**Important**: The wizard controller (Screen 2) manages 11 configuration steps, but these steps correspond to Screens 3-13. The step numbers (1-11) shown in the wizard UI refer to the configuration steps, while screen numbers (SC-3 to SC-13) refer to the actual screen implementations.
+
+**Screen ID to Step Mapping:**
+- SC-3: Step 1 - Project Information
+- SC-4: Step 2 - SSH Configuration  
+- SC-5: Step 3 - Proxy Configuration
+- SC-6: Step 4 - APT Configuration
+- SC-7: Step 5 - Port Mapping
+- SC-8: Step 6 - Environment Variables
+- SC-9: Step 7 - Device Configuration
+- SC-10: Step 8 - Additional Mounts
+- SC-11: Step 9 - Custom Entry Point
+- SC-12: Step 10 - Custom Scripts
+- SC-13: Step 11 - Configuration Summary
+
 ## Architecture & File Structure
 
 ```
@@ -104,7 +128,7 @@ src/pei_docker/gui/
 
 ## Detailed Screen Designs
 
-### 1. Application Startup Screen
+### Screen 0: Application Startup Screen
 
 **Layout:**
 ```
@@ -138,7 +162,7 @@ src/pei_docker/gui/
 - Display system information
 - Auto-continue after 2 seconds or on Enter key
 
-### 2. Project Directory Selection Screen
+### Screen 1: Project Directory Selection Screen
 
 **Layout:**
 ```
@@ -176,7 +200,7 @@ src/pei_docker/gui/
 - Validate directory path and create if needed
 - After completion, proceed directly to Simple Wizard (no mode selection)
 
-### 3. Simple Mode - Wizard Controller
+### Screen 2: Simple Mode - Wizard Controller
 
 The wizard controller manages the flow between 11 configuration screens, maintaining state in memory until save and enabling unlimited back/forth navigation.
 
@@ -190,7 +214,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - After save: persistent final page with continued navigation ability
 - Form validation before proceeding to next step
 
-### 4. Project Information Screen
+### Screen 3: Project Information Screen (Step 1 of 11)
 
 **Layout:**
 ```
@@ -228,7 +252,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Check Docker Hub for image existence (optional, non-blocking)
 - Prevent empty project names
 
-### 5. SSH Configuration Screen
+### Screen 4: SSH Configuration Screen (Step 2 of 11)
 
 **Layout:**
 ```
@@ -306,7 +330,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Password validation (no spaces/commas)
 - Toggle password visibility
 
-### 6. Proxy Configuration Screen
+### Screen 5: Proxy Configuration Screen (Step 3 of 11)
 
 **Layout:**
 ```
@@ -343,7 +367,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Preview proxy URL format
 - Explain build vs runtime proxy usage
 
-### 7. APT Configuration Screen
+### Screen 6: APT Configuration Screen (Step 4 of 11)
 
 **Layout:**
 ```
@@ -377,7 +401,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Geographic information for each mirror
 - Preview of mirror benefits
 
-### 8. Port Mapping Screen
+### Screen 7: Port Mapping Screen (Step 5 of 11)
 
 **Layout:**
 ```
@@ -417,7 +441,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Prevent duplicate mappings
 - Show SSH port as read-only
 
-### 9. Environment Variables Screen
+### Screen 8: Environment Variables Screen (Step 6 of 11)
 
 **Layout:**
 ```
@@ -456,7 +480,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Dynamic list management
 - Show current variables list
 
-### 10. Device Configuration Screen
+### Screen 9: Device Configuration Screen (Step 7 of 11)
 
 **Layout:**
 ```
@@ -490,7 +514,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - No automatic GPU detection
 - Suggest compatible base images
 
-### 11. Additional Mounts Screen
+### Screen 10: Additional Mounts Screen (Step 8 of 11)
 
 **Layout:**
 ```
@@ -533,7 +557,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Warning about Stage-2 override behavior
 - Support for different mount types
 
-### 12. Custom Entry Point Screen
+### Screen 11: Custom Entry Point Screen (Step 9 of 11)
 
 **Layout:**
 ```
@@ -568,7 +592,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Warning about Stage-2 override behavior
 - Copy script to project directory
 
-### 13. Custom Scripts Screen
+### Screen 12: Custom Scripts Screen (Step 10 of 11)
 
 **Layout:**
 ```
@@ -610,7 +634,7 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 - Support command-line arguments
 - Validate script paths
 
-### 14. Configuration Summary Screen
+### Screen 13: Configuration Summary Screen (Step 11 of 11)
 
 **Layout:**
 ```

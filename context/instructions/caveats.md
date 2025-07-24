@@ -1,5 +1,4 @@
 Some caveats to consider when editing the code.
-Your title must reflect the main issue of the caveat, be specific.
 
 # Known Issues
 
