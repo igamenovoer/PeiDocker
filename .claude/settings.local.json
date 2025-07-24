@@ -48,7 +48,12 @@
       "Bash(grep -r '#back' /Users/igame/code/PeiDocker/src/pei_docker/gui/screens/simple/ --include=\"*.py\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nComplete GUI revision implementing simple-mode-only wizard with memory-based state management\n\nMajor architectural changes:\n- Remove advanced mode completely - implement only simple-mode wizard\n- Remove mode_selection.py screen and update app.py for direct wizard navigation  \n- Update startup.py to proceed directly to simple wizard with project creation\n- Transform wizard.py to memory-only state with double ESC handling\n- Update all 8 step screens to use [Prev] [Next] buttons instead of [Back] [Next]\n- Implement persistent summary screen with [Prev] [Save] [Cancel] buttons\n- Add handle_escape() methods to all screens for single ESC input clearing\n- Enhance ssh_config.py with SSH User UID field\n- Create ProjectDirectoryDialog in dialogs.py for directory selection\n- Maintain strong typing and data model attribute correctness throughout\n\nNavigation improvements:\n- Double ESC returns to main menu from any wizard step\n- Single ESC clears current input fields in step screens\n- Memory-only state management until explicit save operations\n- Persistent final page allows continued navigation after save\n- Proper button progression: [Prev] [Next] → [Prev] [Save] [Cancel]\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(rg:*)",
-      "Bash(realpath:*)"
+      "Bash(realpath:*)",
+      "Bash(New-Item -ItemType Directory -Path \"tmp\\tests\" -Force)",
+      "Bash(New-Item -ItemType Directory -Path \"tmp\\outputs\" -Force)",
+      "Bash(timeout 10 pixi run -e dev python tmp/tests/quick_gui_test.py --scenario no_project)",
+      "Bash(timeout 30 pixi run -e dev python tmp/tests/test_all_scenarios.py)",
+      "Bash(timeout 10 pixi run -e dev python tmp/tests/test_fixed_gui.py)"
     ],
     "deny": []
   }
