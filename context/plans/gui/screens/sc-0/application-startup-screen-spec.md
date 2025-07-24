@@ -132,8 +132,8 @@
 2. **Process Command Line Args:** Check for --project-dir argument
 3. **Run System Checks:** Execute all component checks concurrently (including project directory if provided)
 4. **Update Display:** Show results as checks complete
-5. **Auto-continue Timer:** Start 2-second countdown (optional)
-6. **Enable Controls:** Activate Continue/Quit buttons
-7. **Wait for User:** Accept user input or auto-continue
+
+5. **Enable Controls:** Activate Continue/Quit buttons
+6. **Wait for User:** Accept user input
 
 This specification provides guidance for implementing the Application Startup Screen as the entry point for the PeiDocker GUI application.

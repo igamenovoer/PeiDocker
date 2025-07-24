@@ -13,7 +13,6 @@ from textual.app import ComposeResult
 from textual.containers import Center, Middle, Vertical, Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, Label, Static
-from textual.timer import Timer
 
 from ..models.config import ProjectConfig
 
@@ -90,7 +89,7 @@ class StartupScreen(Screen[None]):
         self.project_config: ProjectConfig = project_config
         self.docker_available: bool = docker_available
         self.docker_version: Optional[str] = docker_version
-        self._auto_continue_timer: Optional[Timer] = None
+        self._system_status_widget: Optional[Static] = None
         
         # Project directory analysis results
         self.project_dir_exists: bool = False
@@ -110,7 +109,9 @@ class StartupScreen(Screen[None]):
                     yield Label("PeiDocker Configuration GUI", classes="title")
                     yield Label("Docker Container Configuration Made Easy", classes="subtitle")
                     
-                    yield Static(self._get_system_status(), classes="system-status")
+                    # Create system status widget with initial "checking" message
+                    self._system_status_widget = Static("Checking system components...", classes="system-status")
+                    yield self._system_status_widget
                     
                     with Horizontal(classes="actions"):
                         yield Button("Continue", id="continue", variant="primary")
@@ -120,17 +121,10 @@ class StartupScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """Called when the screen is mounted."""
-        # Mark system checks as complete for status display
-        self._system_checks_complete = True
-        self.refresh()
-        
-        # Auto-continue after 2 seconds (as per spec) if no critical errors
-        if self.docker_available and not self.config_load_error:
-            self._auto_continue_timer = self.set_timer(2.0, self._auto_continue)
+        # Update system status widget with actual system information
+        if self._system_status_widget:
+            self._system_status_widget.update(self._get_system_status())
     
-    def _auto_continue(self) -> None:
-        """Auto-continue to next screen."""
-        self.action_continue()
     
     def _get_logo(self) -> str:
         """Get ASCII logo for PeiDocker."""
@@ -145,10 +139,6 @@ class StartupScreen(Screen[None]):
     
     def _get_system_status(self) -> str:
         """Get system status information."""
-        # Show "Checking system components..." during initial loading
-        if not hasattr(self, '_system_checks_complete'):
-            return "Checking system components..."
-        
         status_lines: List[str] = []
         
         # Docker status
@@ -247,11 +237,6 @@ class StartupScreen(Screen[None]):
     
     def action_continue(self) -> None:
         """Continue to next screen."""
-        # Cancel auto-continue timer if it exists
-        if self._auto_continue_timer:
-            self._auto_continue_timer.stop()
-            self._auto_continue_timer = None
-        
         # Check if project directory is already set via --project-dir
         if self.project_config.project_dir:
             # Handle different project states
