@@ -1,0 +1,24 @@
+@startuml
+[*] --> ScreenLoading
+ScreenLoading --> InputReady : initialization_complete
+InputReady --> ValidatingInput : user_input_change
+ValidatingInput --> InputValid : validation_success
+ValidatingInput --> InputInvalid : validation_error
+InputValid --> InputReady : user_continues_editing
+InputInvalid --> InputReady : user_fixes_input
+InputValid --> DirectoryCreating : continue_button_clicked
+DirectoryCreating --> NavigatingNext : directory_created
+DirectoryCreating --> InputInvalid : creation_failed
+NavigatingNext --> [*] : navigate_to_sc2
+InputReady --> NavigatingBack : back_button_clicked
+NavigatingBack --> [*] : navigate_to_sc0
+
+state InputValid {
+  [*] --> ContinueEnabled
+}
+
+state InputInvalid {
+  [*] --> ContinueDisabled
+  [*] --> ErrorDisplayed
+}
+@enduml

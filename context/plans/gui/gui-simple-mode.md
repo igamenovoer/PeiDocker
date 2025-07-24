@@ -4,6 +4,44 @@
 
 The GUI provides **ONLY a simple mode** - a guided, wizard-like interface that walks users through creating a PeiDocker project using a series of sequential configuration steps. Each step has its own dedicated GUI screen. There is no advanced mode. The interface focuses on the most common configuration options with streamlined navigation and memory-based state management.
 
+## CLI Command Structure
+
+The GUI is launched using the `pei-docker-gui` command with the following subcommands:
+
+### Start Subcommand
+```bash
+pei-docker-gui start [OPTIONS]
+```
+
+Options:
+- `--project-dir PATH`: Project directory to use (skips directory selection)
+- `--here`: Use current directory as the project directory
+
+Examples:
+```bash
+pei-docker-gui start                           # Start with project directory selection
+pei-docker-gui start --project-dir ./my-app    # Start with specific project directory
+pei-docker-gui start --here                    # Use current directory as project directory
+```
+
+### Dev Subcommand
+```bash
+pei-docker-gui dev [OPTIONS]
+```
+
+Options:
+- `--project-dir PATH`: Project directory to use (required for dev mode)
+- `--here`: Use current directory as the project directory  
+- `--screen TEXT`: Screen to start with (e.g., 'sc-0', 'sc-1', etc.)
+
+Examples:
+```bash
+pei-docker-gui dev --project-dir ./my-app      # Start in development mode
+pei-docker-gui dev --here --screen sc-1        # Start at specific screen in dev mode
+```
+
+**Important**: The `--screen` option requires either `--project-dir` or `--here` to be specified.
+
 ## Screen Numbering Convention
 
 The GUI uses a consistent screen numbering system where:
@@ -79,7 +117,7 @@ src/pei_docker/gui/
 └─────┬───────────┘
       │
       ▼
-┌─────────────────┐    --project-dir provided
+┌─────────────────┐    pei-docker-gui start --project-dir provided
 │ Project Dir     │ ──────────────────► Skip to Simple Wizard
 │   Selection     │
 └─────┬───────────┘
@@ -194,7 +232,7 @@ src/pei_docker/gui/
 ```
 
 **Behavior:**
-- If `--project-dir` provided, skip this screen
+- If `pei-docker-gui start --project-dir <path>` provided, skip this screen
 - Auto-suggest project name from directory name
 - Check for existing Docker images and warn if found
 - Validate directory path and create if needed

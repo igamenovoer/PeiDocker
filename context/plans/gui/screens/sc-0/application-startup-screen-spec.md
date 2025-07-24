@@ -32,17 +32,21 @@
 - **Source:** Package metadata or version file
 - **Display Format:** `PeiDocker: X.X.X`
 
-#### 4. Project Directory Validation (when --project-dir provided)
-- **Source:** Command line argument `--project-dir <path>`
+#### 4. Project Directory Validation (when CLI override provided)
+- **Source:** Command line arguments:
+  - `pei-docker-gui start --project-dir <path>`
+  - `pei-docker-gui start --here`
+  - `pei-docker-gui dev --project-dir <path>`
+  - `pei-docker-gui dev --here`
 - **Success Criteria:** Directory path is valid and accessible
 - **Error Handling:** Show warning if directory doesn't exist, create if possible
 - **Display Format:** `Project Directory: <path>` or `Project Directory: <path> (will be created)`
 
 ### Navigation Options
-- **Continue Button**: Proceed to project directory selection (or directly to wizard if --project-dir provided)
+- **Continue Button**: Proceed to project directory selection (or directly to wizard if CLI override provided)
 - **Quit Button**: Exit application
 - **Keyboard Controls**: 'q' to quit, Enter to continue
-- **Project Directory Display**: Show project directory path when --project-dir argument provided
+- **Project Directory Display**: Show project directory path when CLI override provided
 
 ## User Interface Specification
 
@@ -75,7 +79,7 @@
 
 ### Status Display Examples
 
-#### All Systems Available (without --project-dir)
+#### All Systems Available (without CLI override)
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Docker: Available (version 24.0.6)                     │
@@ -84,7 +88,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### Existing Project (with --project-dir)
+#### Existing Project (with CLI override)
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Docker: Available (version 24.0.6)                     │
@@ -94,7 +98,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### New Project (with --project-dir)
+#### New Project (with CLI override)
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Docker: Available (version 24.0.6)                     │
@@ -104,7 +108,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### Config Load Error (with --project-dir)
+#### Config Load Error (with CLI override)
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Docker: Available (version 24.0.6)                     │
@@ -129,7 +133,7 @@
 
 ### Startup Sequence
 1. **Screen Initialize:** Display logo and "Checking system components..."
-2. **Process Command Line Args:** Check for --project-dir argument
+2. **Process Command Line Args:** Check for CLI override arguments (--project-dir or --here)
 3. **Run System Checks:** Execute all component checks concurrently (including project directory if provided)
 4. **Update Display:** Show results as checks complete
 

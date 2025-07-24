@@ -1,10 +1,10 @@
 """Main GUI application for PeiDocker."""
 
-import argparse
 import sys  
 from pathlib import Path
 from typing import Optional
 
+import click
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Footer
@@ -57,6 +57,16 @@ class PeiDockerApp(App[None]):
         # Start with startup screen
         self.push_screen("startup")
     
+    def action_goto_project_setup(self) -> None:
+        """Navigate to project directory selection screen (SC-1)."""
+        from .screens.project_setup import ProjectDirectorySelectionScreen
+        project_setup_screen = ProjectDirectorySelectionScreen(
+            self.project_config, 
+            has_cli_project_dir=bool(self.project_config.project_dir)
+        )
+        self.install_screen(project_setup_screen, "project_setup")
+        self.push_screen("project_setup")
+    
     def action_goto_simple_wizard(self) -> None:
         """Navigate directly to simple wizard screen."""
         from .screens.simple.wizard import SimpleWizardScreen
@@ -69,46 +79,115 @@ class PeiDockerApp(App[None]):
         self.exit()
 
 
-def main() -> None:
-    """Main entry point for the GUI application."""
-    parser = argparse.ArgumentParser(
-        description="PeiDocker Terminal GUI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  pei-docker-gui                           # Start with project directory selection
-  pei-docker-gui --project-dir ./my-app    # Start with specific project directory
-        """
-    )
+def _validate_and_create_project_dir(project_dir: str) -> str:
+    """Validate and create project directory if needed."""
+    project_path = Path(project_dir)
+    if not project_path.exists():
+        try:
+            project_path.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            click.echo(f"Error: Cannot create project directory '{project_dir}': {e}", err=True)
+            sys.exit(1)
+    return str(project_path.resolve())
+
+
+def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None) -> None:
+    """Run the PeiDocker GUI application."""
+    app = PeiDockerApp(project_dir=project_dir)
     
-    parser.add_argument(
-        "--project-dir",
-        type=str,
-        help="Project directory to use (skips directory selection)"
-    )
+    # Handle development mode screen selection
+    if dev_screen:
+        if not project_dir:
+            click.echo("Error: --screen option requires --project-dir to be specified", err=True)
+            sys.exit(1)
+        
+        # TODO: Implement screen-specific startup for development mode
+        # For now, we'll just start normally and log the intended screen
+        click.echo(f"Starting in development mode with screen: {dev_screen}")
     
-    args = parser.parse_args()
-    
-    # Validate project directory if provided
-    if args.project_dir:
-        project_path = Path(args.project_dir)
-        if not project_path.exists():
-            try:
-                project_path.mkdir(parents=True, exist_ok=True)
-            except OSError as e:
-                print(f"Error: Cannot create project directory '{args.project_dir}': {e}")
-                sys.exit(1)
-    
-    # Create and run the application
-    app = PeiDockerApp(project_dir=args.project_dir)
     try:
         app.run()
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user.")
+        click.echo("\nOperation cancelled by user.")
         sys.exit(0)
     except Exception as e:
-        print(f"Error: {e}")
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@click.group()
+@click.version_option()
+def cli() -> None:
+    """PeiDocker Terminal GUI - Docker Container Configuration Made Easy."""
+    pass
+
+
+@cli.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(path_type=Path),
+    help="Project directory to use (skips directory selection)"
+)
+@click.option(
+    "--here",
+    is_flag=True,
+    help="Use current directory as the project directory"
+)
+def start(project_dir: Optional[Path], here: bool) -> None:
+    """Start the GUI application."""
+    if here and project_dir:
+        click.echo("Error: Cannot specify both --here and --project-dir", err=True)
+        sys.exit(1)
+    
+    final_project_dir: Optional[str] = None
+    
+    if here:
+        final_project_dir = str(Path.cwd().resolve())
+    elif project_dir:
+        final_project_dir = _validate_and_create_project_dir(str(project_dir))
+    
+    _run_app(project_dir=final_project_dir)
+
+
+@cli.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(path_type=Path),
+    help="Project directory to use (required for dev mode)"
+)
+@click.option(
+    "--here",
+    is_flag=True,
+    help="Use current directory as the project directory"
+)
+@click.option(
+    "--screen",
+    type=str,
+    help="Screen to start with (e.g., 'sc-0', 'sc-1', etc.)"
+)
+def dev(project_dir: Optional[Path], here: bool, screen: Optional[str]) -> None:
+    """Start the GUI in development mode."""
+    if here and project_dir:
+        click.echo("Error: Cannot specify both --here and --project-dir", err=True)
+        sys.exit(1)
+    
+    if screen and not (here or project_dir):
+        click.echo("Error: --screen option requires --project-dir or --here to be specified", err=True)
+        sys.exit(1)
+    
+    final_project_dir: Optional[str] = None
+    
+    if here:
+        final_project_dir = str(Path.cwd().resolve())
+    elif project_dir:
+        final_project_dir = _validate_and_create_project_dir(str(project_dir))
+    
+    _run_app(project_dir=final_project_dir, dev_screen=screen)
+
+
+def main() -> None:
+    """Main entry point for the GUI application."""
+    cli()
 
 
 if __name__ == "__main__":
