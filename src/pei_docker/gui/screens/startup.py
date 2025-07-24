@@ -266,10 +266,8 @@ class StartupScreen(Screen[None]):
                 else:
                     self.notify("Failed to create project structure", severity="error")
         else:
-            # Need to get project directory first, then go to wizard
-            from ..widgets.dialogs import ProjectDirectoryDialog
-            project_dir_dialog = ProjectDirectoryDialog(self.project_config)
-            self.app.push_screen(project_dir_dialog, self._on_project_dir_selected)
+            # No project directory provided, go to project setup screen (SC-1)
+            cast('PeiDockerApp', self.app).action_goto_project_setup()
     
     def _on_project_dir_selected(self, result: Optional[str]) -> None:
         """Handle project directory selection result."""

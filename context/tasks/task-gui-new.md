@@ -2,10 +2,20 @@
 
 We need to create a terminal GUI for our project using the `textual` library. You can find the docs using `context7` MCP, and some details are in `context/hints/howto-use-textual.md`.
 
-The GUI is launched with `pei-docker-gui` command:
-- `pei-docker-gui --project-dir <path>` to specify the project directory, will launch the GUI for that project.
-
 Create a subdir in `src\pei_docker` for this. Do not write the whole GUI in a single file, split it into several files as needed.
+
+## Starting GUI via CLI tool
+
+The GUI is launched with `pei-docker-gui` command, with the following subcommands.
+
+the `start` subcommand will start the GUI application, with the following options:
+- empty option, just start the GUI with no project directory specified, will ask user where to output the project later.
+- `--project-dir <path>` , to specify the project directory, will launch the GUI for that project. If that project directory does not exist, it will be created with empty content.
+- `--here`, to specify the current directory as the project directory, will launch the GUI for that project.
+
+the `dev` subcommand will start the GUI in development mode, with the following options
+- all options in `start` subcommand are also valid
+- `--screen <screen_name>` to specify the screen to start with, useful for development and testing, `screen_name` can be `sc-0`, `sc-1`, etc. You MUST specify the `project-dir` option when using this subcommand, otherwise it will not work.
 
 ## Design Philosophy
 

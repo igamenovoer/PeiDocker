@@ -53,7 +53,11 @@
       "Bash(New-Item -ItemType Directory -Path \"tmp\\outputs\" -Force)",
       "Bash(timeout 10 pixi run -e dev python tmp/tests/quick_gui_test.py --scenario no_project)",
       "Bash(timeout 30 pixi run -e dev python tmp/tests/test_all_scenarios.py)",
-      "Bash(timeout 10 pixi run -e dev python tmp/tests/test_fixed_gui.py)"
+      "Bash(timeout 10 pixi run -e dev python tmp/tests/test_fixed_gui.py)",
+      "Bash(where plantuml:*)",
+      "Bash(plantuml:*)",
+      "Bash(timeout 3 pixi run pei-docker-gui start --project-dir ./test-cli-project)",
+      "Bash(timeout 3 pixi run pei-docker-gui dev --here --screen sc-1)"
     ],
     "deny": []
   }
