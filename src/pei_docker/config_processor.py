@@ -1,4 +1,14 @@
-# main command of PeiDocker utility
+"""
+Processes user-defined configuration for PeiDocker.
+
+This module is responsible for parsing and processing user configurations,
+applying them to a Docker Compose template to generate a final `docker-compose.yml` file.
+It handles various settings, including APT repositories, proxy configurations,
+SSH access, storage volumes, and custom scripts for different build and run stages.
+
+The main entry point for processing is the `PeiConfigProcessor` class, which
+orchestrates the entire configuration transformation.
+"""
 import os
 import logging
 import shlex
@@ -21,22 +31,45 @@ __all__ = [
 ]
     
 class StoragePrefixes:
+    """Defines prefixes for different types of storage volumes."""
     App = 'app'
+    """Prefix for application-related storage."""
     Data = 'data'
+    """Prefix for data storage."""
     Workspace = 'workspace'
+    """Prefix for workspace storage."""
     
     @classmethod
     def get_all_prefixes(cls) -> list[str]:
+        """
+        Get all defined storage prefixes.
+
+        Returns
+        -------
+        list[str]
+            A list containing all storage prefixes.
+        """
         return [cls.App, cls.Data, cls.Workspace]
     
 class StoragePaths:
-    ''' In-container storage paths
-    '''
+    """
+    Defines standard in-container paths for storage.
+    
+    These paths are used as mount points inside the Docker container.
+    """
     Soft = '/soft'
+    """Base path for soft-linked storage mounted inside the container."""
     HardImage = '/hard/image'
+    """Path for data baked directly into the Docker image."""
     HardVolume = '/hard/volume'
+    """Base path for persistent Docker volumes."""
 
 class Defaults:
+    """
+    Defines default values and constants used throughout the configuration process.
+    
+    This class centralizes default paths, names, and settings to ensure consistency.
+    """
     ConfigTemplatePath='templates/config-template-full.yml'
     ComposeTemplatePath='templates/base-image-gen.yml'
     ConfigExamplesDir='examples'
@@ -61,13 +94,42 @@ class Defaults:
     
 @define(kw_only=True)
 class GeneratedScripts:
-    ''' Generated scripts for the user to run
-    '''
+    """
+    Data class for storing paths to generated shell scripts.
+
+    These scripts are created by the processor to be executed at different
+    stages of the container lifecycle (e.g., on build, on first run).
+    """
     on_build_script : Optional[str] = field(default=None)
     on_first_run_script : Optional[str] = field(default=None)
     on_every_run_script : Optional[str] = field(default=None)
     
 class PeiConfigProcessor:
+    """
+    Processes user configuration and applies it to a Docker Compose template.
+
+    This class reads a user-provided configuration, merges it with a base
+    Docker Compose template, and generates a final `docker-compose.yml` file.
+    It handles complex configurations including multi-stage builds, networking,
+    volumes, and dynamic script generation.
+
+    Attributes
+    ----------
+    m_config : Optional[DictConfig]
+        The user's configuration loaded as an OmegaConf DictConfig.
+    m_compose_template : Optional[DictConfig]
+        The base Docker Compose template.
+    m_compose_output : Optional[DictConfig]
+        The final, processed Docker Compose configuration.
+    m_generated_scripts : GeneratedScripts
+        Paths to the generated helper scripts.
+    m_project_dir : str
+        The root directory of the user's project files.
+    m_host_dir : str
+        The directory on the host where installation files are stored, relative to `m_project_dir`.
+    m_container_dir : str
+        The corresponding directory inside the container for installation files.
+    """
     def __init__(self) -> None:
         self.m_config : Optional[DictConfig] = None
         self.m_compose_template : Optional[DictConfig] = None
@@ -81,8 +143,24 @@ class PeiConfigProcessor:
         
     @classmethod
     def from_config(cls, config : DictConfig, compose_template : DictConfig, project_dir: Optional[str] = None) -> 'PeiConfigProcessor':
-        ''' create a new instance of PeiConfigProcessor from the config and compose template
-        '''
+        """
+        Create a new instance from configuration objects.
+
+        Parameters
+        ----------
+        config : DictConfig
+            The user's configuration.
+        compose_template : DictConfig
+            The base Docker Compose template.
+        project_dir : str, optional
+            The root directory for the project files. If not provided,
+            `Defaults.ProjectDirectory` is used.
+
+        Returns
+        -------
+        PeiConfigProcessor
+            A new instance of the processor.
+        """
         self = cls()
         self.m_config = config
         self.m_compose_template = compose_template
@@ -92,6 +170,29 @@ class PeiConfigProcessor:
     
     @classmethod
     def from_files(cls, config_file : str, compose_template_file : str, project_dir: Optional[str] = None) -> 'PeiConfigProcessor':
+        """
+        Create a new instance from configuration files.
+
+        Parameters
+        ----------
+        config_file : str
+            Path to the user's YAML configuration file.
+        compose_template_file : str
+            Path to the base Docker Compose template file.
+        project_dir : str, optional
+            The root directory for the project files. If not provided,
+            `Defaults.ProjectDirectory` is used.
+
+        Returns
+        -------
+        PeiConfigProcessor
+            A new instance of the processor.
+
+        Raises
+        ------
+        ValueError
+            If the loaded configuration files are not dictionary-like.
+        """
         config = oc.OmegaConf.load(config_file)
         compose = oc.OmegaConf.load(compose_template_file)
         
@@ -104,18 +205,27 @@ class PeiConfigProcessor:
         return cls.from_config(config, compose, project_dir)
     
     def _parse_script_and_args(self, script_with_args: str) -> Tuple[str, list[str]]:
-        ''' Parse a script specification that may include arguments.
-        
-        parameters
+        """
+        Parse a script string into a script path and its arguments.
+
+        Uses `shlex` to handle shell-like quoting and splitting.
+
+        Parameters
         ----------
         script_with_args : str
-            Script path with optional arguments, e.g., 'stage-1/custom/my-script.sh --arg1 --arg2=value'
-            
-        returns
+            The script string, including optional arguments (e.g.,
+            'path/to/script.sh --arg1 "value 2"').
+
+        Returns
         -------
         Tuple[str, list[str]]
-            (script_path, args_list) where script_path is the first token and args_list contains remaining tokens
-        '''
+            A tuple containing the script path and a list of its arguments.
+
+        Raises
+        ------
+        ValueError
+            If the script specification is empty or cannot be parsed.
+        """
         try:
             tokens = shlex.split(script_with_args)
             if not tokens:
@@ -128,18 +238,23 @@ class PeiConfigProcessor:
             raise ValueError(f"Failed to parse script specification '{script_with_args}': {e}")
     
     def _check_custom_scripts(self, custom_config : CustomScriptConfig) -> bool:
-        ''' check if all custom scripts listed in the config exist, and update the stage config
-        
-        parameters
-        -------------
+        """
+        Verify that all specified custom scripts exist on the host filesystem.
+
+        This method checks for the existence of scripts for various hooks (`on_build`,
+        `on_first_run`, etc.) and logs a warning if a script is not found.
+
+        Parameters
+        ----------
         custom_config : CustomScriptConfig
-            the custom script list from the user config
-            
-        return
-        -----------
-        is_ok : bool
-            True if all scripts exist, False otherwise
-        '''
+            The configuration object containing lists of custom scripts.
+
+        Returns
+        -------
+        bool
+            Always returns True. This method is for validation and logging, not
+            for halting the process.
+        """
         
         on_build_scripts = custom_config.on_build
         if on_build_scripts is not None:
@@ -185,15 +300,24 @@ class PeiConfigProcessor:
         return True
     
     def _apply_apt(self, apt_config : AptConfig, build_compose : DictConfig):
-        ''' process the apt configuration and update the compose template
+        """
+        Apply APT-related configurations to the Docker Compose build arguments.
+
+        This updates the compose template with settings for APT sources, proxies,
+        and cleanup behavior.
+
+        Parameters
+        ----------
+        apt_config : AptConfig
+            The user's APT configuration.
+        build_compose : DictConfig
+            The 'build' section of the Docker Compose configuration to be updated.
         
-        parameters
-        -------------
-        apt_config: AptConfig
-            the apt section from the user config, path is 'stage-1.apt'
-        build_compose: DictConfig
-            the build section from the compose template, path is 'x-cfg-stage-?.build'
-        '''
+        Raises
+        ------
+        FileNotFoundError
+            If a custom APT sources file is specified but not found.
+        """
         
         oc_set = oc.OmegaConf.update
         repo_source = apt_config.repo_source
@@ -223,15 +347,19 @@ class PeiConfigProcessor:
         oc_set(build_compose, 'apt.keep_proxy', keep_proxy)
     
     def _apply_proxy(self, proxy_config : ProxyConfig, build_compose : DictConfig):
-        ''' process the proxy configuration and update the compose template
-        
-        parameters
-        -------------
-        proxy_config: ProxyConfig
-            the proxy section from the user config, path is 'stage-1.proxy'
-        build_compose: DictConfig
-            the build section from the compose template, path is 'x-cfg-stage-?.build'
-        '''
+        """
+        Apply proxy settings to the Docker Compose build arguments.
+
+        Configures HTTP/HTTPS proxy settings based on the user's configuration,
+        including address, port, and whether it should be enabled globally.
+
+        Parameters
+        ----------
+        proxy_config : ProxyConfig
+            The user's proxy configuration.
+        build_compose : DictConfig
+            The 'build' section of the Docker Compose configuration to be updated.
+        """
         oc_set = oc.OmegaConf.update
         
         adr = proxy_config.address
@@ -258,15 +386,19 @@ class PeiConfigProcessor:
                 oc_set(build_compose, 'proxy.https_header', 'http')
     
     def _apply_ssh_to_x_compose(self, ssh_config : Optional[SSHConfig], build_compose : DictConfig):
-        ''' process the ssh configuration and update the compose template
-        
-        parameters
-        -------------
-        ssh_config: SSHConfig | None
-            the ssh section from the user config, path is 'stage-1.ssh'
+        """
+        Apply SSH configurations to the Docker Compose build arguments.
+
+        This configures the SSH server within the container, including enabling/disabling
+        the server, setting up users, passwords, and public/private keys.
+
+        Parameters
+        ----------
+        ssh_config : Optional[SSHConfig]
+            The user's SSH configuration. If None, SSH is disabled.
         build_compose : DictConfig
-            the build section from the compose template, path is 'x-cfg-stage-?.build'    
-        '''
+            The 'build' section of the Docker Compose configuration to be updated.
+        """
         
         oc_get = oc.OmegaConf.select
         oc_set = oc.OmegaConf.update
@@ -328,15 +460,19 @@ class PeiConfigProcessor:
         oc_set(build_compose, 'ssh.uid', ','.join(_ssh_uids))
         
     def _apply_device(self, device_config : DeviceConfig, run_compose : DictConfig):
-        ''' process the device configuration and update the compose template
-        
-        parameters
-        -------------
-        device_config: DeviceConfig
-            the device configuration object, to store the device type
+        """
+        Apply device-related configurations to the Docker Compose run arguments.
+
+        This specifies the primary device for the container (e.g., 'cpu' or 'gpu'),
+        affecting resource allocation and runtime behavior.
+
+        Parameters
+        ----------
+        device_config : DeviceConfig
+            The user's device configuration.
         run_compose : DictConfig
-            the run section from the compose template, path is 'x-cfg-stage-?.run'
-        '''
+            The 'run' section of the Docker Compose configuration to be updated.
+        """
         device_name = device_config.type
         if device_name is None:
             device_name = Defaults.RunDevice
@@ -345,20 +481,22 @@ class PeiConfigProcessor:
         oc.OmegaConf.update(run_compose, 'run.device', device_name)
         
     def _process_config_and_apply_x_compose(self, user_config : UserConfig, compose_template : DictConfig):
-        ''' given user config, collect information about all the stages, and apply to the x-cfg-stage-? in compose template
-        
-        parameters
-        -------------
-        user_config: UserConfig
-            the user configuration for all the stages, read from the yaml config file
-        compose_template: DictConfig
-            the compose template to be updated in place
-            
-        return
+        """
+        Process the main user config and apply settings to the pre-resolution compose template.
+
+        This method iterates through the stages defined in the user's configuration
+        (e.g., `stage_1`, `stage_2`) and applies their respective settings for image,
+        SSH, proxy, APT, and custom scripts to the `x-cfg-stage-*` sections
+        of the compose template.
+
+        Parameters
         ----------
-        stage_1, stage_2: tuple[StageConfig, StageConfig]
-            the stage configuration objects for stage 1 and stage 2, respectively
-        '''
+        user_config : UserConfig
+            The fully parsed user configuration object.
+        compose_template : DictConfig
+            The Docker Compose template to be updated in-place. This template
+            should contain `x-cfg-stage-*` sections for pre-resolution values.
+        """
         user_cfg = user_config
         compose_cfg = compose_template
         oc_get = oc.OmegaConf.select
@@ -425,15 +563,20 @@ class PeiConfigProcessor:
                 oc_set(run_compose, 'device', _stage.device.type)
         
     def _apply_config_to_resolved_compose(self, user_config : UserConfig, compose_template : DictConfig):
-        ''' apply the stage configuration to the compose template of that stage
-        
-        parameters
-        --------------
-        user_config: UserConfig
-            the user configuration for all the stages
-        compose_template: DictConfig
-            the compose template to be updated in place, must have been resolved by OmegaConf
-        '''
+        """
+        Apply final configurations to the fully resolved Docker Compose object.
+
+        This method handles settings that depend on the resolved values from the
+        compose template, such as port mappings, environment variables, and storage
+        volumes. It directly modifies the `services` section of the final compose object.
+
+        Parameters
+        ----------
+        user_config : UserConfig
+            The fully parsed user configuration object.
+        compose_template : DictConfig
+            The resolved Docker Compose configuration to be updated in-place.
+        """
         
         stages : list[tuple[Optional[StageConfig], Optional[DictConfig]]] = [
             (user_config.stage_1, oc.OmegaConf.select(compose_template, 'services.stage-1')),
@@ -562,17 +705,26 @@ class PeiConfigProcessor:
             return script_path, " ".join(parameters)
     
     def _generate_script_text(self, on_what:str, filelist : Optional[list[str]]) -> str:
-        ''' generate the script commands that will run all user scripts
-        
-        parameters
-        -------------
+        """
+        Generate the content of a shell script that executes a list of user scripts.
+
+        This creates a wrapper script that calls each user-provided script for a
+        specific lifecycle event (e.g., 'on-build').
+
+        Parameters
+        ----------
         on_what : str
-            the event that the scripts will run on, such as on-build, on-first-run, on-every-run
-        filelist : list[str] | None
-            the list of script entries to run. Each entry can contain script path and parameters,
-            e.g., 'stage-1/custom/script.sh --param1=value1 --param2="value with spaces"'
-        
-        '''
+            The lifecycle event name (e.g., 'on-build', 'on-first-run'). This is
+            used for logging within the generated script.
+        filelist : Optional[list[str]]
+            A list of script entries to execute. Each entry can include a path
+            and command-line arguments.
+
+        Returns
+        -------
+        str
+            The complete text content of the generated shell script.
+        """
         cmds : list[str] = [
             "DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\" ",
             f"echo \"Executing $DIR/_custom-{on_what}.sh\" "
@@ -599,13 +751,17 @@ class PeiConfigProcessor:
         return '\n'.join(cmds)
     
     def _generate_etc_environment(self, user_config : UserConfig):
-        ''' generate the etc/environment file that will be copied to the container
-        
-        parameters
-        ------------
+        """
+        Generate environment files for each stage.
+
+        Creates files containing environment variables that will be sourced by the
+        container. These are stored in the host's installation directory.
+
+        Parameters
+        ----------
         user_config : UserConfig
-            the user configuration object
-        '''
+            The user configuration object containing environment settings for each stage.
+        """
         
         # stage 1
         # write to file
@@ -649,13 +805,18 @@ class PeiConfigProcessor:
                 f.write('')
     
     def _generate_script_files(self, user_config : UserConfig):
-        ''' generate the script files that will run all user scripts
-        
-        parameters
-        -----------
+        """
+        Generate all necessary wrapper and helper script files.
+
+        This method orchestrates the creation of scripts for all lifecycle events
+        (`on-build`, `on-first-run`, etc.) for each stage, as well as handling
+        the custom entry point configuration.
+
+        Parameters
+        ----------
         user_config : UserConfig
-            the user configuration object
-        '''
+            The user configuration object containing custom script definitions.
+        """
         
         infos : list[tuple[str, Optional[StageConfig]]] = [
             ('stage-1', user_config.stage_1),
@@ -731,20 +892,34 @@ class PeiConfigProcessor:
             
     
     def process(self, remove_extra : bool = True, generate_custom_script_files : bool = True) -> DictConfig:
-        ''' process the config and compose template to generate the compose output
-        
-        parameters
-        ------------
-        remove_extra : bool
-            whether to remove the x-? keys from the compose output
-        generate_custom_script_files : bool
-            whether to generate the script files for the user to run
-        
-        return
-        -----------
-        compose_output : DictConfig
-            the compose output after applying the user config
-        '''
+        """
+        Process the full configuration to generate the final Docker Compose object.
+
+        This is the main public method that orchestrates the entire process:
+        1. Parses the user configuration.
+        2. Applies settings to the pre-resolution compose template.
+        3. Resolves the compose template variables.
+        4. Applies final settings to the resolved compose object.
+        5. Generates all necessary helper scripts.
+        6. Cleans up the final compose object.
+
+        Parameters
+        ----------
+        remove_extra : bool, optional
+            If True (default), remove the `x-*` helper keys from the final compose object.
+        generate_custom_script_files : bool, optional
+            If True (default), generate the custom script files on the host.
+
+        Returns
+        -------
+        DictConfig
+            The final, processed Docker Compose configuration.
+
+        Raises
+        ------
+        ValueError
+            If the compose template is not set before processing.
+        """
         # user_cfg = self.m_config
         # compose_cfg = self.m_compose_template.copy()
         

@@ -15,7 +15,7 @@ the `start` subcommand will start the GUI application, with the following option
 
 the `dev` subcommand will start the GUI in development mode, with the following options
 - all options in `start` subcommand are also valid
-- `--screen <screen_name>` to specify the screen to start with, useful for development and testing, `screen_name` can be `sc-0`, `sc-1`, etc. You MUST specify the `project-dir` option when using this subcommand, otherwise it will not work.
+- `--screen <screen_name>` to specify the screen to start with, useful for development and testing, `screen_name` can be `sc-0`, `sc-1`, etc. You MUST specify the `--project-dir` or `--here` option when using this `--screen` option, otherwise it will not work.
 
 ## Design Philosophy
 

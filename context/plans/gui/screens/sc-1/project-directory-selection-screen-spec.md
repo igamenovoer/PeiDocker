@@ -9,6 +9,7 @@
 **Flow Position:** Second screen after Application Startup (SC-0), before Simple Wizard Controller (SC-2)  
 **Figures Directory:** `figures/sc1/` (contains generated UML diagrams)
 
+[[ADD: this screen is runnable directly from the CLI, with `dev` command, with `--project-dir` (could refer to empty dir), and you should prepare all the states for this screen to work]]
 ## Functional Requirements
 
 ### Primary Objectives
