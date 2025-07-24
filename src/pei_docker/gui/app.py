@@ -1,4 +1,50 @@
-"""Main GUI application for PeiDocker."""
+"""
+PeiDocker Terminal GUI Application.
+
+This module provides the main entry point for the PeiDocker GUI application, which offers
+a terminal-based user interface for configuring Docker containers through a wizard-style
+interface.
+
+Command Line Usage
+------------------
+The application is launched using the `pei-docker-gui` command with subcommands:
+
+Start GUI (normal mode):
+    pei-docker-gui start [OPTIONS]
+    
+    Options:
+        --project-dir PATH    Project directory to use (skips directory selection)
+        --here               Use current directory as the project directory
+
+Development mode:
+    pei-docker-gui dev [OPTIONS]
+    
+    Options:
+        --project-dir PATH    Project directory to use (required for dev mode)
+        --here               Use current directory as the project directory
+        --screen TEXT        Screen to start with (e.g., 'sc-0', 'sc-1', etc.)
+
+Examples:
+    pei-docker-gui start
+    pei-docker-gui start --project-dir ./my-project
+    pei-docker-gui start --here
+    pei-docker-gui dev --project-dir ./test --screen sc-1
+
+Architecture
+------------
+The application uses the Textual framework for terminal UI and follows a screen-based 
+navigation pattern:
+
+- SC-0: Application Startup Screen (system validation)
+- SC-1: Project Directory Selection Screen  
+- SC-2: Simple Wizard Controller (orchestrates configuration steps)
+- SC-3-SC-13: Individual configuration wizard screens
+
+Notes
+-----
+The GUI provides only a simple mode with guided wizard-style configuration. All 
+configuration changes are kept in memory until explicitly saved as user_config.yml.
+"""
 
 import sys  
 from pathlib import Path
@@ -15,7 +61,35 @@ from .utils.docker_utils import check_docker_available
 
 
 class PeiDockerApp(App[None]):
-    """Main PeiDocker GUI application."""
+    """
+    Main PeiDocker GUI application using Textual framework.
+    
+    This class extends Textual's App class to provide a terminal-based GUI for
+    configuring Docker containers. It manages screen navigation, project configuration
+    state, and system component availability checks.
+    
+    Attributes
+    ----------
+    CSS_PATH : None
+        No external CSS file used, styling is embedded.
+    TITLE : str
+        Application title displayed in the header.
+    SUB_TITLE : str  
+        Application subtitle for branding.
+    DEFAULT_CSS : str
+        Embedded CSS styling for the application layout.
+    project_config : ProjectConfig
+        Central configuration object maintaining project state.
+    docker_available : bool
+        Whether Docker is available on the system.
+    docker_version : str
+        Version string of available Docker installation.
+        
+    Notes
+    -----
+    The application follows a screen-based navigation pattern where each major
+    step in the configuration process has its own dedicated screen class.
+    """
     
     CSS_PATH = None
     TITLE = "PeiDocker Configuration GUI"
@@ -38,6 +112,22 @@ class PeiDockerApp(App[None]):
     """
     
     def __init__(self, project_dir: Optional[str] = None):
+        """
+        Initialize the PeiDocker GUI application.
+        
+        Parameters
+        ----------
+        project_dir : str, optional
+            Project directory path to use. If provided, skips directory selection
+            screen and pre-fills the project configuration. Default is None.
+            
+        Notes
+        -----
+        The constructor performs the following initialization:
+        - Creates a new ProjectConfig instance
+        - Sets project directory and name if provided via CLI
+        - Checks Docker availability for system validation
+        """
         super().__init__()
         self.project_config = ProjectConfig()
         
@@ -50,7 +140,18 @@ class PeiDockerApp(App[None]):
         self.docker_available, self.docker_version = check_docker_available()
     
     def on_mount(self) -> None:
-        """Called when the app is mounted."""
+        """
+        Initialize the application when mounted.
+        
+        This method is called by Textual when the application is first mounted.
+        It sets up the initial screen (startup screen) and prepares the 
+        application for user interaction.
+        
+        Notes
+        -----
+        The startup screen performs system validation and displays application
+        branding before proceeding to the main workflow.
+        """
         # Install all screens
         self.install_screen(StartupScreen(self.project_config, self.docker_available, self.docker_version), "startup")
         
@@ -58,7 +159,20 @@ class PeiDockerApp(App[None]):
         self.push_screen("startup")
     
     def action_goto_project_setup(self) -> None:
-        """Navigate to project directory selection screen (SC-1)."""
+        """
+        Navigate to the project directory selection screen (SC-1).
+        
+        This action method creates and displays the project setup screen where
+        users can select or configure their project directory and name. The
+        screen behavior adapts based on whether a project directory was
+        provided via CLI arguments.
+        
+        Notes
+        -----
+        This method is typically called from the startup screen after system
+        validation is complete. It handles both normal mode (user selects
+        directory) and CLI override mode (directory pre-filled).
+        """
         from .screens.project_setup import ProjectDirectorySelectionScreen
         project_setup_screen = ProjectDirectorySelectionScreen(
             self.project_config, 
@@ -68,19 +182,66 @@ class PeiDockerApp(App[None]):
         self.push_screen("project_setup")
     
     def action_goto_simple_wizard(self) -> None:
-        """Navigate directly to simple wizard screen."""
+        """
+        Navigate directly to the simple wizard controller screen (SC-2).
+        
+        This action method creates and displays the wizard controller that
+        orchestrates the 11-step configuration process. It is called when
+        the project directory setup is complete and the user is ready to
+        configure their Docker container.
+        
+        Notes
+        -----
+        The simple wizard controller manages memory-based configuration
+        state and provides navigation between individual configuration
+        screens (SC-3 through SC-13).
+        """
         from .screens.simple.wizard import SimpleWizardScreen
         wizard_screen = SimpleWizardScreen(self.project_config)
         self.install_screen(wizard_screen, "simple_wizard")
         self.push_screen("simple_wizard")
     
     def action_quit_app(self) -> None:
-        """Quit the application."""
+        """
+        Quit the application gracefully.
+        
+        This action method terminates the application and returns control
+        to the terminal. It can be called from any screen via keyboard
+        shortcuts or quit buttons.
+        """
         self.exit()
 
 
 def _validate_and_create_project_dir(project_dir: str) -> str:
-    """Validate and create project directory if needed."""
+    """
+    Validate and create a project directory if needed.
+    
+    This function ensures that the specified project directory exists and is
+    accessible. If the directory doesn't exist, it attempts to create it
+    including any necessary parent directories.
+    
+    Parameters
+    ----------
+    project_dir : str
+        Path to the project directory to validate or create.
+        
+    Returns
+    -------
+    str
+        Absolute path to the validated/created directory.
+        
+    Raises
+    ------
+    SystemExit
+        If the directory cannot be created due to permissions or other
+        filesystem errors. Error message is displayed to stderr before exit.
+        
+    Notes
+    -----
+    This function uses `mkdir(parents=True, exist_ok=True)` to create the
+    directory hierarchy safely, avoiding race conditions if the directory
+    is created by another process between the existence check and creation.
+    """
     project_path = Path(project_dir)
     if not project_path.exists():
         try:
@@ -92,7 +253,34 @@ def _validate_and_create_project_dir(project_dir: str) -> str:
 
 
 def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None) -> None:
-    """Run the PeiDocker GUI application."""
+    """
+    Run the PeiDocker GUI application with specified configuration.
+    
+    This function creates and starts the main GUI application, handling both
+    normal and development modes. It manages graceful error handling and
+    user cancellation.
+    
+    Parameters
+    ----------
+    project_dir : str, optional
+        Project directory path to use. If provided, the application will
+        skip directory selection and pre-configure the project. Default is None.
+    dev_screen : str, optional
+        Screen identifier to start with in development mode (e.g., 'sc-1').
+        Requires project_dir to be specified. Default is None.
+        
+    Raises
+    ------
+    SystemExit
+        If invalid parameter combinations are used (e.g., dev_screen without
+        project_dir) or if unhandled exceptions occur during application startup.
+        
+    Notes
+    -----
+    The function handles KeyboardInterrupt gracefully and displays appropriate
+    error messages for any exceptions that occur during application execution.
+    Development mode screen selection is not yet fully implemented.
+    """
     app = PeiDockerApp(project_dir=project_dir)
     
     # Handle development mode screen selection
@@ -118,7 +306,17 @@ def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None
 @click.group()
 @click.version_option()
 def cli() -> None:
-    """PeiDocker Terminal GUI - Docker Container Configuration Made Easy."""
+    """
+    PeiDocker Terminal GUI - Docker Container Configuration Made Easy.
+    
+    This is the main CLI entry point for the PeiDocker GUI application.
+    Use the subcommands 'start' or 'dev' to launch the terminal-based
+    interface for configuring Docker containers.
+    
+    The GUI provides a wizard-style interface that guides users through
+    all aspects of Docker container configuration without requiring
+    deep knowledge of Dockerfiles or docker-compose syntax.
+    """
     pass
 
 
@@ -134,7 +332,39 @@ def cli() -> None:
     help="Use current directory as the project directory"
 )
 def start(project_dir: Optional[Path], here: bool) -> None:
-    """Start the GUI application."""
+    """
+    Start the GUI application in normal mode.
+    
+    This command launches the PeiDocker GUI with the standard user workflow.
+    Without options, the user will be prompted to select a project directory.
+    With --project-dir or --here, the directory selection step is skipped.
+    
+    Parameters
+    ----------
+    project_dir : Path, optional
+        Specific project directory to use. The directory will be created
+        if it doesn't exist. Mutually exclusive with --here.
+    here : bool
+        If True, use the current working directory as the project directory.
+        Mutually exclusive with --project-dir.
+        
+    Raises
+    ------
+    SystemExit
+        If both --project-dir and --here are specified, or if directory
+        creation fails.
+        
+    Examples
+    --------
+    Start with directory selection prompt:
+        pei-docker-gui start
+        
+    Start with specific project directory:
+        pei-docker-gui start --project-dir /path/to/project
+        
+    Start using current directory:
+        pei-docker-gui start --here
+    """
     if here and project_dir:
         click.echo("Error: Cannot specify both --here and --project-dir", err=True)
         sys.exit(1)
@@ -166,7 +396,44 @@ def start(project_dir: Optional[Path], here: bool) -> None:
     help="Screen to start with (e.g., 'sc-0', 'sc-1', etc.)"
 )
 def dev(project_dir: Optional[Path], here: bool, screen: Optional[str]) -> None:
-    """Start the GUI in development mode."""
+    """
+    Start the GUI in development mode.
+    
+    Development mode is intended for testing and debugging specific screens
+    without going through the complete user workflow. A project directory
+    must be specified when using development mode.
+    
+    Parameters
+    ----------
+    project_dir : Path, optional
+        Project directory to use for development. The directory will be
+        created if it doesn't exist. Mutually exclusive with --here.
+    here : bool
+        If True, use the current working directory as the project directory.
+        Mutually exclusive with --project-dir.
+    screen : str, optional
+        Screen identifier to start with (e.g., 'sc-1' for project setup).
+        Requires either --project-dir or --here to be specified.
+        
+    Raises
+    ------
+    SystemExit
+        If invalid option combinations are used (both --here and --project-dir,
+        or --screen without a project directory), or if directory creation fails.
+        
+    Examples
+    --------
+    Start in development mode with directory selection:
+        pei-docker-gui dev --project-dir /path/to/test-project
+        
+    Start at specific screen for testing:
+        pei-docker-gui dev --here --screen sc-1
+        
+    Notes
+    -----
+    Screen-specific startup is not yet fully implemented. Currently, the
+    application starts normally but logs the intended development screen.
+    """
     if here and project_dir:
         click.echo("Error: Cannot specify both --here and --project-dir", err=True)
         sys.exit(1)
@@ -186,7 +453,19 @@ def dev(project_dir: Optional[Path], here: bool, screen: Optional[str]) -> None:
 
 
 def main() -> None:
-    """Main entry point for the GUI application."""
+    """
+    Main entry point for the GUI application.
+    
+    This function serves as the primary entry point when the application
+    is installed as a console script. It delegates to the Click CLI
+    framework to handle command parsing and execution.
+    
+    Notes
+    -----
+    This function is typically called automatically when the user runs
+    the `pei-docker-gui` command from the terminal. It should not be
+    called directly in most cases.
+    """
     cli()
 
 

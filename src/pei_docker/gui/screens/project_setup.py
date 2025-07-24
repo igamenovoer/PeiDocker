@@ -1,4 +1,34 @@
-"""Screen 1: Project Directory Selection Screen for PeiDocker GUI."""
+"""
+Screen 1: Project Directory Selection Screen for PeiDocker GUI.
+
+This module implements the project directory selection screen (SC-1) in the PeiDocker
+GUI application. This screen allows users to select or create a project directory
+and configure the project name that will be used for Docker image naming.
+
+The screen supports both interactive mode (user selects directory) and CLI override
+mode (directory pre-filled from command line arguments). It provides real-time
+validation of directory paths and project names according to Docker image naming
+conventions.
+
+Key Features
+------------
+- Interactive directory path input with browse functionality
+- Real-time project name validation with Docker image naming rules
+- CLI override support (--project-dir and --here options)
+- Directory existence checking and creation validation
+- Docker image name preview showing resulting image names
+- Navigation controls with keyboard shortcuts
+
+Classes
+-------
+ProjectDirectorySelectionScreen : Main screen implementation for project setup
+
+Notes
+-----
+This screen is part of the sequential navigation flow: SC-0 → SC-1 → SC-2
+where SC-1 handles project directory and naming configuration before proceeding
+to the main wizard (SC-2).
+"""
 
 import re
 from pathlib import Path
@@ -20,10 +50,53 @@ from ..utils.file_utils import check_path_writable, ensure_dir_exists
 
 
 class ProjectDirectorySelectionScreen(Screen[None]):
-    """Screen 1: Project Directory Selection Screen.
+    """
+    Project Directory Selection Screen (SC-1) implementation.
     
-    Allows user to select or create project directory and set project name
-    for Docker image naming.
+    This screen provides the user interface for configuring the project directory
+    and project name. It adapts its behavior based on whether CLI override options
+    were provided (--project-dir or --here), showing different UI states for
+    interactive vs. pre-configured scenarios.
+    
+    The screen performs real-time validation of user inputs and provides immediate
+    feedback through status messages and visual indicators. It ensures that the
+    selected directory is writable and the project name follows Docker image
+    naming conventions.
+    
+    Attributes
+    ----------
+    project_config : ProjectConfig
+        Central configuration object that stores all project settings.
+    has_cli_project_dir : bool
+        Whether the project directory was provided via CLI arguments,
+        which affects UI behavior (disables directory input and browse button).
+    project_dir_valid : bool
+        Current validation state of the project directory path.
+    project_name_valid : bool
+        Current validation state of the project name.
+        
+    Parameters
+    ----------
+    project_config : ProjectConfig
+        Project configuration object to manage settings.
+    has_cli_project_dir : bool, default False
+        Whether project directory was provided via CLI arguments.
+        
+    Notes
+    -----
+    CLI Override Behavior:
+    - When has_cli_project_dir is True, directory input is disabled and grayed out
+    - Browse button is hidden when in CLI override mode
+    - Project name remains editable even with CLI override
+    - Status messages indicate the source of the directory path
+    
+    Validation Rules:
+    - Directory path must be valid and writable (or parent must be writable)
+    - Project name must follow Docker image naming conventions:
+      * 1-50 characters in length
+      * Start with a letter
+      * Only letters, numbers, hyphens, and underscores
+      * No spaces allowed
     """
     
     BINDINGS = [
@@ -143,6 +216,25 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     """
     
     def __init__(self, project_config: ProjectConfig, has_cli_project_dir: bool = False) -> None:
+        """
+        Initialize the project directory selection screen.
+        
+        Parameters
+        ----------
+        project_config : ProjectConfig
+            Project configuration object containing current settings.
+        has_cli_project_dir : bool, default False
+            Whether the project directory was provided via CLI arguments,
+            which affects the UI behavior and field availability.
+            
+        Notes
+        -----
+        The constructor performs the following initialization:
+        1. Sets up the project configuration reference
+        2. Determines UI mode based on CLI override status
+        3. Initializes validation states for directory and project name
+        4. Auto-populates project name from directory if not already set
+        """
         super().__init__()
         self.project_config: ProjectConfig = project_config
         self.has_cli_project_dir: bool = has_cli_project_dir
@@ -210,7 +302,35 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                     yield Label("Press 'b' for back, Enter to continue", classes="help-text")
     
     def _validate_project_dir(self, value: str) -> bool:
-        """Validate project directory path."""
+        """
+        Validate project directory path for accessibility and writability.
+        
+        Checks whether the provided directory path is valid and can be used
+        for creating a PeiDocker project. Handles both existing and non-existing
+        directories by checking parent directory permissions.
+        
+        Parameters
+        ----------
+        value : str
+            Directory path to validate.
+            
+        Returns
+        -------
+        bool
+            True if the directory path is valid and writable, False otherwise.
+            
+        Notes
+        -----
+        Validation criteria:
+        1. Path must not be empty after stripping whitespace
+        2. Path must be a valid filesystem path format
+        3. If directory exists, it must be a directory and writable
+        4. If directory doesn't exist, checks parent directory writability
+        5. Traverses up the directory tree until finding an existing parent
+        
+        The method handles various filesystem errors gracefully and returns
+        False for any path that cannot be validated or accessed.
+        """
         if not value.strip():
             return False
         
@@ -236,7 +356,37 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             return False
     
     def _validate_project_name(self, value: str) -> bool:
-        """Validate project name for Docker image naming."""
+        """
+        Validate project name according to Docker image naming conventions.
+        
+        Ensures the project name follows Docker image naming rules since it
+        will be used to generate Docker image names in the format:
+        {project_name}:stage-1 and {project_name}:stage-2
+        
+        Parameters
+        ----------
+        value : str
+            Project name to validate.
+            
+        Returns
+        -------
+        bool
+            True if the project name is valid for Docker image naming,
+            False otherwise.
+            
+        Notes
+        -----
+        Docker image naming rules enforced:
+        1. Must be 1-50 characters in length
+        2. Must start with a letter (a-z, A-Z)
+        3. Can contain letters, numbers, hyphens (-), and underscores (_)
+        4. No spaces or other special characters allowed
+        5. Case-sensitive but typically lowercase is recommended
+        
+        The validation uses a regex pattern to ensure compliance with
+        Docker's image naming requirements while being permissive enough
+        for practical use cases.
+        """
         name = value.strip()
         if not name:
             return False
