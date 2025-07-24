@@ -57,7 +57,10 @@
       "Bash(where plantuml:*)",
       "Bash(plantuml:*)",
       "Bash(timeout 3 pixi run pei-docker-gui start --project-dir ./test-cli-project)",
-      "Bash(timeout 3 pixi run pei-docker-gui dev --here --screen sc-1)"
+      "Bash(timeout 3 pixi run pei-docker-gui dev --here --screen sc-1)",
+      "Bash(pixi run -e dev python -c \"import textual; print(hasattr(textual, ''work'')); print([x for x in dir(textual) if ''work'' in x.lower()])\")",
+      "Bash(pixi run -e dev python -c \"import textual; print(hasattr(textual, ''work'')); print([x for x in dir(textual) if ''work'' in x.lower()])\")",
+      "Bash(del:*)"
     ],
     "deny": []
   }

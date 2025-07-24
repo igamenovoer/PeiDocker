@@ -184,7 +184,7 @@ def get_docker_info() -> Optional[Dict[Any, Any]]:
         )
         if result.returncode == 0:
             import json
-                return cast(Dict[Any, Any], json.loads(result.stdout))
+            return cast(Dict[Any, Any], json.loads(result.stdout))
         return None
     except Exception:
         return None

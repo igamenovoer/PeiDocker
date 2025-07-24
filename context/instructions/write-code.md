@@ -22,4 +22,4 @@ If you want to run something, you should follow these instructions.
 
 ## Textual GUI testing
 
-- If you are going to run `textual` based GUI application, DO NOT run them directly, use **headless** testing methods as presented in `context/hints/howto-test-textual-gui-applications.md`
+- If you are going to run `textual` based GUI application, DO NOT run them directly, use **headless** testing methods as presented in `context\hints\howto-test-textual-gui-applications-headless.md`
