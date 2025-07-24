@@ -217,15 +217,18 @@ class SimpleWizardScreen(Screen[None]):
         nav_container = self.query_one(".wizard-navigation")
         nav_container.remove_children()
         
-        nav_buttons = Horizontal(classes="nav-buttons")
-        nav_buttons.mount(Button("Prev", id="prev", variant="default", disabled=self.current_step == 0))
+        # Create buttons first
+        prev_button = Button("Prev", id="prev", variant="default", disabled=self.current_step == 0)
         
         if self.current_step >= len(self.steps) - 1:
-            nav_buttons.mount(Button("Save", id="save", variant="success"))
+            action_button = Button("Save", id="save", variant="success")
         else:
-            nav_buttons.mount(Button("Next", id="next", variant="primary"))
+            action_button = Button("Next", id="next", variant="primary")
             
-        nav_buttons.mount(Button("Cancel", id="cancel", variant="default"))
+        cancel_button = Button("Cancel", id="cancel", variant="default")
+        
+        # Create container with buttons
+        nav_buttons = Horizontal(prev_button, action_button, cancel_button, classes="nav-buttons")
         nav_container.mount(nav_buttons)
     
     def _get_current_step_screen(self) -> ComposeResult:

@@ -30,23 +30,30 @@ where SC-1 handles project directory and naming configuration before proceeding
 to the main wizard (SC-2).
 """
 
+import asyncio
+import logging
 import re
+import subprocess
+import sys
+import threading
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, cast, TYPE_CHECKING
+from typing import Optional, cast, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ..app import PeiDockerApp
 
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Center, Middle, Vertical, Horizontal
+from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
-from textual.widgets import Button, Label, Static, Input
+from textual.widgets import Button, Label, Static, Input, RichLog
 from textual.validation import Function
+from textual import work
 from textual_fspicker import SelectDirectory
 
 from ..models.config import ProjectConfig
-from ..utils.file_utils import check_path_writable, ensure_dir_exists
+from ..utils.file_utils import check_path_writable
 
 
 class ProjectDirectorySelectionScreen(Screen[None]):
@@ -108,13 +115,29 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     ProjectDirectorySelectionScreen {
         background: $surface;
         color: $text;
+        layout: horizontal;
     }
     
-    .main-container {
+    .main-pane {
+        width: 1fr;
         border: solid $primary;
-        padding: 2;
-        margin: 2 4;
+        padding: 1;
+        margin: 1;
         background: $surface-lighten-1;
+    }
+    
+    .log-pane {
+        width: 1fr;
+        border: solid $primary;
+        padding: 1;
+        margin: 1 1 1 0;
+        background: $surface-lighten-1;
+    }
+    
+    .log-title {
+        color: $primary;
+        text-style: bold;
+        margin-bottom: 1;
     }
     
     .title {
@@ -131,7 +154,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     }
     
     .field-group {
-        margin: 2 0;
+        margin: 1 0;
     }
     
     .field-label {
@@ -143,6 +166,8 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     .field-input {
         width: 100%;
         margin-bottom: 1;
+        color: $text;
+        background: $surface;
     }
     
     .field-input.-disabled {
@@ -156,32 +181,32 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     }
     
     .status-message {
-        margin: 1 0;
-        padding: 1;
-        border: solid $secondary;
-        background: $surface-lighten-2;
+        margin: 0 0 1 0;
+        padding: 0 1;
+        border: none;
+        background: transparent;
+        height: 1;
     }
     
     .status-warning {
-        border: solid $warning;
         color: $warning;
     }
     
     .status-info {
-        border: solid $accent;
         color: $accent;
     }
     
     .status-error {
-        border: solid $error;
         color: $error;
     }
     
     .docker-preview {
-        margin: 2 0;
+        margin: 1 0;
         padding: 1;
         border: solid $primary;
         background: $surface-lighten-2;
+        height: auto;
+        max-height: 6;
     }
     
     .docker-preview-title {
@@ -197,7 +222,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     
     .actions {
         text-align: center;
-        margin: 2 0;
+        margin: 1 0;
     }
     
     .help-text {
@@ -210,8 +235,34 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         margin: 0 1;
     }
     
+    Input {
+        color: $text;
+        background: $surface;
+    }
+    
     Input.-invalid {
         border: solid $error;
+        color: $text;
+        background: $surface;
+    }
+    
+    Input:focus {
+        color: $text;
+        background: $surface;
+    }
+    
+    RichLog {
+        border: solid $primary;
+        height: 1fr;
+        scrollbar-size: 1 1;
+        scrollbar-background: $surface;
+        scrollbar-color: $primary;
+        background: $surface;
+        color: $text;
+    }
+    
+    RichLog:focus {
+        border: solid $accent;
     }
     """
     
@@ -247,59 +298,74 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         if not self.project_config.project_name and self.project_config.project_dir:
             self.project_config.project_name = Path(self.project_config.project_dir).name
             self.project_name_valid = self._validate_project_name(self.project_config.project_name)
+        
+        # Setup logging handler
+        self._setup_logging_handler()
     
     def compose(self) -> ComposeResult:
-        """Compose the project directory selection screen."""
-        with Center():
-            with Middle():
-                with Vertical(classes="main-container"):
-                    yield Label("Project Directory Setup", classes="title")
-                    yield Label("Select where to create your PeiDocker project:", classes="subtitle")
-                    
-                    # Project Directory Section
-                    with Vertical(classes="field-group"):
-                        yield Label("Project Directory:", classes="field-label")
-                        yield Input(
-                            value=self.project_config.project_dir or "",
-                            placeholder="D:\\code\\my-project",
-                            id="project_dir",
-                            classes="field-input",
-                            disabled=self.has_cli_project_dir,
-                            validators=[Function(self._validate_project_dir, "Invalid directory path")]
-                        )
-                        
-                        if not self.has_cli_project_dir:
-                            with Horizontal(classes="browse-button"):
-                                yield Button("Browse...", id="browse", variant="default")
-                        
-                        # Directory status message
-                        yield Static(self._get_directory_status_message(), 
-                                   classes=f"status-message {self._get_directory_status_class()}", 
-                                   id="dir_status")
-                    
-                    # Project Name Section
-                    with Vertical(classes="field-group"):
-                        yield Label("Project Name (for Docker images):", classes="field-label")
-                        yield Input(
-                            value=self.project_config.project_name or "",
-                            placeholder="my-project",
-                            id="project_name",
-                            classes="field-input",
-                            validators=[Function(self._validate_project_name, "Invalid project name")]
-                        )
-                    
-                    # Docker Image Preview
-                    with Vertical(classes="docker-preview"):
-                        yield Label("Docker images will be named:", classes="docker-preview-title")
-                        yield Static(self._get_docker_image_preview(), id="docker_preview")
-                    
-                    # Action Buttons
-                    with Horizontal(classes="actions"):
-                        yield Button("Back", id="back", variant="default")
-                        yield Button("Continue", id="continue", variant="primary", 
-                                   disabled=not self._is_form_valid())
-                    
-                    yield Label("Press 'b' for back, Enter to continue", classes="help-text")
+        """Compose the project directory selection screen with two-pane layout."""
+        # Main interaction pane (left side - 2/3 width)
+        with Vertical(classes="main-pane"):
+            yield Label("Project Directory Setup", classes="title")
+            yield Label("Select where to create your PeiDocker project:", classes="subtitle")
+            
+            # Project Directory Section
+            with Vertical(classes="field-group"):
+                yield Label("Project Directory:", classes="field-label")
+                yield Input(
+                    value=self.project_config.project_dir or "",
+                    placeholder="D:\\code\\my-project",
+                    id="project_dir",
+                    classes="field-input",
+                    disabled=self.has_cli_project_dir,
+                    validators=[Function(self._validate_project_dir, "Invalid directory path")]
+                )
+                
+                if not self.has_cli_project_dir:
+                    with Horizontal(classes="browse-button"):
+                        yield Button("Browse...", id="browse", variant="default")
+                
+                # Directory status message
+                yield Static(self._get_directory_status_message(), 
+                           classes=f"status-message {self._get_directory_status_class()}", 
+                           id="dir_status")
+            
+            # Project Name Section
+            with Vertical(classes="field-group"):
+                yield Label("Project Name (for Docker images):", classes="field-label")
+                yield Input(
+                    value=self.project_config.project_name or "",
+                    placeholder="my-project",
+                    id="project_name",
+                    classes="field-input",
+                    validators=[Function(self._validate_project_name, "Invalid project name")]
+                )
+            
+            # Docker Image Preview
+            with Vertical(classes="docker-preview"):
+                yield Label("Docker images will be named:", classes="docker-preview-title")
+                yield Static(self._get_docker_image_preview(), id="docker_preview")
+            
+            # Action Buttons
+            with Horizontal(classes="actions"):
+                yield Button("Back", id="back", variant="default")
+                yield Button("Continue", id="continue", variant="primary", 
+                           disabled=not self._is_form_valid())
+            
+            yield Label("Press 'b' for back, Enter to continue", classes="help-text")
+        
+        # Log pane (right side - 1/3 width)
+        with Vertical(classes="log-pane"):
+            yield Label("Real-time Logs", classes="log-title")
+            yield RichLog(
+                auto_scroll=True,
+                max_lines=1000,
+                highlight=True,
+                markup=True,
+                wrap=True,
+                min_width=0,  # Allow wrapping in narrow panels (default=78 conflicts)
+                id="log_display"
+            )
     
     def _validate_project_dir(self, value: str) -> bool:
         """
@@ -472,6 +538,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         
         if self.project_dir_valid:
             self.project_config.project_dir = str(Path(value).resolve())
+            self.write_log("DEBUG", f"Project directory set to: {self.project_config.project_dir}")
             
             # Auto-update project name if it's empty or matches old directory name
             path_name = Path(value).name
@@ -479,6 +546,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                 self.project_config.project_name == Path(self.project_config.project_dir or "").name):
                 self.project_config.project_name = path_name
                 self.project_name_valid = self._validate_project_name(path_name)
+                self.write_log("DEBUG", f"Auto-updated project name to: {path_name}")
                 
                 # Update project name input
                 try:
@@ -486,6 +554,8 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                     project_name_input.value = path_name
                 except:
                     pass
+        else:
+            self.write_log("WARNING", f"Invalid project directory path: {value}")
         
         self._update_directory_status()
         self._update_docker_preview()
@@ -499,6 +569,10 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         
         if self.project_name_valid:
             self.project_config.project_name = value
+            self.write_log("DEBUG", f"Project name set to: {value}")
+        else:
+            if value:  # Only show error if there's actually a value
+                self.write_log("WARNING", f"Invalid project name: '{value}'")
         
         self._update_docker_preview()
         self._update_continue_button()
@@ -507,32 +581,39 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     def on_browse_pressed(self) -> None:
         """Browse for directory using file picker."""
         if not self.has_cli_project_dir:
+            self.write_log("INFO", "Opening directory browser...")
             self.run_worker(self._browse_directory_async())
     
     async def _browse_directory_async(self) -> None:
         """Async worker to handle directory browsing."""
         directory = await self.app.push_screen_wait(SelectDirectory())
         if directory:
+            self.write_log("INFO", f"User selected directory: {directory}")
             # Update project directory input
             try:
                 project_dir_input = self.query_one("#project_dir", Input)
                 project_dir_input.value = str(directory)
                 # This will trigger the Input.Changed event
-            except:
-                pass
+            except Exception as e:
+                self.write_log("ERROR", f"Failed to update directory input: {e}")
+        else:
+            self.write_log("INFO", "Directory selection cancelled")
     
     @on(Button.Pressed, "#back")
     def on_back_pressed(self) -> None:
         """Back button pressed."""
+        self.write_log("INFO", "User clicked Back button")
         self.action_back()
     
     @on(Button.Pressed, "#continue")
     def on_continue_pressed(self) -> None:
         """Continue button pressed."""
+        self.write_log("INFO", "User clicked Continue button")
         self.action_continue()
     
     def action_back(self) -> None:
         """Go back to startup screen (SC-0)."""
+        self.write_log("INFO", "Navigating back to startup screen (SC-0)")
         self.app.pop_screen()  # Return to startup screen
     
     def action_continue(self) -> None:
@@ -541,14 +622,147 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             self.notify("Please correct the errors before proceeding", severity="warning")
             return
         
-        # Create project directory if it doesn't exist
-        if self.project_config.project_dir and not Path(self.project_config.project_dir).exists():
-            if not ensure_dir_exists(self.project_config.project_dir):
-                self.notify("Failed to create project directory", severity="error")
-                return
+        # Use pei-docker-cli create to create project structure
+        self.write_log("INFO", "Starting project creation process...")
+        self._create_project_with_streaming()
+    
+    @work(thread=True)
+    def _create_project_with_streaming(self) -> None:
+        """
+        Background worker to create project using pei-docker-cli create command with real-time logging.
         
-        # Navigate to Simple Wizard Controller (SC-2)
+        This method implements the DirectoryCreating state from the specification.
+        It executes the CLI command and streams output in real-time to the log display.
+        Uses @work(thread=True) for proper thread management and call_from_thread for UI updates.
+        """
+        if not self.project_config.project_dir:
+            self.app.call_from_thread(self.write_log, "ERROR", "No project directory specified")
+            self.app.call_from_thread(self.notify, "No project directory specified", "error")
+            return
+        
+        try:
+            # Disable continue button during creation
+            self.app.call_from_thread(self._update_continue_button_disabled, True)
+            self.app.call_from_thread(self.write_log, "INFO", "Executing 'pei-docker-cli create' command")
+            self.app.call_from_thread(self.notify, "Creating project structure...", "information")
+            
+            # Prepare command
+            cmd = [sys.executable, "-m", "pei_docker.pei", "create", "-p", self.project_config.project_dir]
+            self.app.call_from_thread(self.write_log, "DEBUG", f"Command: {' '.join(cmd)}")
+            
+            # Execute subprocess with streaming output
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                cwd=Path.cwd()
+            )
+            
+            # Create threads for stdout and stderr streaming
+            def stream_output(pipe: Any, level: str) -> None:
+                """Stream output from pipe to log display."""
+                try:
+                    for line in iter(pipe.readline, ''):
+                        if line.strip():
+                            self.app.call_from_thread(self.write_log, level, line.strip())
+                    pipe.close()
+                except Exception as e:
+                    self.app.call_from_thread(self.write_log, "ERROR", f"Error streaming {level}: {e}")
+            
+            # Start streaming threads
+            stdout_thread = threading.Thread(target=stream_output, args=(process.stdout, "INFO"))
+            stderr_thread = threading.Thread(target=stream_output, args=(process.stderr, "ERROR"))
+            
+            stdout_thread.start()
+            stderr_thread.start()
+            
+            # Wait for process to complete with timeout
+            try:
+                return_code = process.wait(timeout=60)  # 60 second timeout
+            except subprocess.TimeoutExpired:
+                self.app.call_from_thread(self.write_log, "ERROR", "Project creation timed out after 60 seconds")
+                process.kill()
+                return_code = -1
+            
+            # Wait for streaming threads to finish
+            stdout_thread.join(timeout=5)
+            stderr_thread.join(timeout=5)
+            
+            # Handle result
+            if return_code == 0:
+                self.app.call_from_thread(self.write_log, "SUCCESS", "Project created successfully!")
+                self.app.call_from_thread(self.notify, "Project created successfully!", "information")
+                # Navigate to Simple Wizard Controller (SC-2)
+                self.app.call_from_thread(self._navigate_to_simple_wizard)
+            else:
+                self.app.call_from_thread(self.write_log, "ERROR", f"Project creation failed with return code {return_code}")
+                self.app.call_from_thread(self.notify, "Failed to create project. Check logs for details.", "error")
+                
+        except Exception as e:
+            error_msg = f"Unexpected error during project creation: {e}"
+            self.app.call_from_thread(self.write_log, "ERROR", error_msg)
+            self.app.call_from_thread(self.notify, error_msg, "error")
+        finally:
+            # Re-enable continue button
+            self.app.call_from_thread(self._update_continue_button_disabled, False)
+    
+    def _navigate_to_simple_wizard(self) -> None:
+        """Navigate to Simple Wizard Controller (SC-2)."""
         cast('PeiDockerApp', self.app).action_goto_simple_wizard()
+    
+    def _update_continue_button_disabled(self, disabled: bool) -> None:
+        """Update continue button disabled state during async operations."""
+        try:
+            continue_btn = self.query_one("#continue", Button)
+            continue_btn.disabled = disabled
+        except:
+            pass  # Button might not exist yet
+    
+    def _setup_logging_handler(self) -> None:
+        """Set up logging handler to stream logs to GUI."""
+        # Add startup log message
+        self.call_after_refresh(self._add_initial_log_messages)
+    
+    def _add_initial_log_messages(self) -> None:
+        """Add initial log messages to the log display."""
+        self.write_log("INFO", "GUI application started")
+        if self.has_cli_project_dir:
+            self.write_log("INFO", f"CLI override: project directory set to {self.project_config.project_dir}")
+        else:
+            self.write_log("INFO", "Interactive mode: user can select project directory")
+    
+    def write_log(self, level: str, message: str) -> None:
+        """Write a log message to the log display with color coding."""
+        try:
+            log_widget = self.query_one("#log_display", RichLog)
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            
+            # Color coding based on log level
+            colors = {
+                'DEBUG': 'dim white',
+                'INFO': 'blue',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold red',
+                'SUCCESS': 'green'
+            }
+            
+            color = colors.get(level.upper(), 'white')
+            formatted_message = f"[{timestamp}] [{level:8}] {message}"
+            
+            if level.upper() in colors:
+                log_widget.write(f"[{color}]{formatted_message}[/]")
+            else:
+                log_widget.write(formatted_message)
+        except Exception:
+            pass  # Widget might not exist yet
+    
+    def write_log_from_thread(self, level: str, message: str) -> None:
+        """Thread-safe method to write log messages from background threads."""
+        self.app.call_from_thread(self.write_log, level, message)
     
     def get_project_name_error_message(self) -> Optional[str]:
         """Get detailed error message for invalid project names."""
