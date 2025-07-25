@@ -166,8 +166,8 @@ build_*/
 # pixi environments
 .pixi
 
-# ignore test dir
-test-*/
+# ignore test dir in the root directory
+./test-*/
 
 # ignore .lock files
 *.lock

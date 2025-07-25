@@ -233,7 +233,7 @@ Based on recent commits and tasks:
 Make sure you know what platform you are working on.
 
 Windows specific:
-- WSL provides `sshpass` for your testing
+- WSL provides `sshpass` for your testing  
 - Use powershell to run commands
 
 ## Platform-Specific Guidelines

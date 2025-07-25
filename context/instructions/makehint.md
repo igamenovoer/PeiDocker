@@ -4,8 +4,9 @@ you are tasked with creating a hint to deal with a given problem
 
 - for a hint file is to be created, the hint should be created in `context\hints` directory
 - the name should be one of the following, design which is most appropriate, if not specified:
-  - `howto-<do something>.md`
-  - `about-<some topic>.md`
+  - `howto-<do something>.md`, mainly for specific tasks with step-by-step instructions
+  - `about-<some topic>.md`, mainly for general information about a topic
+  - `intro-<some topic>.md`, mainly for introductory information about a tool, library, or framework
 - you shall look for online information about the topic, including the official documentation and examples
 - if this is related to 3rd party software, you shall look for documentation in `context7`
 
