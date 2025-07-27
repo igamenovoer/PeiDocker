@@ -2,7 +2,9 @@ you are tasked to test a GUI application, and you need to take screenshots of th
 
 # The Guidelines for Screenshot Reports
 
-you need to create a screenshot report that looks like this, and save to `<workspace_root>/tmp/screenshot-reports/<date-time>-<test-task-name>.md`:
+you need to create a screenshot report that looks like this, and save to 
+- `<workspace_root>/tmp/screenshot-reports/<date-time>-<test-task-name>.md` for the markdown file
+- `<workspace_root>/tmp/screenshot-reports/imgs` for the screenshots
 
 ```markdown
 # Screenshot Report for <Application Name>
