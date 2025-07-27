@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "source": "project",
+  "metadata": {
+    "version": "2.0.0",
+    "description": "project 级资源注册表",
+    "createdAt": "2025-07-27T16:00:07.145Z",
+    "updatedAt": "2025-07-27T16:00:07.148Z",
+    "resourceCount": 4
+  },
+  "resources": [
+    {
+      "id": "textual-development-workflow",
+      "source": "project",
+      "protocol": "execution",
+      "name": "Textual Development Workflow 执行模式",
+      "description": "执行模式，定义具体的行为模式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/execution/textual-development-workflow.execution.md",
+      "metadata": {
+        "createdAt": "2025-07-27T16:00:07.146Z",
+        "updatedAt": "2025-07-27T16:00:07.146Z",
+        "scannedAt": "2025-07-27T16:00:07.146Z",
+        "path": "role/textual-tui-developer/execution/textual-development-workflow.execution.md"
+      }
+    },
+    {
+      "id": "textual-tui-developer",
+      "source": "project",
+      "protocol": "role",
+      "name": "Textual Tui Developer 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/textual-tui-developer.role.md",
+      "metadata": {
+        "createdAt": "2025-07-27T16:00:07.146Z",
+        "updatedAt": "2025-07-27T16:00:07.146Z",
+        "scannedAt": "2025-07-27T16:00:07.146Z",
+        "path": "role/textual-tui-developer/textual-tui-developer.role.md"
+      }
+    },
+    {
+      "id": "textual-architecture-thinking",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Textual Architecture Thinking 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/textual-architecture-thinking.thought.md",
+      "metadata": {
+        "createdAt": "2025-07-27T16:00:07.147Z",
+        "updatedAt": "2025-07-27T16:00:07.147Z",
+        "scannedAt": "2025-07-27T16:00:07.147Z",
+        "path": "role/textual-tui-developer/thought/textual-architecture-thinking.thought.md"
+      }
+    },
+    {
+      "id": "tui-design-patterns",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Tui Design Patterns 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/tui-design-patterns.thought.md",
+      "metadata": {
+        "createdAt": "2025-07-27T16:00:07.147Z",
+        "updatedAt": "2025-07-27T16:00:07.147Z",
+        "scannedAt": "2025-07-27T16:00:07.147Z",
+        "path": "role/textual-tui-developer/thought/tui-design-patterns.thought.md"
+      }
+    }
+  ],
+  "stats": {
+    "totalResources": 4,
+    "byProtocol": {
+      "execution": 1,
+      "role": 1,
+      "thought": 2
+    },
+    "bySource": {
+      "project": 4
+    }
+  }
+}

@@ -60,7 +60,13 @@
       "Bash(timeout 3 pixi run pei-docker-gui dev --here --screen sc-1)",
       "Bash(pixi run -e dev python -c \"import textual; print(hasattr(textual, ''work'')); print([x for x in dir(textual) if ''work'' in x.lower()])\")",
       "Bash(pixi run -e dev python -c \"import textual; print(hasattr(textual, ''work'')); print([x for x in dir(textual) if ''work'' in x.lower()])\")",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "mcp__promptx__promptx_init",
+      "mcp__promptx__promptx_action",
+      "mcp__promptx__promptx_remember",
+      "WebFetch(domain:textual.textualize.io)",
+      "mcp__promptx__promptx_welcome",
+      "Bash(copy:*)"
     ],
     "deny": []
   }
