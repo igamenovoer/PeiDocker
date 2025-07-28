@@ -1,0 +1,22 @@
+@startuml
+start
+:User enters/changes base image;
+:Start non-blocking validation;
+:Show loading indicator;
+fork
+  :Continue with form interaction;
+fork again
+  :Query Docker Hub API;
+  if (Image exists?) then (yes)
+    :Show success indicator;
+  else (no)
+    :Show warning (non-blocking);
+  endif
+  if (Request timeout?) then (yes)
+    :Show timeout message;
+  endif
+end fork
+:Update validation status;
+:Remove loading indicator;
+stop
+@enduml

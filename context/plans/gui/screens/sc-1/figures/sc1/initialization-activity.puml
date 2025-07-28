@@ -9,7 +9,7 @@ else (no)
   :Load default directory path;
   :Enable all controls;
 endif
-:Extract project name from path;
+:Check directory status;
 :Validate initial state;
 stop
 @enduml

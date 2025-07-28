@@ -1,0 +1,15 @@
+@startuml
+start
+:User modifies project name;
+:Validate name format;
+if (Name valid?) then (yes)
+  :Generate stage-1 image name;
+  :Generate stage-2 image name;
+  :Update preview display;
+  :Update memory store;
+else (no)
+  :Clear preview display;
+  :Show validation error;
+endif
+stop
+@enduml

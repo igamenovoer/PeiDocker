@@ -7,9 +7,7 @@ repeat
     :Check permissions;
     :Show existence status;
   fork again
-    :Auto-extract project name;
-    :Validate project name;
-    :Update Docker image preview;
+    :Check directory accessibility;
   end fork
   if (Validation passes?) then (yes)
     :Enable Continue button;
@@ -26,7 +24,7 @@ repeat
     :Navigate to SC-0;
     stop
   else if (User clicks Continue?) then (yes)
-    :Create project directory;
+    :Execute pei-docker-cli create;
     :Save state for next screens;
     :Navigate to SC-2;
     stop

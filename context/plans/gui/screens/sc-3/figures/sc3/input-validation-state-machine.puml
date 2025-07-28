@@ -1,0 +1,36 @@
+@startuml
+[*] --> ValidatingInput
+ValidatingInput --> ValidName : project_name_valid
+ValidatingInput --> InvalidName : project_name_invalid
+ValidatingInput --> ValidImage : base_image_valid
+ValidatingInput --> InvalidImage : base_image_invalid
+
+ValidName --> CheckingImage : image_field_changed
+ValidName --> GeneratingPreview : name_updated
+
+InvalidName --> ValidName : name_corrected
+InvalidName --> InvalidName : invalid_input_continues
+
+ValidImage --> CheckingImageExists : image_entered
+InvalidImage --> ValidImage : image_corrected
+
+CheckingImageExists --> ImageExists : hub_check_success
+CheckingImageExists --> ImageNotFound : hub_check_failed
+CheckingImageExists --> ImageCheckTimeout : hub_timeout
+
+ImageExists --> ValidatingInput
+ImageNotFound --> ValidatingInput
+ImageCheckTimeout --> ValidatingInput
+
+GeneratingPreview --> UpdatePreview
+UpdatePreview --> ValidatingInput
+
+state ValidName {
+  [*] --> EnableNextButton
+}
+
+state InvalidName {
+  [*] --> DisableNextButton
+  DisableNextButton --> ShowErrorMessage
+}
+@enduml

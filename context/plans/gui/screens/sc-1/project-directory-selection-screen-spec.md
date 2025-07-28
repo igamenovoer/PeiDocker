@@ -4,7 +4,7 @@
 
 **Screen ID:** `SC-1`  
 **Screen Name:** Project Directory Selection Screen  
-**Purpose:** Project location setup and Docker image naming configuration  
+**Purpose:** Project location setup and directory validation  
 **File Location:** `src/pei_docker/gui/screens/project_setup.py`  
 **Flow Position:** Second screen after Application Startup (SC-0), before Simple Wizard Controller (SC-2)  
 **Figures Directory:** `figures/sc1/` (contains generated UML diagrams)
@@ -22,10 +22,8 @@ To create new projects, this screen uses the existing `pei-docker-cli create` co
 
 ### Primary Objectives
 1. **Directory Selection**: Allow user to select or create project directory
-2. **Project Naming**: Generate and validate project name for Docker images (no default value)
-3. **Path Validation**: Ensure directory path is valid and accessible
-4. **Docker Image Preview**: Show resulting Docker image names
-5. **Project Directory Creation**: Use `pei-docker-cli create` to create the project directory structure for use by subsequent screens
+2. **Path Validation**: Ensure directory path is valid and accessible
+3. **Project Directory Creation**: Use `pei-docker-cli create` to create the project directory structure for use by subsequent screens
 
 6. **Real-time Logging**: Display real-time logs from application backend processes in a dedicated view, occupying the right half of the screen.
 
@@ -45,23 +43,17 @@ actor "Docker System" as docker
 
 rectangle "Project Directory Selection Screen" {
   usecase "Select Project Directory" as UC1
-  usecase "Enter Project Name" as UC2
-  usecase "Browse for Directory" as UC3
-  usecase "Validate Directory Path" as UC4
-  usecase "Create Project Directory" as UC5
-  usecase "Check Docker Images" as UC6
-  usecase "Preview Image Names" as UC7
+  usecase "Browse for Directory" as UC2
+  usecase "Validate Directory Path" as UC3
+  usecase "Create Project Directory" as UC4
 }
 
 user --> UC1
 user --> UC2
-user --> UC3
-UC1 --> UC4 : <<include>>
-UC4 --> UC5 : <<extend>>
-UC2 --> UC7 : <<include>>
-UC6 --> docker
+UC1 --> UC3 : <<include>>
+UC3 --> UC4 : <<extend>>
+UC3 --> fs
 UC4 --> fs
-UC5 --> fs
 @enduml
 ```
 </details>
@@ -112,15 +104,6 @@ The screen is divided into two main vertical panes. The main interaction area is
 ││                                             ││                                             ││
 ││ ⚠ Directory will be created if not exist  ││                                             ││
 ││                                             ││                                             ││
-││ Project Name (for Docker images):           ││                                             ││
-││ ┌─────────────────────────────────────────┐ ││                                             ││
-││ │ my-project                              │ ││                                             ││
-││ └─────────────────────────────────────────┘ ││                                             ││
-││                                             ││                                             ││
-││ Docker images will be named:                ││                                             ││
-││ • my-project:stage-1                        ││                                             ││
-││ • my-project:stage-2                        ││                                             ││
-││                                             ││                                             ││
 ││ [Back] [Continue]                           ││                                             ││
 ││                                             ││                                             ││
 ││ Press 'b' for back, Enter to continue       ││                                             ││
@@ -135,20 +118,11 @@ The screen is divided into two main vertical panes. The main interaction area is
 ╭─────────────────────────────────────────────╮╭─────────────────────────────────────────────╮
 │ Project Directory:                          ││ [INFO] Validating path...                   │
 │ ┌─────────────────────────────────────────┐ ││ [SUCCESS] Path is valid.                    │
-│ │ D:\code\my-project                      │ ││ [INFO] Project name 'my-project' is valid.  │
+│ │ D:\code\my-project                      │ ││ [INFO] Ready to create project.             │
 │ └─────────────────────────────────────────┘ ││                                             │
 │                              [Browse...]    ││                                             │
 │                                             ││                                             │
 │ ⚠ Directory will be created if not exist  ││                                             │
-│                                             ││                                             │
-│ Project Name (for Docker images):           ││                                             │
-│ ┌─────────────────────────────────────────┐ ││                                             │
-│ │ my-project                              │ ││                                             │
-│ └─────────────────────────────────────────┘ ││                                             │
-│                                             ││                                             │
-│ Docker images will be named:                ││                                             │
-│ • my-project:stage-1                        ││                                             │
-│ • my-project:stage-2                        ││                                             │
 ╰─────────────────────────────────────────────╯╰─────────────────────────────────────────────╯
 ```
 
@@ -157,44 +131,25 @@ The screen is divided into two main vertical panes. The main interaction area is
 ╭─────────────────────────────────────────────╮╭─────────────────────────────────────────────╮
 │ Project Directory:                          ││ [INFO] Validating path...                   │
 │ ┌─────────────────────────────────────────┐ ││ [WARN] Directory 'D:\code\exist...' exists. │
-│ │ D:\code\existing-project                │ ││                                             │
+│ │ D:\code\existing-project                │ ││ [INFO] Will use existing directory.        │
 │ └─────────────────────────────────────────┘ ││                                             │
 │                              [Browse...]    ││                                             │
 │                                             ││                                             │
 │ ℹ Directory already exists                ││                                             │
-│                                             ││                                             │
-│ Project Name (for Docker images):           ││                                             │
-│ ┌─────────────────────────────────────────┐ ││                                             │
-│ │ existing-project                        │ ││                                             │
-│ └─────────────────────────────────────────┘ ││                                             │
-│                                             ││                                             │
-│ Docker images will be named:                ││                                             │
-│ • existing-project:stage-1                  ││                                             │
-│ • existing-project:stage-2                  ││                                             │
 ╰─────────────────────────────────────────────╯╰─────────────────────────────────────────────╯
 ```
 
 
-#### Invalid Project Name
+#### Invalid Directory Path
 ```
 ╭─────────────────────────────────────────────╮╭─────────────────────────────────────────────╮
 │ Project Directory:                          ││ [INFO] Validating path...                   │
-│ ┌─────────────────────────────────────────┐ ││ [ERROR] Invalid project name.               │
-│ │ D:\code\my project with spaces          │ ││ 'my project with spaces' contains spaces.   │
+│ ┌─────────────────────────────────────────┐ ││ [ERROR] Invalid directory path.             │
+│ │ invalid/path///here                     │ ││ Path contains invalid characters.           │
 │ └─────────────────────────────────────────┘ ││                                             │
 │                              [Browse...]    ││                                             │
 │                                             ││                                             │
-│ ⚠ Directory will be created if not exist  ││                                             │
-│                                             ││                                             │
-│ Project Name (for Docker images):           ││                                             │
-│ ┌─────────────────────────────────────────┐ ││                                             │
-│ │ my project with spaces                  │ ││                                             │
-│ └─────────────────────────────────────────┘ ││                                             │
-│                                             ││                                             │
-│ ❌ Invalid project name:                    ││                                             │
-│    • No spaces allowed                      ││                                             │
-│    • Use letters, numbers, hyphens, etc.    ││                                             │
-│    • Must start with letter                 ││                                             │
+│ ❌ Invalid directory path                   ││                                             │
 ╰─────────────────────────────────────────────╯╰─────────────────────────────────────────────╯
 ```
 
@@ -219,7 +174,7 @@ else (no)
   :Load default directory path;
   :Enable all controls;
 endif
-:Extract project name from path;
+:Check directory status;
 :Validate initial state;
 stop
 @enduml
@@ -243,9 +198,7 @@ repeat
     :Check permissions;
     :Show existence status;
   fork again
-    :Auto-extract project name;
-    :Validate project name;
-    :Update Docker image preview;
+    :Check directory accessibility;
   end fork
   if (Validation passes?) then (yes)
     :Enable Continue button;
@@ -274,8 +227,7 @@ repeat while (Continue editing?) is (yes)
 
 ### Input Validation Rules
 
-**Directory Path**: Non-empty, valid filesystem path, write permissions  
-**Project Name**: Alphanumeric + hyphens + underscores, no spaces, 1-50 chars, starts with letter
+**Directory Path**: Non-empty, valid filesystem path, write permissions
 
 ### Navigation State Machine
 
@@ -337,7 +289,7 @@ CreationError --> NoError : pei_docker_cli_create_successful
 
 ### Command Line Override Behavior
 
-**CLI Override (--project-dir or --here)**: Screen is displayed with directory input field pre-filled and grayed out (uneditable). Browse button is disabled. Project name is extracted from path and can be modified. 
+**CLI Override (--project-dir or --here)**: Screen is displayed with directory input field pre-filled and grayed out (uneditable). Browse button is disabled. 
 
 CLI commands that trigger this behavior:
 - `pei-docker-gui start --project-dir <path>`
