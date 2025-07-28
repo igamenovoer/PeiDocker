@@ -6,7 +6,8 @@ you are tasked to revise documents based on given requirements, follow these gui
 
 - be concise, make the facts clear, and avoid unnecessary words and marketing phrases
 
-- if you want to draw digrams, use `dot` for general diagrams, and `plantuml` for UML diagrams, avoid using ASCII art
+- if you want to draw digrams, use `dot` for general diagrams, and `plantuml` for UML diagrams, avoid using ASCII art. These are command line tools, if commands does not exist, then just leave the source code in the document, DO NOT try to generate the diagrams directly in the document.
+- note that, DO NOT try to generate svg as token output directly, but use `dot` or `plantuml` cli tools to generate the diagrams and include them in the document
 
 ## User Comments
 
