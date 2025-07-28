@@ -88,7 +88,7 @@ class SimpleWizardScreen(Screen[None]):
     def _create_steps(self) -> List[WizardStep]:
         """Create the wizard steps."""
         from .project_info import ProjectInfoWidget
-        from .ssh_config import SSHConfigScreen
+        from .ssh_config import SSHConfigWidget
         from .proxy_config import ProxyConfigScreen
         from .apt_config import APTConfigScreen
         from .port_mapping import PortMappingScreen
@@ -101,7 +101,7 @@ class SimpleWizardScreen(Screen[None]):
         
         return [
             WizardStep("project_info", "Project Information", ProjectInfoWidget),
-            WizardStep("ssh_config", "SSH Configuration", SSHConfigScreen),
+            WizardStep("ssh_config", "SSH Configuration", SSHConfigWidget),
             WizardStep("proxy_config", "Proxy Configuration", ProxyConfigScreen),
             WizardStep("apt_config", "APT Configuration", APTConfigScreen),
             WizardStep("port_mapping", "Port Mapping", PortMappingScreen),

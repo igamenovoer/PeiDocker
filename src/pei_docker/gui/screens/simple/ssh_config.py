@@ -1,379 +1,531 @@
-"""SSH configuration screen for simple mode wizard."""
+"""SC-4: SSH Configuration Screen - Technical Implementation.
 
-from pathlib import Path
+This module implements the SSH Configuration Screen (SC-4) according to the
+technical specification. It provides the second step of the configuration wizard
+where users configure SSH access to their containers.
+
+The implementation follows flat material design principles and integrates with
+the SC-2 wizard controller framework for navigation and state management.
+"""
+
+import re
 from typing import Optional
 
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal
-from textual.screen import Screen
-from textual.widgets import Label, Input, Static, Button, RadioSet, RadioButton, Checkbox
-from textual.validation import Function
+from textual.containers import Vertical, Horizontal, Container
+from textual.widget import Widget
+from textual.widgets import Label, Input, Static, RadioSet, RadioButton, Checkbox
+from textual.validation import ValidationResult, Validator
 
-from textual_fspicker import FileOpen
-
-from ...models.config import ProjectConfig, SSHUser
-from ...utils.file_utils import validate_ssh_public_key, get_ssh_key_from_system
-from ...widgets.inputs import PortNumberInput, UserIDInput
-from ...widgets.dialogs import ErrorDialog
+from pei_docker.gui.models.config import ProjectConfig, SSHUser
 
 
-class SSHConfigScreen(Screen[None]):
-    """Screen for configuring SSH access."""
+class SSHPortValidator(Validator):
+    """Validator for SSH port numbers."""
     
+    def validate(self, value: str) -> ValidationResult:
+        """Validate port number range."""
+        if not value.strip():
+            return self.failure("Port number is required")
+        
+        try:
+            port = int(value.strip())
+            if not (1 <= port <= 65535):
+                return self.failure("Port must be between 1-65535")
+            # Note: Ports < 1024 may require elevated privileges, but we allow them
+            return self.success()
+        except ValueError:
+            return self.failure("Port must be a valid number")
+
+
+class SSHUsernameValidator(Validator):
+    """Validator for SSH usernames."""
+    
+    def validate(self, value: str) -> ValidationResult:
+        """Validate SSH username format."""
+        if not value.strip():
+            return self.failure("SSH username is required")
+        
+        username = value.strip()
+        if not re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', username):
+            return self.failure("Username must contain only letters, numbers, and underscores")
+        
+        return self.success()
+
+
+class SSHPasswordValidator(Validator):
+    """Validator for SSH passwords."""
+    
+    def validate(self, value: str) -> ValidationResult:
+        """Validate SSH password constraints."""
+        if not value:
+            return self.failure("SSH password is required")
+        
+        if ' ' in value or ',' in value:
+            return self.failure("Password cannot contain spaces or commas")
+        
+        return self.success()
+
+
+class SSHUIDValidator(Validator):
+    """Validator for SSH user IDs."""
+    
+    def validate(self, value: str) -> ValidationResult:
+        """Validate SSH user UID."""
+        if not value.strip():
+            return self.failure("User UID is required")
+        
+        try:
+            uid = int(value.strip())
+            if uid < 1000:
+                # Note: UID below 1000 may conflict with system users, but we allow it
+                return self.success()
+            if uid > 65535:
+                return self.failure("UID must be below 65535")
+            return self.success()
+        except ValueError:
+            return self.failure("UID must be a valid number")
+
+
+class SSHKeyValidator(Validator):
+    """Validator for SSH public keys."""
+    
+    def validate(self, value: str) -> ValidationResult:
+        """Validate SSH public key format."""
+        if not value.strip():
+            return self.success()  # Empty is valid (optional)
+        
+        key_text = value.strip()
+        if key_text == '~':
+            return self.success()  # System key reference is valid
+        
+        if not any(key_text.startswith(prefix) for prefix in ['ssh-rsa', 'ssh-ed25519', 'ssh-ecdsa']):
+            return self.failure("Invalid SSH public key format")
+        
+        return self.success()
+
+
+class SSHConfigWidget(Widget):
+    """SC-4: SSH Configuration Widget for embedding in wizard.
+    
+    This is the embeddable Widget version of the SSH Configuration screen,
+    designed to be mounted within the SC-2 wizard controller framework.
+    """
+    
+    # Flat Material Design CSS - Optimized Spacing
     DEFAULT_CSS = """
-    SSHConfigScreen {
-        background: $surface;
-        padding: 2;
+    SSHConfigWidget {
+        padding: 0;
+        layout: vertical;
     }
     
-    .section {
-        border: solid $primary;
-        padding: 1 2;
-        margin: 1 0;
+    /* Compact containers with proper vertical flow */
+    .ssh-config-container {
+        border: none;
+        padding: 0;
+        margin: 0;
+        layout: vertical;
+        height: auto;
+    }
+    
+    /* SSH toggle section - tight spacing */
+    .ssh-toggle-section {
         background: $surface-lighten-1;
+        border: none;
+        padding: 0;
+        margin: 0;
+        layout: vertical;
+        height: auto;
     }
     
-    .section-title {
-        color: $accent;
-        text-style: bold;
-        margin-bottom: 1;
+    /* SSH configuration section - tight spacing */
+    .ssh-config-section {
+        background: $surface-lighten-1;
+        border: none;
+        padding: 0;
+        margin: 0;
+        layout: vertical;
+        height: auto;
     }
     
-    .field-group {
-        margin: 1 0;
-    }
-    
-    .field-label {
-        color: $text;
-        margin-bottom: 1;
-    }
-    
-    .field-help {
-        color: $text-muted;
-        margin-top: 1;
-    }
-    
-    .warning {
-        color: $warning;
-        margin: 1 0;
-        padding: 1;
-        border: solid $warning;
-        background: $warning 20%;
-    }
-    
-    .expandable-section {
-        margin-top: 1;
-        padding: 1;
-        border: solid $secondary;
+    /* Advanced options section - tight spacing */
+    .advanced-section {
         background: $surface-lighten-2;
+        border: none;
+        padding: 0;
+        margin: 0;
+        layout: vertical;
+        height: auto;
     }
     
-    Input {
-        width: 100%;
-    }
-    
-    Input.-invalid {
-        border: solid $error;
-    }
-    
+    /* Properly sized radio buttons - no height constraint */
     RadioSet {
-        margin: 1 0;
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        height: auto;
     }
     
+    RadioButton {
+        background: transparent;
+        border: none;
+        margin: 0;
+    }
+    
+    /* Compact inputs */
+    Input {
+        margin: 0;
+        height: 1;
+    }
+    
+    /* Compact warnings */
+    .ssh-warning {
+        color: $warning;
+        background: $warning-muted;
+        border: none;
+        padding: 0;
+        margin: 0;
+        text-style: italic;
+        height: 1;
+    }
+    
+    /* Compact headers */
+    .section-header {
+        text-style: bold;
+        color: $foreground;
+        margin: 0;
+        height: 1;
+    }
+    
+    /* Compact labels */
+    .field-label {
+        color: $foreground;
+        margin: 0;
+        height: 1;
+    }
+    
+    /* Compact help text */
+    .preview-text {
+        color: $foreground 60%;
+        text-style: italic;
+        padding: 0;
+        margin: 0;
+        height: 1;
+    }
+    
+    /* Compact validation errors */
+    .validation-error {
+        color: $error;
+        background: $surface-lighten-1;
+        padding: 0;
+        text-style: italic;
+        margin: 0;
+        height: 1;
+    }
+    
+    /* Compact checkboxes */
     Checkbox {
-        margin: 1 0;
+        margin: 0;
+        background: transparent;
+        border: none;
+        height: 1;
+    }
+    
+    /* Compact notes */
+    .required-note {
+        color: $foreground 60%;
+        text-style: italic;
+        margin: 0;
+        height: 1;
     }
     """
     
-    def __init__(self, project_config: ProjectConfig):
+    def __init__(self, project_config: ProjectConfig) -> None:
         super().__init__()
         self.project_config = project_config
+        
+        # Initialize SSH configuration state
         self.ssh_enabled = project_config.stage_1.ssh.enable
-        self.use_public_key = False
-        self.use_private_key = False
-        self.root_enabled = getattr(project_config.stage_1.ssh, 'root_enabled', False)
-    
-    def _get_or_create_first_user(self) -> 'SSHUser':
-        """Get the first SSH user or create one with default values."""
-        from ...models.config import SSHUser
-        if self.project_config.stage_1.ssh.users:
-            return self.project_config.stage_1.ssh.users[0]
-        else:
-            # Create default user
+        self.public_key_auth = False
+        self.root_access = project_config.stage_1.ssh.root_enabled
+        
+        # Ensure we have at least one SSH user
+        if not project_config.stage_1.ssh.users:
             default_user = SSHUser(name="me", password="123456", uid=1100)
-            self.project_config.stage_1.ssh.users.append(default_user)
-            return default_user
+            project_config.stage_1.ssh.users.append(default_user)
     
     def compose(self) -> ComposeResult:
-        """Compose the SSH configuration screen."""
-        with Vertical():
-            yield Label("Configure SSH access to your container:", classes="field-help")
+        """Compose the SSH configuration widget."""
+        with Container(classes="ssh-config-container"):
+            yield Label("Configure SSH access to your container:", classes="section-header")
             
-            # SSH enable/disable section
-            with Static(classes="section"):
-                yield Label("SSH Server", classes="section-title")
-                
+            # SSH Enable/Disable Section
+            with Container(classes="ssh-toggle-section"):
+                yield Label("Enable SSH:", classes="field-label")
                 with RadioSet(id="ssh_enable"):
                     yield RadioButton("Yes", id="ssh_yes", value=self.ssh_enabled)
                     yield RadioButton("No", id="ssh_no", value=not self.ssh_enabled)
                 
                 if not self.ssh_enabled:
                     yield Static(
-                        "⚠ Selecting 'No' means you'll need to use docker exec commands to access the container",
-                        classes="warning"
+                        "WARNING: Selecting 'No' means you'll need to use docker exec commands to access the container",
+                        classes="ssh-warning"
                     )
             
-            # SSH configuration (shown when enabled)
+            # SSH Configuration Section (conditional)
             if self.ssh_enabled:
                 yield from self._create_ssh_config_section()
     
     def _create_ssh_config_section(self) -> ComposeResult:
         """Create the SSH configuration section."""
-        with Static(classes="section"):
-            yield Label("SSH Settings", classes="section-title")
+        with Container(classes="ssh-config-section"):
+            yield Label("SSH Settings:", classes="section-header")
             
-            # Basic SSH settings
-            with Vertical(classes="field-group"):
-                yield Label("SSH Container Port:", classes="field-label")
-                yield PortNumberInput(
-                    value=str(self.project_config.stage_1.ssh.port),
-                    id="ssh_port"
-                )
-                
-                yield Label("SSH Host Port:", classes="field-label")
-                yield PortNumberInput(
-                    value=str(self.project_config.stage_1.ssh.host_port),
-                    id="ssh_host_port"
-                )
-                
-                yield Label("SSH User:", classes="field-label")
-                # Get first user from users list or use default
-                if self.project_config.stage_1.ssh.users:
-                    ssh_user = self.project_config.stage_1.ssh.users[0]
-                    user_name = ssh_user.name
-                else:
-                    ssh_user = None
-                    user_name = "me"
+            # SSH Container Port
+            yield Label("SSH Container Port:", classes="field-label")
+            yield Input(
+                value=str(self.project_config.stage_1.ssh.port),
+                placeholder="22",
+                id="ssh_container_port",
+                validators=[SSHPortValidator()]
+            )
+            
+            # SSH Host Port
+            yield Label("SSH Host Port:", classes="field-label")
+            yield Input(
+                value=str(self.project_config.stage_1.ssh.host_port),
+                placeholder="2222",
+                id="ssh_host_port",
+                validators=[SSHPortValidator()]
+            )
+            
+            # SSH User
+            yield Label("SSH User:", classes="field-label")
+            current_user = self._get_current_user()
+            yield Input(
+                value=current_user.name,
+                placeholder="me",
+                id="ssh_user",
+                validators=[SSHUsernameValidator()]
+            )
+            
+            # SSH Password
+            yield Label("SSH Password (no spaces or commas):", classes="field-label")
+            yield Input(
+                value=current_user.password,
+                placeholder="123456",
+                password=True,
+                id="ssh_password",
+                validators=[SSHPasswordValidator()]
+            )
+            
+            # SSH User UID
+            yield Label("SSH User UID:", classes="field-label")
+            yield Input(
+                value=str(current_user.uid),
+                placeholder="1100",
+                id="ssh_uid",
+                validators=[SSHUIDValidator()]
+            )
+            
+            # Advanced Options Section
+            yield from self._create_advanced_section()
+    
+    def _create_advanced_section(self) -> ComposeResult:
+        """Create the advanced SSH options section."""
+        with Container(classes="advanced-section"):
+            yield Label("Advanced SSH Options:", classes="section-header")
+            
+            # SSH Public Key Authentication
+            yield Checkbox(
+                "SSH Public Key Authentication",
+                id="public_key_auth",
+                value=self.public_key_auth
+            )
+            
+            if self.public_key_auth:
+                yield Label("SSH Public Key:", classes="field-label")
+                current_user = self._get_current_user()
                 yield Input(
-                    value=user_name,
-                    placeholder="me",
-                    id="ssh_user",
-                    validators=[Function(self._validate_username, "Invalid username")]
+                    value=current_user.pubkey_text or "",
+                    placeholder="Enter public key or type '~' to use system key",
+                    id="ssh_public_key",
+                    validators=[SSHKeyValidator()]
                 )
-                
-                yield Label("User ID:", classes="field-label")
-                user_uid = ssh_user.uid if ssh_user else 1100
-                yield UserIDInput(
-                    value=str(user_uid),
-                    id="ssh_uid"
+                yield Static(
+                    "Enter '~' to use your system's default SSH public key",
+                    classes="preview-text"
                 )
-                
-                yield Label("SSH Password (no spaces or commas):", classes="field-label")
-                user_password = ssh_user.password if ssh_user else "123456"
+            
+            # Root SSH Access
+            yield Checkbox(
+                "Root SSH Access",
+                id="root_ssh_access",
+                value=self.root_access
+            )
+            
+            if self.root_access:
+                yield Label("Root Password:", classes="field-label")
                 yield Input(
-                    value=user_password,
-                    placeholder="123456",
+                    value=self.project_config.stage_1.ssh.root_password,
+                    placeholder="root",
                     password=True,
-                    id="ssh_password",
-                    validators=[Function(self._validate_password, "Password cannot contain spaces or commas")]
+                    id="root_password",
+                    validators=[SSHPasswordValidator()]
                 )
-            
-            # Advanced SSH options
-            with Static(classes="expandable-section"):
-                yield Label("Advanced SSH Options", classes="section-title")
-                
-                yield Checkbox("Use SSH Public Key Authentication", id="use_pubkey", value=self.use_public_key)
-                
-                if self.use_public_key:
-                    with Vertical(classes="field-group"):
-                        yield Label("Public Key:", classes="field-label")
-                        yield Input(
-                            placeholder="Enter public key or type '~' to use system key",
-                            id="ssh_pubkey",
-                            validators=[Function(self._validate_public_key, "Invalid SSH public key")]
-                        )
-                        yield Label("Enter '~' to use your system's default SSH public key", classes="field-help")
-                
-                yield Checkbox("Use SSH Private Key", id="use_privkey", value=self.use_private_key)
-                
-                if self.use_private_key:
-                    with Vertical(classes="field-group"):
-                        yield Label("Private Key File Path:", classes="field-label")
-                        with Horizontal():
-                            yield Input(
-                                placeholder="Enter path to private key file or '~' for system key",
-                                id="ssh_privkey",
-                            )
-                            yield Button("Browse...", id="browse_privkey", variant="default")
-                        yield Label("Enter '~' to use your system's default SSH private key", classes="field-help")
-                
-                yield Checkbox("Enable Root SSH Access", id="root_ssh", value=self.root_enabled)
-                
-                if self.root_enabled:
-                    with Vertical(classes="field-group"):
-                        yield Label("Root Password:", classes="field-label")
-                        yield Input(
-                            value=self.project_config.stage_1.ssh.root_password,
-                            placeholder="root",
-                            password=True,
-                            id="root_password",
-                            validators=[Function(self._validate_password, "Password cannot contain spaces or commas")]
-                        )
+                yield Static(
+                    "WARNING: Root SSH access reduces container security",
+                    classes="ssh-warning"
+                )
     
-    def _validate_port(self, value: str) -> bool:
-        """Validate port number."""
-        try:
-            port = int(value.strip())
-            return 1 <= port <= 65535
-        except ValueError:
-            return False
-    
-    def _validate_username(self, value: str) -> bool:
-        """Validate username."""
-        username = value.strip()
-        return bool(username) and username.isalnum()
-    
-    def _validate_password(self, value: str) -> bool:
-        """Validate password (no spaces or commas)."""
-        return bool(value) and ' ' not in value and ',' not in value
-    
-    def _validate_public_key(self, value: str) -> bool:
-        """Validate SSH public key."""
-        key_text = value.strip()
-        if not key_text:
-            return True  # Empty is valid (optional)
-        
-        if key_text == '~':
-            return True  # System key reference is valid
-        
-        return validate_ssh_public_key(key_text)
+    def _get_current_user(self) -> SSHUser:
+        """Get the current SSH user (first in list)."""
+        if not self.project_config.stage_1.ssh.users:
+            default_user = SSHUser(name="me", password="123456", uid=1100)
+            self.project_config.stage_1.ssh.users.append(default_user)
+        return self.project_config.stage_1.ssh.users[0]
     
     @on(RadioSet.Changed, "#ssh_enable")
     def on_ssh_enable_changed(self, event: RadioSet.Changed) -> None:
         """Handle SSH enable/disable change."""
-        self.ssh_enabled = event.pressed.id == "ssh_yes" if event.pressed else False
-        self.project_config.stage_1.ssh.enable = self.ssh_enabled
-        # Refresh the screen to show/hide SSH config
+        if event.pressed:
+            self.ssh_enabled = event.pressed.id == "ssh_yes"
+            self.project_config.stage_1.ssh.enable = self.ssh_enabled
+            # Refresh the widget to show/hide SSH configuration
+            self.refresh(recompose=True)
+    
+    @on(Input.Changed, "#ssh_container_port")
+    def on_ssh_container_port_changed(self, event: Input.Changed) -> None:
+        """Handle SSH container port change."""
+        try:
+            port = int(event.value.strip()) if event.value.strip() else 22
+            self.project_config.stage_1.ssh.port = port
+        except ValueError:
+            pass  # Invalid input, ignore
+    
+    @on(Input.Changed, "#ssh_host_port")
+    def on_ssh_host_port_changed(self, event: Input.Changed) -> None:
+        """Handle SSH host port change."""
+        try:
+            port = int(event.value.strip()) if event.value.strip() else 2222
+            self.project_config.stage_1.ssh.host_port = port
+        except ValueError:
+            pass  # Invalid input, ignore
+    
+    @on(Input.Changed, "#ssh_user")
+    def on_ssh_user_changed(self, event: Input.Changed) -> None:
+        """Handle SSH user change."""
+        if event.value.strip():
+            current_user = self._get_current_user()
+            current_user.name = event.value.strip()
+    
+    @on(Input.Changed, "#ssh_password")
+    def on_ssh_password_changed(self, event: Input.Changed) -> None:
+        """Handle SSH password change."""
+        if event.value:
+            current_user = self._get_current_user()
+            current_user.password = event.value
+    
+    @on(Input.Changed, "#ssh_uid")
+    def on_ssh_uid_changed(self, event: Input.Changed) -> None:
+        """Handle SSH UID change."""
+        try:
+            uid = int(event.value.strip()) if event.value.strip() else 1100
+            current_user = self._get_current_user()
+            current_user.uid = uid
+        except ValueError:
+            pass  # Invalid input, ignore
+    
+    @on(Checkbox.Changed, "#public_key_auth")
+    def on_public_key_auth_changed(self, event: Checkbox.Changed) -> None:
+        """Handle public key authentication toggle."""
+        self.public_key_auth = event.checkbox.value
+        # Refresh to show/hide public key field
         self.refresh(recompose=True)
     
-    @on(Checkbox.Changed, "#use_pubkey")
-    def on_use_pubkey_changed(self, event: Checkbox.Changed) -> None:
-        """Handle public key checkbox change."""
-        self.use_public_key = event.checkbox.value
+    @on(Input.Changed, "#ssh_public_key")
+    def on_ssh_public_key_changed(self, event: Input.Changed) -> None:
+        """Handle SSH public key change."""
+        current_user = self._get_current_user()
+        key_text = event.value.strip()
+        
+        if key_text == '~':
+            # System key reference - could expand to actual key path
+            current_user.pubkey_text = key_text
+        elif key_text:
+            current_user.pubkey_text = key_text
+        else:
+            current_user.pubkey_text = None
+    
+    @on(Checkbox.Changed, "#root_ssh_access")
+    def on_root_ssh_access_changed(self, event: Checkbox.Changed) -> None:
+        """Handle root SSH access toggle."""
+        self.root_access = event.checkbox.value
+        self.project_config.stage_1.ssh.root_enabled = self.root_access
+        # Refresh to show/hide root password field
         self.refresh(recompose=True)
     
-    @on(Checkbox.Changed, "#use_privkey")
-    def on_use_privkey_changed(self, event: Checkbox.Changed) -> None:
-        """Handle private key checkbox change."""
-        self.use_private_key = event.checkbox.value
-        self.refresh(recompose=True)
-    
-    @on(Checkbox.Changed, "#root_ssh")
-    def on_root_ssh_changed(self, event: Checkbox.Changed) -> None:
-        """Handle root SSH checkbox change."""
-        self.root_enabled = event.checkbox.value
-        # Note: root_enabled is not part of SSHConfig data model yet
-        # self.project_config.stage_1.ssh.root_enabled = self.root_enabled
-        self.refresh(recompose=True)
-    
-    @on(Button.Pressed, "#browse_privkey")
-    def on_browse_privkey_pressed(self) -> None:
-        """Browse for SSH private key file."""
-        # Launch file picker using async worker
-        self.run_worker(self._browse_ssh_key_async())
-
-    async def _browse_ssh_key_async(self) -> None:
-        """Async worker to handle SSH key file browsing."""
-        key_path = await self.app.push_screen_wait(FileOpen())
-        if key_path:
-            privkey_input = self.query_one("#ssh_privkey", Input)
-            privkey_input.value = str(key_path)
-            # Trigger input change event
-            self.on_input_changed(Input.Changed(privkey_input, privkey_input.value))
-    
-    def on_input_changed(self, event: Input.Changed) -> None:
-        """Handle input changes."""
-        if not self.ssh_enabled:
-            return
-        
-        if event.input.id == "ssh_port":
-            try:
-                port = int(event.value.strip()) if event.value.strip() else 22
-                self.project_config.stage_1.ssh.port = port
-            except ValueError:
-                pass  # Invalid input, ignore
-        
-        elif event.input.id == "ssh_host_port":
-            try:
-                port = int(event.value.strip()) if event.value.strip() else 2222
-                self.project_config.stage_1.ssh.host_port = port
-            except ValueError:
-                pass  # Invalid input, ignore
-        
-        elif event.input.id == "ssh_uid":
-            try:
-                uid = int(event.value.strip()) if event.value.strip() else 1100
-                # Update or create SSH user with new UID
-                if not self.project_config.stage_1.ssh.users:
-                    self.project_config.stage_1.ssh.users.append(SSHUser(name="me", password="123456", uid=uid))
-                else:
-                    user = self._get_or_create_first_user()
-                    username = user.name
-                    user.uid = uid
-            except ValueError:
-                pass  # Invalid input, ignore
-        
-        elif event.input.id == "ssh_user":
-            if self._validate_username(event.value):
-                # Update or create SSH user
-                user_name = event.value.strip()
-                if not self.project_config.stage_1.ssh.users:
-                    self.project_config.stage_1.ssh.users.append(SSHUser(name=user_name, password="123456"))
-                else:
-                    # Update existing user's name by removing old entry and adding new one
-                    old_user = self._get_or_create_first_user()
-                    old_user.name = user_name  # Update the user's name directly
-        
-        elif event.input.id == "ssh_password":
-            if self._validate_password(event.value):
-                # Update SSH user password
-                user = self._get_or_create_first_user()
-                user.password = event.value
-        
-        elif event.input.id == "ssh_pubkey":
-            if self._validate_public_key(event.value):
-                key_text: Optional[str] = event.value.strip()
-                if key_text == '~':
-                    # Try to get system SSH key
-                    system_key = get_ssh_key_from_system()
-                    key_text = system_key if system_key else None
-                
-                # Update SSH user public key
-                if self.project_config.stage_1.ssh.users:
-                    user = self._get_or_create_first_user()
-                    username = user.name
-                    user.pubkey_text = key_text
-        
-        elif event.input.id == "ssh_privkey":
-            privkey_path = event.value.strip()
-            if privkey_path == '~':
-                privkey_path = "~"  # Keep the ~ reference
-            
-            # Update SSH user private key
-            if self.project_config.stage_1.ssh.users:
-                user = self._get_or_create_first_user()
-                username = user.name
-                user.privkey_file = privkey_path if privkey_path else None
-        
-        elif event.input.id == "root_password":
-            if self._validate_password(event.value):
-                self.project_config.stage_1.ssh.root_password = event.value
+    @on(Input.Changed, "#root_password")
+    def on_root_password_changed(self, event: Input.Changed) -> None:
+        """Handle root password change."""
+        if event.value:
+            self.project_config.stage_1.ssh.root_password = event.value
     
     def is_valid(self) -> bool:
-        """Check if all inputs are valid."""
+        """Check if all inputs are valid for navigation control."""
         if not self.ssh_enabled:
-            return True
+            return True  # If SSH is disabled, no validation needed
         
-        # Basic validation - at least SSH user and password should be set
-        return bool(self.project_config.stage_1.ssh.users) or not self.ssh_enabled
+        # Check basic SSH configuration validity
+        current_user = self._get_current_user()
+        
+        # Validate port numbers
+        if not (1 <= self.project_config.stage_1.ssh.port <= 65535):
+            return False
+        if not (1 <= self.project_config.stage_1.ssh.host_port <= 65535):
+            return False
+        
+        # Validate user credentials
+        if not current_user.name or not self._is_valid_username(current_user.name):
+            return False
+        if not current_user.password or not self._is_valid_password(current_user.password):
+            return False
+        if not (1000 <= current_user.uid <= 65535):
+            return False
+        
+        # If public key auth is enabled, validate the key
+        if self.public_key_auth and current_user.pubkey_text:
+            if not self._is_valid_ssh_key(current_user.pubkey_text):
+                return False
+        
+        # If root access is enabled, validate root password
+        if self.root_access:
+            if not self.project_config.stage_1.ssh.root_password or not self._is_valid_password(self.project_config.stage_1.ssh.root_password):
+                return False
+        
+        return True
+    
+    def _is_valid_username(self, username: str) -> bool:
+        """Validate SSH username format."""
+        return bool(re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', username))
+    
+    def _is_valid_password(self, password: str) -> bool:
+        """Validate SSH password constraints."""
+        return bool(password and ' ' not in password and ',' not in password)
+    
+    def _is_valid_ssh_key(self, key: str) -> bool:
+        """Validate SSH public key format."""
+        if key == '~':
+            return True  # System key reference is valid
+        return any(key.startswith(prefix) for prefix in ['ssh-rsa', 'ssh-ed25519', 'ssh-ecdsa'])
+    
+    def handle_escape(self) -> None:
+        """Handle single ESC key press - clear current input."""
+        try:
+            focused_widget = self.screen.focused
+            if isinstance(focused_widget, Input):
+                focused_widget.value = ""
+        except Exception:
+            pass  # Ignore errors during escape handling

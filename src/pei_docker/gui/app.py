@@ -178,7 +178,7 @@ class PeiDockerApp(App[None]):
         Parameters
         ----------
         screen_id : str
-            Screen identifier (e.g., 'sc-0', 'sc-1', 'sc-3')
+            Screen identifier (e.g., 'sc-0', 'sc-1', 'sc-3', 'sc-4')
             
         Raises
         ------
@@ -191,9 +191,10 @@ class PeiDockerApp(App[None]):
         - sc-0: StartupScreen (system validation)
         - sc-1: ProjectDirectorySelectionScreen
         - sc-3: First wizard step (Project Information)
+        - sc-4: Second wizard step (SSH Configuration)
         """
         # Validate project directory is set for screens that require it
-        if screen_id in ['sc-1', 'sc-3'] and not self.project_config.project_dir:
+        if screen_id in ['sc-1', 'sc-3', 'sc-4'] and not self.project_config.project_dir:
             print(f"Error: dev screen '{screen_id}' requires project directory to be set")
             sys.exit(1)
         
@@ -201,6 +202,7 @@ class PeiDockerApp(App[None]):
             'sc-0': self._setup_startup_screen,
             'sc-1': self._setup_project_selection_screen,
             'sc-3': self._setup_wizard_first_step,
+            'sc-4': self._setup_wizard_second_step,
         }
         
         if screen_id not in screen_mapping:
@@ -232,6 +234,15 @@ class PeiDockerApp(App[None]):
         wizard_screen = SimpleWizardScreen(self.project_config)
         # Set to first step (step 0 = sc-3)
         wizard_screen.current_step = 0
+        self.install_screen(wizard_screen, "simple_wizard")
+        self.push_screen("simple_wizard")
+    
+    def _setup_wizard_second_step(self) -> None:
+        """Setup and display the second wizard step (sc-4)."""
+        from .screens.simple.wizard import SimpleWizardScreen
+        wizard_screen = SimpleWizardScreen(self.project_config)
+        # Set to second step (step 1 = sc-4)
+        wizard_screen.current_step = 1
         self.install_screen(wizard_screen, "simple_wizard")
         self.push_screen("simple_wizard")
     
@@ -367,7 +378,7 @@ def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None
             sys.exit(1)
         
         # Validate screen ID early
-        supported_screens = ['sc-0', 'sc-1', 'sc-3']
+        supported_screens = ['sc-0', 'sc-1', 'sc-3', 'sc-4']
         if dev_screen not in supported_screens:
             click.echo(f"Error: Unsupported dev screen '{dev_screen}'. Supported: {supported_screens}", err=True)
             sys.exit(1)
