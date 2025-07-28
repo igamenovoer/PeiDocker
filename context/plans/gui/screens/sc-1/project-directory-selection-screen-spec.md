@@ -83,7 +83,6 @@ UC4 --> fs
 - **Back Button**: Return to Application Startup Screen (SC-0)
 - **Continue Button**: Proceed to Simple Wizard Controller (SC-2)
 - **Browse Button**: Open directory selection dialog
-- **Keyboard Controls**: 'b' for back, Enter to continue
 
 ## User Interface Specification
 
@@ -106,7 +105,6 @@ The screen is divided into two main vertical panes. The main interaction area is
 ││                                             ││                                             ││
 ││ [Back] [Continue]                           ││                                             ││
 ││                                             ││                                             ││
-││ Press 'b' for back, Enter to continue       ││                                             ││
 │╰─────────────────────────────────────────────╯╰─────────────────────────────────────────────╯│
 ╰──────────────────────────────────────────────────────────────────────────────────────────╯
 ```

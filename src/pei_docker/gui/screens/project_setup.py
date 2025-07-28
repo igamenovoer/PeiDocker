@@ -38,7 +38,8 @@ import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, cast, TYPE_CHECKING, Any
+from typing import Optional, cast, TYPE_CHECKING, Any, IO
+from logging import Handler, LogRecord
 
 if TYPE_CHECKING:
     from ..app import PeiDockerApp
@@ -54,6 +55,36 @@ from textual_fspicker import SelectDirectory
 
 from ..models.config import ProjectConfig
 from ..utils.file_utils import check_path_writable
+
+
+class TextualLogHandler(Handler):
+    """
+    Custom logging handler that redirects Python logging to Textual RichLog widget.
+    
+    This handler captures all logging output from the standard Python logging
+    module and streams it to the GUI log display in real-time. It preserves
+    log levels and applies appropriate color coding.
+    """
+    
+    def __init__(self, screen: 'ProjectDirectorySelectionScreen') -> None:
+        """Initialize the handler with reference to the screen."""
+        super().__init__()
+        self.screen = screen
+        self.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+    
+    def emit(self, record: LogRecord) -> None:
+        """Emit a log record to the Textual GUI."""
+        try:
+            msg = self.format(record)
+            # Use call_from_thread to ensure thread safety
+            if hasattr(self.screen, 'app') and hasattr(self.screen.app, 'call_from_thread'):
+                self.screen.app.call_from_thread(self.screen.write_log, record.levelname, record.getMessage())
+            else:
+                # Fallback for direct calls
+                self.screen.write_log(record.levelname, record.getMessage())
+        except Exception:
+            # Avoid recursive logging errors
+            pass
 
 
 class ProjectDirectorySelectionScreen(Screen[None]):
@@ -106,10 +137,6 @@ class ProjectDirectorySelectionScreen(Screen[None]):
       * No spaces allowed
     """
     
-    BINDINGS = [
-        ("b", "back", "Back"),
-        ("enter", "continue", "Continue"),
-    ]
     
     DEFAULT_CSS = """
     ProjectDirectorySelectionScreen {
@@ -119,7 +146,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     }
     
     .main-pane {
-        width: 1fr;
+        width: 50%;
         border: solid $primary;
         padding: 1;
         margin: 1;
@@ -127,7 +154,7 @@ class ProjectDirectorySelectionScreen(Screen[None]):
     }
     
     .log-pane {
-        width: 1fr;
+        width: 50%;
         border: solid $primary;
         padding: 1;
         margin: 1 1 1 0;
@@ -200,25 +227,6 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         color: $error;
     }
     
-    .docker-preview {
-        margin: 1 0;
-        padding: 1;
-        border: solid $primary;
-        background: $surface-lighten-2;
-        height: auto;
-        max-height: 6;
-    }
-    
-    .docker-preview-title {
-        color: $primary;
-        text-style: bold;
-        margin-bottom: 1;
-    }
-    
-    .docker-image-name {
-        color: $success;
-        margin: 0 2;
-    }
     
     .actions {
         text-align: center;
@@ -292,15 +300,14 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         
         # Validation states
         self.project_dir_valid: bool = bool(project_config.project_dir)
-        self.project_name_valid: bool = bool(project_config.project_name)
         
-        # Set initial project name from directory if available
+        # Set initial project name from directory if available (internal use only)
         if not self.project_config.project_name and self.project_config.project_dir:
             self.project_config.project_name = Path(self.project_config.project_dir).name
-            self.project_name_valid = self._validate_project_name(self.project_config.project_name)
         
-        # Setup logging handler
+        # Setup logging handlers
         self._setup_logging_handler()
+        self._python_log_handler: Optional[TextualLogHandler] = None
     
     def compose(self) -> ComposeResult:
         """Compose the project directory selection screen with two-pane layout."""
@@ -330,21 +337,6 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                            classes=f"status-message {self._get_directory_status_class()}", 
                            id="dir_status")
             
-            # Project Name Section
-            with Vertical(classes="field-group"):
-                yield Label("Project Name (for Docker images):", classes="field-label")
-                yield Input(
-                    value=self.project_config.project_name or "",
-                    placeholder="my-project",
-                    id="project_name",
-                    classes="field-input",
-                    validators=[Function(self._validate_project_name, "Invalid project name")]
-                )
-            
-            # Docker Image Preview
-            with Vertical(classes="docker-preview"):
-                yield Label("Docker images will be named:", classes="docker-preview-title")
-                yield Static(self._get_docker_image_preview(), id="docker_preview")
             
             # Action Buttons
             with Horizontal(classes="actions"):
@@ -352,7 +344,6 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                 yield Button("Continue", id="continue", variant="primary", 
                            disabled=not self._is_form_valid())
             
-            yield Label("Press 'b' for back, Enter to continue", classes="help-text")
         
         # Log pane (right side - 1/3 width)
         with Vertical(classes="log-pane"):
@@ -491,14 +482,10 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         else:
             return "status-warning"
     
-    def _get_docker_image_preview(self) -> str:
-        """Get Docker image name preview."""
-        project_name = self.project_config.project_name or "project-name"
-        return f"• {project_name}:stage-1\n• {project_name}:stage-2"
     
     def _is_form_valid(self) -> bool:
         """Check if the form is valid and continue button should be enabled."""
-        return self.project_dir_valid and self.project_name_valid
+        return self.project_dir_valid
     
     def _update_continue_button(self) -> None:
         """Update the continue button enabled state."""
@@ -508,13 +495,6 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         except:
             pass  # Button might not exist yet
     
-    def _update_docker_preview(self) -> None:
-        """Update the Docker image preview."""
-        try:
-            preview_widget = self.query_one("#docker_preview", Static)
-            preview_widget.update(self._get_docker_image_preview())
-        except:
-            pass  # Widget might not exist yet
     
     def _update_directory_status(self) -> None:
         """Update the directory status message."""
@@ -540,42 +520,18 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             self.project_config.project_dir = str(Path(value).resolve())
             self.write_log("DEBUG", f"Project directory set to: {self.project_config.project_dir}")
             
-            # Auto-update project name if it's empty or matches old directory name
+            # Auto-update project name internally (for CLI command)
             path_name = Path(value).name
             if (not self.project_config.project_name or 
                 self.project_config.project_name == Path(self.project_config.project_dir or "").name):
                 self.project_config.project_name = path_name
-                self.project_name_valid = self._validate_project_name(path_name)
                 self.write_log("DEBUG", f"Auto-updated project name to: {path_name}")
-                
-                # Update project name input
-                try:
-                    project_name_input = self.query_one("#project_name", Input)
-                    project_name_input.value = path_name
-                except:
-                    pass
         else:
             self.write_log("WARNING", f"Invalid project directory path: {value}")
         
         self._update_directory_status()
-        self._update_docker_preview()
         self._update_continue_button()
     
-    @on(Input.Changed, "#project_name")
-    def on_project_name_changed(self, event: Input.Changed) -> None:
-        """Handle project name input changes."""
-        value = event.value.strip()
-        self.project_name_valid = self._validate_project_name(value)
-        
-        if self.project_name_valid:
-            self.project_config.project_name = value
-            self.write_log("DEBUG", f"Project name set to: {value}")
-        else:
-            if value:  # Only show error if there's actually a value
-                self.write_log("WARNING", f"Invalid project name: '{value}'")
-        
-        self._update_docker_preview()
-        self._update_continue_button()
     
     @on(Button.Pressed, "#browse")
     def on_browse_pressed(self) -> None:
@@ -661,9 +617,11 @@ class ProjectDirectorySelectionScreen(Screen[None]):
                 cwd=Path.cwd()
             )
             
-            # Create threads for stdout and stderr streaming
-            def stream_output(pipe: Any, level: str) -> None:
+            # Create threads for stdout and stderr streaming with better type safety
+            def stream_output(pipe: Optional[IO[str]], level: str) -> None:
                 """Stream output from pipe to log display."""
+                if pipe is None:
+                    return
                 try:
                     for line in iter(pipe.readline, ''):
                         if line.strip():
@@ -722,9 +680,31 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             pass  # Button might not exist yet
     
     def _setup_logging_handler(self) -> None:
-        """Set up logging handler to stream logs to GUI."""
+        """Set up logging handler to stream logs to GUI and capture Python logging."""
         # Add startup log message
         self.call_after_refresh(self._add_initial_log_messages)
+        
+        # Set up Python logging integration
+        self.call_after_refresh(self._setup_python_logging_handler)
+    
+    def _setup_python_logging_handler(self) -> None:
+        """Set up handler to capture standard Python logging output."""
+        try:
+            # Create and configure the custom handler
+            self._python_log_handler = TextualLogHandler(self)
+            self._python_log_handler.setLevel(logging.DEBUG)
+            
+            # Add to root logger to capture all logging
+            root_logger = logging.getLogger()
+            root_logger.addHandler(self._python_log_handler)
+            
+            # Also add to pei_docker specific logger
+            pei_logger = logging.getLogger('pei_docker')
+            pei_logger.addHandler(self._python_log_handler)
+            
+            self.write_log("DEBUG", "Python logging integration enabled")
+        except Exception as e:
+            self.write_log("WARNING", f"Could not set up Python logging integration: {e}")
     
     def _add_initial_log_messages(self) -> None:
         """Add initial log messages to the log display."""
@@ -733,6 +713,14 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             self.write_log("INFO", f"CLI override: project directory set to {self.project_config.project_dir}")
         else:
             self.write_log("INFO", "Interactive mode: user can select project directory")
+        
+        # Test Python logging integration after a short delay
+        self.set_timer(1.0, self._test_python_logging)
+    
+    def _test_python_logging(self) -> None:
+        """Test Python logging integration by sending a test message."""
+        logger = logging.getLogger(__name__)
+        logger.info("Python logging integration test message")
     
     def write_log(self, level: str, message: str) -> None:
         """Write a log message to the log display with color coding."""
@@ -764,26 +752,26 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         """Thread-safe method to write log messages from background threads."""
         self.app.call_from_thread(self.write_log, level, message)
     
-    def get_project_name_error_message(self) -> Optional[str]:
-        """Get detailed error message for invalid project names."""
-        if not self.project_config.project_name:
-            return None
-        
-        name = self.project_config.project_name.strip()
-        
-        if not name:
-            return "Project name cannot be empty"
-        
-        if len(name) > 50:
-            return "Project name cannot exceed 50 characters"
-        
-        if ' ' in name:
-            return "No spaces allowed"
-        
-        if not re.match(r'^[a-zA-Z]', name):
-            return "Must start with letter"
-        
-        if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', name):
-            return "Use letters, numbers, hyphens, and underscores only"
-        
-        return None
+    
+    def _cleanup_logging_handler(self) -> None:
+        """Clean up the Python logging handler when screen is closed."""
+        if self._python_log_handler is not None:
+            try:
+                # Remove from root logger
+                root_logger = logging.getLogger()
+                root_logger.removeHandler(self._python_log_handler)
+                
+                # Remove from pei_docker logger
+                pei_logger = logging.getLogger('pei_docker')
+                pei_logger.removeHandler(self._python_log_handler)
+                
+                # Close the handler
+                self._python_log_handler.close()
+                self._python_log_handler = None
+                
+            except Exception:
+                pass  # Ignore cleanup errors
+    
+    def on_unmount(self) -> None:
+        """Handle screen unmount event and cleanup logging handler."""
+        self._cleanup_logging_handler()
