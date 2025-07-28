@@ -133,20 +133,23 @@ class SimpleWizardScreen(Screen[None]):
                 self.step_screens[self.current_step] = step_widget
                 yield step_widget
             
-            # Navigation
+            # Navigation - permanent buttons with visibility control
             with Horizontal(classes="wizard-navigation"):
                 with Horizontal(classes="nav-buttons"):
                     yield Button("Prev", id="prev", variant="default", disabled=self.current_step == 0)
-                    if self.current_step >= len(self.steps) - 1:
-                        yield Button("Save", id="save", variant="success")
-                    else:
-                        yield Button("Next", id="next", variant="primary")
+                    yield Button("Next", id="next", variant="primary")
+                    yield Button("Save", id="save", variant="success")
                     yield Button("Cancel", id="cancel", variant="default")
     
     def on_mount(self) -> None:
         """Called when the screen is mounted."""
-        # Set initial progress bar value
+        # Set initial progress bar value and button visibility
         self._update_step()
+        
+        # Set initial button visibility
+        is_last_step = self.current_step >= len(self.steps) - 1
+        self.query_one("#next", Button).display = not is_last_step
+        self.query_one("#save", Button).display = is_last_step
     
     def action_back(self) -> None:
         """Go to previous step."""
@@ -208,68 +211,22 @@ class SimpleWizardScreen(Screen[None]):
         progress_bar = self.query_one(".wizard-progress", ProgressBar)
         progress_bar.progress = self.current_step + 1
         
-        # Update navigation buttons
-        try:
-            prev_btn = self.query_one("#prev", Button) 
-            prev_btn.disabled = self.current_step == 0
-        except NoMatches:
-            pass  # Button might not exist yet
-        
         # Update the step content
         self._update_step_content()
         
-        # Update navigation buttons efficiently without DOM manipulation
-        self._update_navigation_buttons()
+        # Update navigation button states (no DOM manipulation)
+        self._update_navigation_states()
     
-    def _update_navigation_buttons(self) -> None:
-        """Update button states without DOM manipulation."""
-        # Update prev button state
-        try:
-            prev_btn = self.query_one("#prev", Button)
-            prev_btn.disabled = self.current_step == 0
-        except NoMatches:
-            pass  # Button doesn't exist yet
-        
-        # Handle next/save button - only recreate if needed
+    def _update_navigation_states(self) -> None:
+        """Update navigation button states using visibility and disabled properties."""
         is_last_step = self.current_step >= len(self.steps) - 1
         
-        # Try to find existing buttons
-        has_next = False
-        has_save = False
-        try:
-            self.query_one("#next", Button)
-            has_next = True
-        except NoMatches:
-            pass
-            
-        try:
-            self.query_one("#save", Button)
-            has_save = True
-        except NoMatches:
-            pass
+        # Update prev button
+        self.query_one("#prev", Button).disabled = self.current_step == 0
         
-        # Only recreate navigation if button type mismatch
-        if (is_last_step and not has_save) or (not is_last_step and not has_next):
-            self._recreate_navigation_buttons()
-    
-    def _recreate_navigation_buttons(self) -> None:
-        """Recreate navigation buttons only when button type needs to change."""
-        nav_container = self.query_one(".wizard-navigation")
-        nav_container.remove_children()
-        
-        # Create appropriate buttons for current step
-        prev_button = Button("Prev", id="prev", variant="default", disabled=self.current_step == 0)
-        
-        if self.current_step >= len(self.steps) - 1:
-            action_button = Button("Save", id="save", variant="success")
-        else:
-            action_button = Button("Next", id="next", variant="primary")
-            
-        cancel_button = Button("Cancel", id="cancel", variant="default")
-        
-        # Create container with buttons
-        nav_buttons = Horizontal(prev_button, action_button, cancel_button, classes="nav-buttons")
-        nav_container.mount(nav_buttons)
+        # Update next/save button visibility
+        self.query_one("#next", Button).display = not is_last_step
+        self.query_one("#save", Button).display = is_last_step
     
     def _update_step_content(self) -> None:
         """Update the step content area."""

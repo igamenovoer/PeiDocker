@@ -3,31 +3,155 @@
   "stateHistory": [
     {
       "from": "initial",
-      "command": "action",
-      "timestamp": "2025-07-28T14:51:10.043Z",
-      "args": [
-        "textual-tui-developer"
-      ]
-    },
-    {
-      "from": "role_activated_with_memory",
       "command": "init",
-      "timestamp": "2025-07-28T14:51:15.616Z",
+      "timestamp": "2025-07-28T12:43:49.185Z",
       "args": [
         {
-          "workingDirectory": "D:\\code\\PeiDocker",
-          "ideType": "claude"
+          "workingDirectory": "d:\\code\\PeiDocker",
+          "ideType": "vscode"
         }
       ]
     },
     {
       "from": "initialized",
       "command": "action",
-      "timestamp": "2025-07-28T14:51:20.986Z",
+      "timestamp": "2025-07-28T12:43:54.634Z",
+      "args": [
+        "textual-tui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-07-28T12:45:13.735Z",
+      "args": [
+        "textual-tui-developer",
+        "# Project-Specific Memory\n\n## PeiDocker GUI Screen Architecture (14 Screens Total)\n\n### Core Screen Structure\n- **SC-0** (Index 0): Application Startup - System validation, Docker availability check\n- **SC-1** (Index 1): Project Directory Selection - Project location setup and validation\n- **SC-2** (Index 2): Wizard Controller - Controller framework for configuration wizard (not user-facing)\n\n### Configuration Wizard Steps (SC-3 to SC-13)\n- **SC-3** (Index 3): Project Information (Step 1) - Project name and base Docker image selection\n- **SC-4** (Index 4): SSH Configuration (Step 2) - SSH access setup with ports, users, and authentication\n- **SC-5** (Index 5): Proxy Configuration (Step 3) - HTTP proxy settings for container networking\n- **SC-6** (Index 6): APT Configuration (Step 4) - APT repository mirror selection\n- **SC-7** (Index 7): Port Mapping (Step 5) - Additional host-to-container port mappings\n- **SC-8** (Index 8): Environment Variables (Step 6) - Custom environment variable configuration\n- **SC-9** (Index 9): Device Configuration (Step 7) - GPU and hardware device access setup\n- **SC-10** (Index 10): Additional Mounts (Step 8) - Volume mount configuration\n- **SC-11** (Index 11): Custom Entry Point (Step 9) - Custom entry point script setup\n- **SC-12** (Index 12): Custom Scripts (Step 10) - Custom hook script configuration\n- **SC-13** (Index 13): Configuration Summary (Step 11) - Final review and save configuration\n\n### Navigation Flow Rules\n- **Linear progression**: SC-0 → SC-1 → SC-3 to SC-13 (via SC-2 controller)\n- **SC-2 controller**: Orchestrates Steps 1-11, not directly user-facing\n- **Step navigation**: Only consecutive steps allowed (no jumping between steps)\n- **Memory-based workflow**: SC-1 creates project files, SC-3 to SC-13 are memory-only until final save\n\n### Key Implementation Notes for Textual TUI\n- 14 total screens (indexes 0-13)\n- Wizard pattern with controlled progression\n- File creation happens at SC-1, configuration persistence at SC-13\n- SC-2 acts as navigation controller, not a visible screen",
+        "--tags",
+        "peidocker gui screens navigation wizard architecture"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "init",
+      "timestamp": "2025-07-28T13:26:58.305Z",
+      "args": [
+        {
+          "workingDirectory": "d:\\code\\PeiDocker",
+          "ideType": "vscode"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-28T13:27:02.877Z",
+      "args": [
+        "textual-tui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "recall",
+      "timestamp": "2025-07-28T13:27:43.280Z",
+      "args": [
+        "textual-tui-developer",
+        "background debugging screenshots automation testing"
+      ]
+    },
+    {
+      "from": "recalled-textual-tui-developer",
+      "command": "init",
+      "timestamp": "2025-07-28T13:38:42.618Z",
+      "args": [
+        {
+          "workingDirectory": "d:\\code\\PeiDocker",
+          "ideType": "vscode"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-28T13:38:48.528Z",
+      "args": [
+        "nuwa"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "init",
+      "timestamp": "2025-07-28T13:41:03.760Z",
+      "args": [
+        {
+          "workingDirectory": "d:\\code\\PeiDocker",
+          "ideType": "vscode"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-28T13:41:08.361Z",
+      "args": [
+        "code-reviewer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "welcome",
+      "timestamp": "2025-07-28T13:41:14.923Z",
+      "args": []
+    },
+    {
+      "from": "service_discovery",
+      "command": "action",
+      "timestamp": "2025-07-28T13:42:30.065Z",
+      "args": [
+        "code-reviewer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-07-28T13:50:09.318Z",
+      "args": [
+        "code-reviewer",
+        "# Tool Skill Memory\n\n## Textual Python TUI Library - Basic Usage Patterns\n\nTextual is a modern Python framework for creating Text User Interface (TUI) applications that run in the terminal and browser. Understanding its core patterns is essential for code review.\n\n### Core Architecture Patterns\n\n**App Structure:**\n- All Textual apps inherit from `textual.app.App`\n- Apps use a `compose()` method returning `ComposeResult` to define UI structure\n- Entry point: `app.run()` to start the application\n- Apps can be run inline with `app.run(inline=True)` for embedding\n\n**Widget Hierarchy:**\n- Widgets organized in tree structure with parent-child relationships\n- Base class: `textual.widget.Widget` or subclasses like `Static`\n- Widgets manage rectangular screen regions and respond to events\n- Every widget runs in its own asyncio task\n\n**Event-Driven Architecture:**\n- Event handlers use `on_<event_name>` naming convention (e.g., `on_mount`, `on_key`, `on_click`)\n- Events bubble up the widget hierarchy unless stopped with `event.stop()`\n- Actions triggered by key bindings use `action_<name>` method naming\n\n### Essential Import Patterns\n\n```python\nfrom textual.app import App, ComposeResult\nfrom textual.widgets import Header, Footer, Static, Button, Input\nfrom textual.containers import Container, Horizontal, Vertical\nfrom textual.reactive import reactive\nfrom textual.message import Message\n```\n\n### Layout Systems\n\n**Vertical/Horizontal Layouts:**\n- `layout: vertical` (default for Screen) - top to bottom\n- `layout: horizontal` - left to right\n- Use `1fr` units for equal space distribution\n- Utility containers: `Horizontal()`, `Vertical()`, `Grid()`\n\n**Grid Layout:**\n- Set `layout: grid` and `grid-size: columns [rows]`\n- Configure with `grid-columns`, `grid-rows` properties\n- Support cell spanning with `column-span`, `row-span`\n- Add spacing with `grid-gutter`\n\n**Docking:**\n- Remove widgets from layout and fix position with `dock: top|right|bottom|left`\n- Ideal for headers, footers, sidebars\n- Docked widgets don't scroll out of view\n\n### CSS and Styling\n\n**TCSS (Textual CSS):**\n- CSS-like syntax for styling widgets\n- External files with `CSS_PATH` class variable\n- Inline with `CSS` class variable\n- Default widget styles with `DEFAULT_CSS` class variable\n\n**Selectors and Specificity:**\n- Widget class names (e.g., `Button`)\n- IDs with `#` (e.g., `#my-button`)\n- Classes with `.` (e.g., `.primary`)\n- Pseudo-selectors like `:focus`, `:hover`, `:focus-within`\n\n### Widget Development Patterns\n\n**Custom Widgets:**\n```python\nclass MyWidget(Static):  # Usually extend Static, not Widget\n    DEFAULT_CSS = \"\"\"...\"\"\"  # Bundle CSS with widget\n    \n    def __init__(self, ...):\n        super().__init__()\n    \n    def on_mount(self) -> None:\n        # Widget initialization\n        pass\n    \n    def render(self) -> str:\n        # Return content for widget\n        return \"Content\"\n```\n\n**Compound Widgets:**\n- Use `compose()` method to yield child widgets\n- Combine multiple widgets into reusable components\n- Follow \"attributes down, messages up\" pattern\n\n**Reactive Attributes:**\n```python\nfrom textual.reactive import reactive\n\nclass MyWidget(Widget):\n    count = reactive(0)  # Auto-refresh on change\n    \n    def watch_count(self, old_value, new_value):\n        # React to changes\n        pass\n```\n\n### Message Passing and Communication\n\n**Custom Messages:**\n```python\nclass MyWidget(Widget):\n    class Changed(Message):\n        def __init__(self, value):\n            super().__init__()\n            self.value = value\n    \n    def some_action(self):\n        self.post_message(self.Changed(new_value))\n```\n\n**Message Handling:**\n```python\ndef on_my_widget_changed(self, event: MyWidget.Changed) -> None:\n    # Handle the message\n    pass\n```\n\n### Key Bindings and Focus\n\n**Defining Bindings:**\n```python\nclass MyWidget(Widget, can_focus=True):\n    BINDINGS = [\n        (\"enter\", \"submit\", \"Submit\"),\n        (\"escape\", \"cancel\", \"Cancel\"),\n    ]\n    \n    def action_submit(self) -> None:\n        # Handle action\n        pass\n```\n\n**Focus Management:**\n- Set `can_focus=True` for focusable widgets\n- Use Tab/Shift+Tab for navigation\n- Style focused state with `:focus` pseudo-selector\n\n### Common Anti-Patterns to Review\n\n1. **Direct widget manipulation across levels** - should use message passing\n2. **Missing event.stop()** in event handlers can cause unwanted bubbling\n3. **Hardcoded styles** instead of using CSS classes\n4. **Not using reactive attributes** for state that should trigger updates\n5. **Blocking operations** in event handlers without using workers (@work decorator)\n6. **Missing type hints** in compose() methods and event handlers\n\n### Performance Considerations\n\n- Use `@work` decorator for async operations\n- Implement Line API (`render_line`) for large scrollable content\n- Use `refresh(region)` for partial updates instead of full widget refresh\n- Consider `loading` reactive for async data loading states\n\nThis knowledge enables effective review of Textual applications for architecture, patterns, performance, and maintainability issues.",
+        "--tags",
+        "textual python tui gui framework architecture patterns widgets layout events"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "remember",
+      "timestamp": "2025-07-28T14:11:19.798Z",
+      "args": [
+        "code-reviewer",
+        "PeiDocker GUI uses comprehensive Textual framework APIs for TUI development:\n\n**Core Textual Framework:**\n- App class: Main application entry point with compose() method for initial UI\n- Screen class: Full terminal containers for different app views\n- ModalScreen: For modal dialogs and popups\n- Widget base class: Foundation for custom UI components\n- ComposeResult: Type hint for compose() method yields\n\n**Container Widgets:**\n- Vertical/Horizontal: Layout containers for organizing widgets\n- Grid: Grid-based layout container\n- Center: Centers child widgets within container\n- Middle: Vertical centering container\n\n**Input/Form Widgets:**\n- Input: Text input with validation support\n- Button: Clickable buttons with press events\n- Checkbox: Boolean toggle widgets\n- Static: Display-only text/content widgets\n- Label: Text labels for other widgets\n\n**UI Structure:**\n- Header: Top application header with title\n- Footer: Bottom footer with key bindings\n- ProgressBar: Progress indication widgets\n\n**Validation System:**\n- Validator base class: Custom validation logic\n- ValidationResult: Validation outcome objects\n- Function validator: Functional validation approach\n- Built-in validators: Number, Range, etc.\n\n**Message/Event System:**\n- Message base class: Custom message definitions\n- @on decorator: Event handler registration\n- Event bubbling: Messages propagate up widget hierarchy\n- Input.Changed/Input.Submitted: Input-specific events\n- Button.Pressed: Button activation events\n\n**Developer Patterns:**\n- @work decorator: Async background operations\n- push_screen_wait(): Modal screen handling\n- query_one(): Widget selection by selector\n- mount()/compose(): Widget lifecycle management\n- CSS-like styling with align properties",
+        "--tags",
+        "textual framework TUI widgets validation events"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "init",
+      "timestamp": "2025-07-28T15:39:12.237Z",
+      "args": [
+        {
+          "workingDirectory": "d:\\code\\PeiDocker",
+          "ideType": "vscode"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-28T15:39:16.816Z",
       "args": [
         "textual-tui-developer"
       ]
     }
   ],
-  "lastUpdated": "2025-07-28T14:51:21.009Z"
+  "lastUpdated": "2025-07-28T15:39:16.937Z"
 }

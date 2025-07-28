@@ -255,4 +255,10 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1753715029541_s59nsxyjx" time="2025/07/28 23:03">
+    <content>
+      Implementing a wizard interface in Textual involves using a stack of `Screen` objects. A central controller screen manages the flow by using `app.push_screen()` to advance to the next step and `app.pop_screen()` to return to the previous one. State should be managed via a single, shared data object (like a dataclass) passed to each screen&#x27;s constructor. For returning final data or confirmation, `screen.dismiss(result)` is used, often with a callback. Input validation is handled by assigning a list of `Validator` objects to an `Input` widget&#x27;s `validators` property and using `validate_on` to control the trigger. For performance, UI updates that involve removing and adding multiple widgets, like when changing steps, should be wrapped in a `with app.batch_update():` context to prevent flickering. Long-running tasks, such as network requests, must be run in a background thread using the `@work(thread=True)` decorator to avoid blocking the UI.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>
