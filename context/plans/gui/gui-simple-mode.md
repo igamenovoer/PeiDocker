@@ -48,10 +48,10 @@ The GUI uses a consistent screen numbering system where:
 
 - **Screen 0 (SC-0)**: Application Startup Screen - Entry point with system validation
 - **Screen 1 (SC-1)**: Project Directory Selection Screen - Project location setup
-- **Screen 2 (SC-2)**: Simple Mode Wizard Controller - Orchestrates the 11-step configuration wizard
+- **Screen 2 (SC-2)**: Simple Mode Wizard Controller - **Controller framework (not user-facing)** that orchestrates the 11-step configuration wizard
 - **Screens 3-13 (SC-3 to SC-13)**: Configuration wizard screens (Steps 1-11 of the wizard)
 
-**Important**: The wizard controller (Screen 2) manages 11 configuration steps, but these steps correspond to Screens 3-13. The step numbers (1-11) shown in the wizard UI refer to the configuration steps, while screen numbers (SC-3 to SC-13) refer to the actual screen implementations.
+**Important**: SC-2 is not a screen users visit directly. It's the underlying controller framework that provides navigation, state management, validation, and UI infrastructure for the actual wizard steps (SC-3 to SC-13). Users navigate between the 11 configuration steps, while SC-2 manages the flow behind the scenes.
 
 **Screen ID to Step Mapping:**
 - SC-3: Step 1 - Project Information
@@ -74,21 +74,22 @@ src/pei_docker/gui/
 ├── app.py                    # Main GUI application entry point
 ├── screens/
 │   ├── __init__.py
-│   ├── startup.py            # Project directory selection and validation
+│   ├── startup.py            # SC-0: Application startup (project directory selection)
+│   ├── project_selection.py  # SC-1: Project directory selection and validation
+│   ├── wizard_controller.py  # SC-2: Wizard controller framework (not user-facing)
 │   ├── simple/
 │   │   ├── __init__.py
-│   │   ├── wizard.py         # Main wizard orchestrator
-│   │   ├── project_info.py   # Step 1: Project name and base image
-│   │   ├── ssh_config.py     # Step 2: SSH configuration
-│   │   ├── proxy_config.py   # Step 3: Proxy configuration
-│   │   ├── apt_config.py     # Step 4: APT mirror configuration
-│   │   ├── port_mapping.py   # Step 5: Additional port mappings
-│   │   ├── env_vars.py       # Step 6: Environment variables
-│   │   ├── device_config.py  # Step 7: GPU/device configuration
-│   │   ├── mounts.py         # Step 8: Additional mount points
-│   │   ├── entry_point.py    # Step 9: Custom entry point scripts
-│   │   ├── custom_scripts.py # Step 10: Custom hook scripts
-│   │   └── summary.py        # Step 11: Configuration summary and save
+│   │   ├── project_info.py   # SC-3: Step 1: Project name and base image
+│   │   ├── ssh_config.py     # SC-4: Step 2: SSH configuration
+│   │   ├── proxy_config.py   # SC-5: Step 3: Proxy configuration
+│   │   ├── apt_config.py     # SC-6: Step 4: APT mirror configuration
+│   │   ├── port_mapping.py   # SC-7: Step 5: Additional port mappings
+│   │   ├── env_vars.py       # SC-8: Step 6: Environment variables
+│   │   ├── device_config.py  # SC-9: Step 7: GPU/device configuration
+│   │   ├── mounts.py         # SC-10: Step 8: Additional mount points
+│   │   ├── entry_point.py    # SC-11: Step 9: Custom entry point scripts
+│   │   ├── custom_scripts.py # SC-12: Step 10: Custom hook scripts
+│   │   └── summary.py        # SC-13: Step 11: Configuration summary and save
 ├── models/
 │   ├── __init__.py
 │   └── config.py            # Configuration data models
@@ -105,64 +106,53 @@ src/pei_docker/gui/
 
 ## Screen Flow Diagram
 
+![Screen Flow Diagram](figures/screen-flow-diagram.svg)
+
+<details>
+<summary>PlantUML Source</summary>
+
+```plantuml
+@startuml
+start
+:SC-0: Application Startup;
+
+if (Docker Available?) then (no)
+  :Warning Dialog;
+  stop
+endif
+
+:SC-1: Project Directory Selection;
+
+partition "SC-2: Wizard Controller Framework" {
+  :**11 Linear Configuration Steps**
+  SC-3: Project Info → SC-4: SSH Config → SC-5: Proxy
+  SC-6: APT Config → SC-7: Ports → SC-8: Environment
+  SC-9: Devices → SC-10: Mounts → SC-11: Entry Point
+  SC-12: Scripts → SC-13: Summary;
+  note right: Linear progression only (Prev/Next between consecutive steps)
+  
+  if (Save Configuration?) then (yes)
+    :Write user_config.yml;
+    :Continue Navigation;
+  else (cancel)
+    stop
+  endif
+}
+
+stop
+@enduml
 ```
-┌─────────────────┐
-│   Application   │
-│     Startup     │
-└─────┬───────────┘
-      │
-      ▼
-┌─────────────────┐    Docker not found
-│  System Check   │ ──────────────────► Warning Dialog
-└─────┬───────────┘
-      │
-      ▼
-┌─────────────────┐    pei-docker-gui start --project-dir provided
-│ Project Dir     │ ──────────────────► Skip to Simple Wizard
-│   Selection     │
-└─────┬───────────┘
-      │
-      ▼
-┌─────────────────┐
-│ Simple Wizard   │ ◄── Double ESC from any step
-│   Controller    │
-└─────┬───────────┘
-      │
-      ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ 1: Project Info │───►│ 2: SSH Config   │───►│ 3: Proxy Config │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-      ▲                        ▲                        ▲
-      │                        │                        │
-      ▼                        ▼                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ 4: APT Config   │───►│ 5: Port Mapping │───►│ 6: Environment  │
-└─────────────────┘    └─────────────────┘    │    Variables    │
-      ▲                        ▲              └─────────────────┘
-      │                        │                        ▲
-      ▼                        ▼                        │
-┌─────────────────┐    ┌─────────────────┐              ▼
-│ 7: Device Config│───►│ 8: Mounts       │    ┌─────────────────┐
-└─────────────────┘    └─────────────────┘    │ 9: Entry Point  │
-      ▲                        ▲              └─────────────────┘
-      │                        │                        ▲
-      ▼                        ▼                        │
-┌─────────────────┐    ┌─────────────────┐              ▼
-│10: Custom       │───►│11: Summary      │    ┌─────────────────┐
-│    Scripts      │    │   & Save        │    │ [Persistent     │
-└─────────────────┘    │ [Save|Back|     │    │  after save]    │
-                       │  Cancel]        │    │ Navigate ←→     │
-                       └─────────────────┘    │ Save again      │
-                                              └─────────────────┘
-```
+</details>
 
 **Navigation Rules:**
-- Each step: `prev` | `next` buttons (bi-directional)
+- **Linear Progression**: Users can only navigate between consecutive steps (SC-3 ↔ SC-4 ↔ SC-5, etc.)
+- **No Step Jumping**: Cannot skip ahead to SC-7 from SC-3 or jump back multiple steps  
+- Each step: `prev` | `next` buttons (consecutive steps only)
 - Final step: `prev` | `save` | `cancel` buttons  
 - Double ESC: Return to main menu from any step
 - Single ESC: Clear current input or go to previous state
 - Memory-only changes until save
-- After save: remain on summary page, continue navigation
+- After save: remain on summary page, continue linear navigation
 
 ## Detailed Screen Designs
 
@@ -238,19 +228,9 @@ src/pei_docker/gui/
 - Validate directory path and create if needed
 - After completion, proceed directly to Simple Wizard (no mode selection)
 
-### Screen 2: Simple Mode - Wizard Controller
+### Configuration Wizard Screens (SC-3 to SC-13)
 
-The wizard controller manages the flow between 11 configuration screens, maintaining state in memory until save and enabling unlimited back/forth navigation.
-
-**Navigation Features:**
-- Progress indicator showing current step (1-11)
-- `prev` | `next` buttons on each step (bi-directional navigation)
-- Final step has `prev` | `save` | `cancel` buttons
-- Double ESC: Return to main menu from any step
-- Single ESC: Clear current input or go to previous state
-- Memory-only state until explicit save
-- After save: persistent final page with continued navigation ability
-- Form validation before proceeding to next step
+The following screens represent the actual user-facing configuration steps, orchestrated by the SC-2 wizard controller framework. Each screen follows consistent navigation patterns with progress tracking and memory-based state management.
 
 ### Screen 3: Project Information Screen (Step 1 of 11)
 
@@ -720,12 +700,12 @@ The wizard controller manages the flow between 11 configuration screens, maintai
 
 ### Navigation
 - **Progress Indicator**: Shows current step (1-11) and total steps
-- **Prev/Next Buttons**: Bi-directional navigation between screens
+- **Prev/Next Buttons**: Linear navigation between consecutive screens only
 - **Double ESC**: Return to main menu from any step
 - **Single ESC**: Clear current input or go to previous state
 - **Final Page**: Prev | Save | Cancel buttons
 - **Keyboard Shortcuts**: Tab, Enter, Escape, arrow keys
-- **Unlimited Navigation**: Go back and forth between steps indefinitely
+- **Linear Navigation**: Go back and forth between consecutive steps only
 
 ### Validation
 - **Real-time Validation**: Input validation as user types
@@ -786,7 +766,7 @@ This updated design reflects the new simple-mode-only approach with these critic
 ### Enhanced Features  
 - **Memory-First State**: All changes kept in memory until explicit save
 - **Persistent Final Page**: After save, stay on summary page for more iterations
-- **Enhanced Navigation**: Unlimited back/forth movement with double-ESC to main menu
+- **Linear Navigation**: Sequential step progression with double-ESC to main menu
 - **SSH User UID**: Added UID field (default 1100) to avoid system user conflicts
 - **Iterative Workflow**: Save multiple times after making changes
 
@@ -795,6 +775,6 @@ This updated design reflects the new simple-mode-only approach with these critic
 - **Final Step**: [Prev] | [Save] | [Cancel] buttons  
 - **Double ESC**: Return to main menu from anywhere
 - **Single ESC**: Clear input or go to previous state
-- **Post-Save**: Continue navigation and save again as needed
+- **Post-Save**: Continue linear navigation and save again as needed
 
 This design provides a streamlined, single-mode wizard interface that guides users through PeiDocker project creation while maintaining maximum flexibility for configuration changes and iterations.

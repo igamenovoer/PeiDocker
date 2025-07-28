@@ -1,0 +1,31 @@
+@startuml
+start
+:User triggers navigation (Prev/Next);
+if (Navigation direction?) then (Next)
+  :Validate current step inputs;
+  if (Validation passes?) then (yes)
+    :Save step data to memory store;
+    :Increment step counter;
+    if (Step <= 11?) then (yes)
+      :Load next step screen;
+    else (no)
+      :Stay on current step;
+    endif
+  else (no)
+    :Display validation errors;
+    :Focus first invalid field;
+    :Prevent navigation;
+  endif
+else (Prev)
+  :Save current step data to memory store;
+  :Decrement step counter;
+  if (Step >= 1?) then (yes)
+    :Load previous step screen;
+  else (no)
+    :Stay on current step;
+  endif
+endif
+:Update progress indicator;
+:Update navigation button states;
+stop
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+start
+:Initialize empty configuration store;
+note right: In-memory Python dict structure
+repeat
+  :User modifies form inputs;
+  :Update memory store with changes;
+  note right: Real-time updates without file I/O
+  :Trigger validation on current fields;
+  if (User navigates to different step?) then (yes)
+    :Validate current step if going forward;
+    if (Validation passes or going backward?) then (yes)
+      :Save current step to memory store;
+      :Load new step with stored data;
+    else (no)
+      :Prevent navigation;
+      :Show validation errors;
+    endif
+  endif
+repeat while (User continues editing?)
+:User clicks Save on final step;
+:Convert memory store to user_config.yml;
+:Write file to project directory;
+:Update UI with save confirmation;
+:Keep memory store active for more changes;
+stop
+@enduml
