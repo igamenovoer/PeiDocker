@@ -206,3 +206,6 @@ tmp/
 *.figlist
 *.makefile
 *.fls_latexmk
+
+# Claude AI settings
+.claude/
