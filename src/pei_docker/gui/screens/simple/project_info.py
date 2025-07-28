@@ -62,28 +62,19 @@ class ProjectInfoWidget(Widget):
     # Flat Material Design CSS (same as Screen version)
     DEFAULT_CSS = """
     ProjectInfoWidget {
-        background: $surface;
         padding: 2;
     }
     
     /* Clean container without depth effects */
     .project-info-container {
-        background: $surface;
         border: none;
         padding: 2;
         margin: 1;
     }
     
-    /* Flat input styling */
+    /* Minimal input styling - let Textual defaults handle text visibility */
     Input {
-        background: $surface;
-        border: solid $foreground 20%;
-        padding: 1;
-    }
-    
-    Input:focus {
-        border: solid $primary;
-        background: $surface-lighten-1;
+        margin: 1 0;
     }
     
     /* Image suggestions styling */
@@ -140,8 +131,8 @@ class ProjectInfoWidget(Widget):
                 Label("Project Name: *", classes="field-label"),
                 classes="field-row"
             )
+            # Fix: Initialize empty and set value after mount to avoid Textual reactive initialization bug
             yield Input(
-                value=self.project_config.project_name,
                 placeholder="Enter project name...",
                 id="project_name",
                 classes="project-input"
@@ -164,8 +155,8 @@ class ProjectInfoWidget(Widget):
                 Label("Base Docker Image: *", classes="field-label"),
                 classes="field-row"
             )
+            # Fix: Initialize empty and set value after mount to avoid Textual reactive initialization bug
             yield Input(
-                value=self.project_config.stage_1.base_image,
                 placeholder="ubuntu:24.04",
                 id="base_image",
                 classes="base-image-input"
@@ -173,6 +164,16 @@ class ProjectInfoWidget(Widget):
             
             yield Static()  # Spacer
             yield Static("* Required field", classes="required-note")
+    
+    async def on_mount(self) -> None:
+        """Set Input widget values after mount to avoid Textual reactive initialization bug."""
+        # Set project name value after mount to ensure proper display
+        project_name_input = self.query_one("#project_name", Input)
+        project_name_input.value = self.project_config.project_name
+        
+        # Set base image value after mount as well for consistency  
+        base_image_input = self.query_one("#base_image", Input)
+        base_image_input.value = self.project_config.stage_1.base_image
     
     @on(Input.Changed, "#project_name")
     def on_project_name_changed(self, event: Input.Changed) -> None:

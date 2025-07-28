@@ -397,3 +397,109 @@ This document catalogs all example files found in the Textual codebase at `conte
 6. **Testing**: Reference `tests/snapshot_tests/snapshot_apps/` for testing patterns
 
 All examples demonstrate modern Textual v0.50+ API patterns and best practices for TUI development.
+
+## 🎯 PeiDocker GUI Relevance Analysis
+
+Based on the PeiDocker GUI functional requirements (wizard-style configuration interface with 11 sequential steps), the following examples are particularly relevant for implementation:
+
+### 🔥 **Critical Priority Examples** (Must Study)
+
+#### **Multi-Screen Navigation & State Management**
+- **`tutorial/stopwatch01.py` to `stopwatch06.py`** - Progressive tutorial showing screen evolution
+- **`guide/screens/screen01.py`, `screen02.py`** - Basic screen management patterns
+- **`guide/screens/modal01.py` to `modal03.py`** - Modal dialog patterns for warnings/confirmations
+- **`guide/screens/questions01.py`** - Question-style screen interface (similar to wizard steps)
+- **`tests/snapshot_tests/snapshot_apps/screen_switch.py`** - Screen switching mechanics
+
+#### **Form Input & Validation Patterns**
+- **`guide/widgets/hello01.py` to `hello06.py`** - Progressive widget complexity examples
+- **`widgets/input.py`, `input_types.py`, `input_validation.py`** - Input widget patterns matching our form fields
+- **`widgets/checkbox.py`** - Boolean option widgets (SSH enable/disable, GPU support)
+- **`widgets/radio_button.py`, `radio_set.py`** - Radio button groups (proxy usage, mirror selection)
+- **`guide/reactivity/validate01.py`** - Input validation patterns
+- **`widgets/masked_input.py`** - Password field patterns
+
+#### **Layout Architecture**
+- **`guide/layout/vertical_layout.py`** - Main layout pattern for wizard steps
+- **`guide/layout/utility_containers.py`** - Container organization
+- **`guide/layout/dock_layout1_sidebar.py`** - Header/footer layout with content area
+- **`examples/sidebar.py`** - Sidebar navigation patterns
+
+### 🚀 **High Priority Examples** (Recommended Study)
+
+#### **Dynamic Content & List Management**
+- **`widgets/option_list_strings.py`, `option_list_options.py`** - Dynamic lists (port mappings, env vars)
+- **`widgets/selection_list_selected.py`** - Selection patterns for mirrors/options
+- **`guide/reactivity/recompose01.py`, `recompose02.py`** - Dynamic content updates
+- **`guide/reactivity/watch01.py`** - State change watching
+
+#### **Application Structure**
+- **`src/textual/demo/demo_app.py`** - Multi-screen application architecture
+- **`examples/calculator.py`** - Complex application with state management
+- **`app/widgets01.py` to `widgets04.py`** - Progressive widget integration
+
+#### **Progress & Navigation**
+- **`widgets/progress_bar.py`** - Step progress indication (Step X of 11)
+- **`guide/actions/actions01.py` to `actions03.py`** - Key binding patterns (Prev/Next/ESC)
+- **`widgets/header.py`** - Header with progress/title display
+
+### 📚 **Medium Priority Examples** (Supporting Patterns)
+
+#### **Styling & Visual Polish**
+- **`guide/styles/border01.py`, `border_title.py`** - Screen border styling
+- **`styles/color.py`, `colors01.py`** - Color scheme consistency
+- **`styles/padding01.py`, `margin01.py`** - Spacing and layout refinement
+- **`examples/calculator.tcss`** - External CSS file patterns
+
+#### **Advanced Features**
+- **`widgets/toast.py`** - Success/error notifications
+- **`widgets/loading_indicator.py`** - System validation feedback
+- **`command_palette/command01.py`** - Advanced navigation features
+- **`guide/workers/weather01.py`** - Background validation tasks
+
+#### **File & System Integration**
+- **`widgets/directory_tree.py`** - Directory selection patterns
+- **`examples/code_browser.py`** - File system interaction
+- **`tests/snapshot_tests/snapshot_apps/welcome_widget.py`** - Startup screen patterns
+
+### 🔧 **Testing & Development**
+
+#### **GUI Testing Patterns**
+- **`guide/testing/test_rgb.py`** - Widget testing methodologies
+- **`tests/snapshot_tests/snapshot_apps/` (various)** - Comprehensive testing examples
+- **Visual regression testing patterns for GUI validation**
+
+### 📋 **Implementation Roadmap by PeiDocker Screen**
+
+#### **SC-0 (Startup) → Study:**
+- `examples/splash.py` - Splash screen patterns
+- `widgets/loading_indicator.py` - System validation
+- `tests/snapshot_tests/snapshot_apps/welcome_widget.py`
+
+#### **SC-1 (Project Directory) → Study:**
+- `widgets/input.py`, `input_validation.py` - Path input
+- `widgets/directory_tree.py` - Directory selection
+- `guide/reactivity/validate01.py` - Path validation
+
+#### **SC-3-13 (Wizard Steps) → Study:**
+- `tutorial/stopwatch01.py` to `stopwatch06.py` - Step-by-step progression
+- `guide/screens/questions01.py` - Question interface pattern
+- `widgets/radio_button.py`, `checkbox.py` - Option selection
+- `guide/reactivity/watch01.py` - State management between steps
+
+#### **Cross-Screen Patterns → Study:**
+- `guide/screens/screen01.py`, `screen02.py` - Screen base classes
+- `guide/actions/actions01.py` - Navigation key bindings
+- `guide/reactivity/recompose01.py` - Dynamic updates
+
+### 🎯 **Key Learning Focus Areas**
+
+1. **Screen Management**: How to create cohesive multi-screen workflows
+2. **State Persistence**: Memory-based configuration storage across screens
+3. **Form Validation**: Real-time input validation and error display
+4. **Dynamic Lists**: Add/remove functionality for ports, environment variables
+5. **Conditional UI**: Show/hide sections based on user selections
+6. **Navigation Flow**: Prev/Next button logic with validation gates
+7. **Visual Consistency**: Unified styling across all wizard steps
+
+These examples provide comprehensive coverage of all patterns needed for the PeiDocker GUI wizard interface.

@@ -111,7 +111,7 @@ class PeiDockerApp(App[None]):
     }
     """
     
-    def __init__(self, project_dir: Optional[str] = None):
+    def __init__(self, project_dir: Optional[str] = None, dev_screen: Optional[str] = None):
         """
         Initialize the PeiDocker GUI application.
         
@@ -120,6 +120,9 @@ class PeiDockerApp(App[None]):
         project_dir : str, optional
             Project directory path to use. If provided, skips directory selection
             screen and pre-fills the project configuration. Default is None.
+        dev_screen : str, optional
+            Screen ID to start with for development mode (e.g., 'sc-0', 'sc-1', 'sc-3').
+            Default is None for normal startup flow.
             
         Notes
         -----
@@ -127,9 +130,11 @@ class PeiDockerApp(App[None]):
         - Creates a new ProjectConfig instance
         - Sets project directory and name if provided via CLI
         - Checks Docker availability for system validation
+        - Stores dev_screen for development mode navigation
         """
         super().__init__()
         self.project_config = ProjectConfig()
+        self.dev_screen = dev_screen
         
         # Set project directory if provided
         if project_dir:
@@ -144,19 +149,91 @@ class PeiDockerApp(App[None]):
         Initialize the application when mounted.
         
         This method is called by Textual when the application is first mounted.
-        It sets up the initial screen (startup screen) and prepares the 
-        application for user interaction.
+        It sets up the initial screen based on whether dev_screen is specified.
+        In normal mode, starts with startup screen. In dev mode, jumps directly
+        to the specified screen for development/testing purposes.
         
         Notes
         -----
         The startup screen performs system validation and displays application
-        branding before proceeding to the main workflow.
+        branding before proceeding to the main workflow. Dev mode bypasses this
+        for rapid development iteration.
         """
-        # Install all screens
-        self.install_screen(StartupScreen(self.project_config, self.docker_available, self.docker_version), "startup")
+        if self.dev_screen:
+            # Development mode - jump directly to specified screen
+            self._jump_to_dev_screen(self.dev_screen)
+        else:
+            # Normal mode - start with startup screen
+            self.install_screen(StartupScreen(self.project_config, self.docker_available, self.docker_version), "startup")
+            self.push_screen("startup")
+    
+    def _jump_to_dev_screen(self, screen_id: str) -> None:
+        """
+        Jump directly to a specific screen for development mode.
         
-        # Start with startup screen
+        This method bypasses the normal application flow and jumps directly
+        to the specified screen. It's used for development and testing to
+        avoid manual navigation through multiple screens.
+        
+        Parameters
+        ----------
+        screen_id : str
+            Screen identifier (e.g., 'sc-0', 'sc-1', 'sc-3')
+            
+        Raises
+        ------
+        ValueError
+            If the screen_id is not supported or invalid
+            
+        Notes
+        -----
+        Supported screens:
+        - sc-0: StartupScreen (system validation)
+        - sc-1: ProjectDirectorySelectionScreen
+        - sc-3: First wizard step (Project Information)
+        """
+        # Validate project directory is set for screens that require it
+        if screen_id in ['sc-1', 'sc-3'] and not self.project_config.project_dir:
+            print(f"Error: dev screen '{screen_id}' requires project directory to be set")
+            sys.exit(1)
+        
+        screen_mapping = {
+            'sc-0': self._setup_startup_screen,
+            'sc-1': self._setup_project_selection_screen,
+            'sc-3': self._setup_wizard_first_step,
+        }
+        
+        if screen_id not in screen_mapping:
+            print(f"Error: Unsupported dev screen '{screen_id}'. Supported: {list(screen_mapping.keys())}")
+            sys.exit(1)
+        
+        # Call the appropriate setup method
+        screen_mapping[screen_id]()
+    
+    def _setup_startup_screen(self) -> None:
+        """Setup and display the startup screen (sc-0)."""
+        startup_screen = StartupScreen(self.project_config, self.docker_available, self.docker_version)
+        self.install_screen(startup_screen, "startup")
         self.push_screen("startup")
+    
+    def _setup_project_selection_screen(self) -> None:
+        """Setup and display the project directory selection screen (sc-1)."""
+        from .screens.project_setup import ProjectDirectorySelectionScreen
+        project_setup_screen = ProjectDirectorySelectionScreen(
+            self.project_config, 
+            has_cli_project_dir=bool(self.project_config.project_dir)
+        )
+        self.install_screen(project_setup_screen, "project_setup")
+        self.push_screen("project_setup")
+    
+    def _setup_wizard_first_step(self) -> None:
+        """Setup and display the first wizard step (sc-3)."""
+        from .screens.simple.wizard import SimpleWizardScreen
+        wizard_screen = SimpleWizardScreen(self.project_config)
+        # Set to first step (step 0 = sc-3)
+        wizard_screen.current_step = 0
+        self.install_screen(wizard_screen, "simple_wizard")
+        self.push_screen("simple_wizard")
     
     def action_goto_project_setup(self) -> None:
         """
@@ -279,9 +356,9 @@ def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None
     -----
     The function handles KeyboardInterrupt gracefully and displays appropriate
     error messages for any exceptions that occur during application execution.
-    Development mode screen selection is not yet fully implemented.
+    Development mode supports jumping directly to sc-0, sc-1, and sc-3 screens.
     """
-    app = PeiDockerApp(project_dir=project_dir)
+    app = PeiDockerApp(project_dir=project_dir, dev_screen=dev_screen)
     
     # Handle development mode screen selection
     if dev_screen:
@@ -289,8 +366,13 @@ def _run_app(project_dir: Optional[str] = None, dev_screen: Optional[str] = None
             click.echo("Error: --screen option requires --project-dir to be specified", err=True)
             sys.exit(1)
         
-        # TODO: Implement screen-specific startup for development mode
-        # For now, we'll just start normally and log the intended screen
+        # Validate screen ID early
+        supported_screens = ['sc-0', 'sc-1', 'sc-3']
+        if dev_screen not in supported_screens:
+            click.echo(f"Error: Unsupported dev screen '{dev_screen}'. Supported: {supported_screens}", err=True)
+            sys.exit(1)
+        
+        # Development mode - screen-specific startup is now implemented
         click.echo(f"Starting in development mode with screen: {dev_screen}")
     
     try:
@@ -431,8 +513,8 @@ def dev(project_dir: Optional[Path], here: bool, screen: Optional[str]) -> None:
         
     Notes
     -----
-    Screen-specific startup is not yet fully implemented. Currently, the
-    application starts normally but logs the intended development screen.
+    Screen-specific startup is implemented for sc-0, sc-1, and sc-3. The
+    application jumps directly to the specified screen for rapid development.
     """
     if here and project_dir:
         click.echo("Error: Cannot specify both --here and --project-dir", err=True)

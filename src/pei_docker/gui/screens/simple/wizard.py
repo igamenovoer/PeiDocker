@@ -125,13 +125,10 @@ class SimpleWizardScreen(Screen[None]):
                     classes="wizard-progress"
                 )
             
-            # Current step content - Create and yield the step widget directly
+            # Current step content - Empty container for dynamic mounting
             with Vertical(classes="wizard-content", id="step_content"):
-                # Initialize the current step widget
-                step = self.steps[self.current_step]
-                step_widget = step.screen_class(self.project_config)
-                self.step_screens[self.current_step] = step_widget
-                yield step_widget
+                # Widget will be mounted dynamically in on_mount() and navigation
+                pass
             
             # Navigation - permanent buttons with visibility control
             with Horizontal(classes="wizard-navigation"):
@@ -141,23 +138,23 @@ class SimpleWizardScreen(Screen[None]):
                     yield Button("Save", id="save", variant="success")
                     yield Button("Cancel", id="cancel", variant="default")
     
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Called when the screen is mounted."""
         # Set initial progress bar value and button visibility
-        self._update_step()
+        await self._update_step()
         
         # Set initial button visibility
         is_last_step = self.current_step >= len(self.steps) - 1
         self.query_one("#next", Button).display = not is_last_step
         self.query_one("#save", Button).display = is_last_step
     
-    def action_back(self) -> None:
+    async def action_back(self) -> None:
         """Go to previous step."""
         if self.current_step > 0:
             self.current_step -= 1
-            self._update_step()
+            await self._update_step()
     
-    def action_next(self) -> None:
+    async def action_next(self) -> None:
         """Go to next step."""
         # Validate current step before proceeding
         if not self._validate_current_step():
@@ -166,7 +163,7 @@ class SimpleWizardScreen(Screen[None]):
         
         if self.current_step < len(self.steps) - 1:
             self.current_step += 1
-            self._update_step()
+            await self._update_step()
     
     def action_save(self) -> None:
         """Save the configuration (final step only)."""
@@ -202,7 +199,7 @@ class SimpleWizardScreen(Screen[None]):
         """Reset escape count after timeout."""
         self.escape_count = 0
     
-    def _update_step(self) -> None:
+    async def _update_step(self) -> None:
         """Update the current step display."""
         # Update title and progress
         title_label = self.query_one(".wizard-title", Label)
@@ -211,8 +208,8 @@ class SimpleWizardScreen(Screen[None]):
         progress_bar = self.query_one(".wizard-progress", ProgressBar)
         progress_bar.progress = self.current_step + 1
         
-        # Update the step content
-        self._update_step_content()
+        # Update the step content (async operation)
+        await self._update_step_content()
         
         # Update navigation button states (no DOM manipulation)
         self._update_navigation_states()
@@ -228,7 +225,7 @@ class SimpleWizardScreen(Screen[None]):
         self.query_one("#next", Button).display = not is_last_step
         self.query_one("#save", Button).display = is_last_step
     
-    def _update_step_content(self) -> None:
+    async def _update_step_content(self) -> None:
         """Update the step content area."""
         content_container = self.query_one("#step_content")
         content_container.remove_children()
@@ -238,10 +235,10 @@ class SimpleWizardScreen(Screen[None]):
             step = self.steps[self.current_step]
             self.step_screens[self.current_step] = step.screen_class(self.project_config)
         
-        # Mount the step screen widget directly
+        # Mount the step screen widget directly (async operation)
         step_screen = self.step_screens[self.current_step]
         assert step_screen is not None, "Screen should not be None after initialization"
-        content_container.mount(step_screen)
+        await content_container.mount(step_screen)
     
     def _validate_current_step(self) -> bool:
         """Validate the current step before proceeding."""
@@ -257,14 +254,14 @@ class SimpleWizardScreen(Screen[None]):
         return True
     
     @on(Button.Pressed, "#prev")
-    def on_prev_pressed(self) -> None:
+    async def on_prev_pressed(self) -> None:
         """Prev button pressed."""
-        self.action_back()
+        await self.action_back()
     
     @on(Button.Pressed, "#next")
-    def on_next_pressed(self) -> None:
+    async def on_next_pressed(self) -> None:
         """Next button pressed."""
-        self.action_next()
+        await self.action_next()
     
     @on(Button.Pressed, "#save")
     def on_save_pressed(self) -> None:
