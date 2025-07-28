@@ -9,6 +9,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
 from textual.widgets import Header, Footer, Label, Button, ProgressBar
+from textual.css.query import NoMatches
 
 from ...models.config import ProjectConfig
 
@@ -86,7 +87,7 @@ class SimpleWizardScreen(Screen[None]):
         
     def _create_steps(self) -> List[WizardStep]:
         """Create the wizard steps."""
-        from .project_info import ProjectInfoScreen
+        from .project_info import ProjectInfoWidget
         from .ssh_config import SSHConfigScreen
         from .proxy_config import ProxyConfigScreen
         from .apt_config import APTConfigScreen
@@ -99,7 +100,7 @@ class SimpleWizardScreen(Screen[None]):
         from .summary import SummaryScreen
         
         return [
-            WizardStep("project_info", "Project Information", ProjectInfoScreen),
+            WizardStep("project_info", "Project Information", ProjectInfoWidget),
             WizardStep("ssh_config", "SSH Configuration", SSHConfigScreen),
             WizardStep("proxy_config", "Proxy Configuration", ProxyConfigScreen),
             WizardStep("apt_config", "APT Configuration", APTConfigScreen),
@@ -124,9 +125,13 @@ class SimpleWizardScreen(Screen[None]):
                     classes="wizard-progress"
                 )
             
-            # Current step content
+            # Current step content - Create and yield the step widget directly
             with Vertical(classes="wizard-content", id="step_content"):
-                yield from self._get_current_step_screen()
+                # Initialize the current step widget
+                step = self.steps[self.current_step]
+                step_widget = step.screen_class(self.project_config)
+                self.step_screens[self.current_step] = step_widget
+                yield step_widget
             
             # Navigation
             with Horizontal(classes="wizard-navigation"):
@@ -207,17 +212,52 @@ class SimpleWizardScreen(Screen[None]):
         try:
             prev_btn = self.query_one("#prev", Button) 
             prev_btn.disabled = self.current_step == 0
-        except:
+        except NoMatches:
             pass  # Button might not exist yet
         
         # Update the step content
         self._update_step_content()
         
-        # Re-mount navigation area with correct buttons
+        # Update navigation buttons efficiently without DOM manipulation
+        self._update_navigation_buttons()
+    
+    def _update_navigation_buttons(self) -> None:
+        """Update button states without DOM manipulation."""
+        # Update prev button state
+        try:
+            prev_btn = self.query_one("#prev", Button)
+            prev_btn.disabled = self.current_step == 0
+        except NoMatches:
+            pass  # Button doesn't exist yet
+        
+        # Handle next/save button - only recreate if needed
+        is_last_step = self.current_step >= len(self.steps) - 1
+        
+        # Try to find existing buttons
+        has_next = False
+        has_save = False
+        try:
+            self.query_one("#next", Button)
+            has_next = True
+        except NoMatches:
+            pass
+            
+        try:
+            self.query_one("#save", Button)
+            has_save = True
+        except NoMatches:
+            pass
+        
+        # Only recreate navigation if button type mismatch
+        if (is_last_step and not has_save) or (not is_last_step and not has_next):
+            self._recreate_navigation_buttons()
+    
+    def _recreate_navigation_buttons(self) -> None:
+        """Recreate navigation buttons only when button type needs to change."""
         nav_container = self.query_one(".wizard-navigation")
         nav_container.remove_children()
         
-        # Create buttons first
+        # Create appropriate buttons for current step
         prev_button = Button("Prev", id="prev", variant="default", disabled=self.current_step == 0)
         
         if self.current_step >= len(self.steps) - 1:
@@ -230,16 +270,6 @@ class SimpleWizardScreen(Screen[None]):
         # Create container with buttons
         nav_buttons = Horizontal(prev_button, action_button, cancel_button, classes="nav-buttons")
         nav_container.mount(nav_buttons)
-    
-    def _get_current_step_screen(self) -> ComposeResult:
-        """Get the current step screen content."""
-        if self.step_screens[self.current_step] is None:
-            step = self.steps[self.current_step]
-            self.step_screens[self.current_step] = step.screen_class(self.project_config)
-        
-        current_screen = self.step_screens[self.current_step]
-        assert current_screen is not None, "Screen should not be None after initialization"
-        yield from current_screen.compose()
     
     def _update_step_content(self) -> None:
         """Update the step content area."""

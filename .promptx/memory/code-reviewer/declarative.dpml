@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<memory>
+  <item id="mem_1753710609320_nclhx9zp1" time="2025/07/28 21:50">
+    <content>
+      # Tool Skill Memory
+    
+      ## Textual Python TUI Library - Basic Usage Patterns
+    
+      Textual is a modern Python framework for creating Text User Interface (TUI) applications that run in the terminal and browser. Understanding its core patterns is essential for code review.
+    
+      ### Core Architecture Patterns
+    
+      **App Structure:**
+      - All Textual apps inherit from `textual.app.App`
+      - Apps use a `compose()` method returning `ComposeResult` to define UI structure
+      - Entry point: `app.run()` to start the application
+      - Apps can be run inline with `app.run(inline=True)` for embedding
+    
+      **Widget Hierarchy:**
+      - Widgets organized in tree structure with parent-child relationships
+      - Base class: `textual.widget.Widget` or subclasses like `Static`
+      - Widgets manage rectangular screen regions and respond to events
+      - Every widget runs in its own asyncio task
+    
+      **Event-Driven Architecture:**
+      - Event handlers use `on_&lt;event_name&gt;` naming convention (e.g., `on_mount`, `on_key`, `on_click`)
+      - Events bubble up the widget hierarchy unless stopped with `event.stop()`
+      - Actions triggered by key bindings use `action_&lt;name&gt;` method naming
+    
+      ### Essential Import Patterns
+    
+      ```python
+      from textual.app import App, ComposeResult
+      from textual.widgets import Header, Footer, Static, Button, Input
+      from textual.containers import Container, Horizontal, Vertical
+      from textual.reactive import reactive
+      from textual.message import Message
+      ```
+    
+      ### Layout Systems
+    
+      **Vertical/Horizontal Layouts:**
+      - `layout: vertical` (default for Screen) - top to bottom
+      - `layout: horizontal` - left to right
+      - Use `1fr` units for equal space distribution
+      - Utility containers: `Horizontal()`, `Vertical()`, `Grid()`
+    
+      **Grid Layout:**
+      - Set `layout: grid` and `grid-size: columns [rows]`
+      - Configure with `grid-columns`, `grid-rows` properties
+      - Support cell spanning with `column-span`, `row-span`
+      - Add spacing with `grid-gutter`
+    
+      **Docking:**
+      - Remove widgets from layout and fix position with `dock: top|right|bottom|left`
+      - Ideal for headers, footers, sidebars
+      - Docked widgets don&#x27;t scroll out of view
+    
+      ### CSS and Styling
+    
+      **TCSS (Textual CSS):**
+      - CSS-like syntax for styling widgets
+      - External files with `CSS_PATH` class variable
+      - Inline with `CSS` class variable
+      - Default widget styles with `DEFAULT_CSS` class variable
+    
+      **Selectors and Specificity:**
+      - Widget class names (e.g., `Button`)
+      - IDs with `#` (e.g., `#my-button`)
+      - Classes with `.` (e.g., `.primary`)
+      - Pseudo-selectors like `:focus`, `:hover`, `:focus-within`
+    
+      ### Widget Development Patterns
+    
+      **Custom Widgets:**
+      ```python
+      class MyWidget(Static):  # Usually extend Static, not Widget
+      DEFAULT_CSS = &quot;&quot;&quot;...&quot;&quot;&quot;  # Bundle CSS with widget
+    
+      def __init__(self, ...):
+      super().__init__()
+    
+      def on_mount(self) -&gt; None:
+      # Widget initialization
+      pass
+    
+      def render(self) -&gt; str:
+      # Return content for widget
+      return &quot;Content&quot;
+      ```
+    
+      **Compound Widgets:**
+      - Use `compose()` method to yield child widgets
+      - Combine multiple widgets into reusable components
+      - Follow &quot;attributes down, messages up&quot; pattern
+    
+      **Reactive Attributes:**
+      ```python
+      from textual.reactive import reactive
+    
+      class MyWidget(Widget):
+      count = reactive(0)  # Auto-refresh on change
+    
+      def watch_count(self, old_value, new_value):
+      # React to changes
+      pass
+      ```
+    
+      ### Message Passing and Communication
+    
+      **Custom Messages:**
+      ```python
+      class MyWidget(Widget):
+      class Changed(Message):
+      def __init__(self, value):
+      super().__init__()
+      self.value = value
+    
+      def some_action(self):
+      self.post_message(self.Changed(new_value))
+      ```
+    
+      **Message Handling:**
+      ```python
+      def on_my_widget_changed(self, event: MyWidget.Changed) -&gt; None:
+      # Handle the message
+      pass
+      ```
+    
+      ### Key Bindings and Focus
+    
+      **Defining Bindings:**
+      ```python
+      class MyWidget(Widget, can_focus=True):
+      BINDINGS = [
+      (&quot;enter&quot;, &quot;submit&quot;, &quot;Submit&quot;),
+      (&quot;escape&quot;, &quot;cancel&quot;, &quot;Cancel&quot;),
+      ]
+    
+      def action_submit(self) -&gt; None:
+      # Handle action
+      pass
+      ```
+    
+      **Focus Management:**
+      - Set `can_focus=True` for focusable widgets
+      - Use Tab/Shift+Tab for navigation
+      - Style focused state with `:focus` pseudo-selector
+    
+      ### Common Anti-Patterns to Review
+    
+      1. **Direct widget manipulation across levels** - should use message passing
+      2. **Missing event.stop()** in event handlers can cause unwanted bubbling
+      3. **Hardcoded styles** instead of using CSS classes
+      4. **Not using reactive attributes** for state that should trigger updates
+      5. **Blocking operations** in event handlers without using workers (@work decorator)
+      6. **Missing type hints** in compose() methods and event handlers
+    
+      ### Performance Considerations
+    
+      - Use `@work` decorator for async operations
+      - Implement Line API (`render_line`) for large scrollable content
+      - Use `refresh(region)` for partial updates instead of full widget refresh
+      - Consider `loading` reactive for async data loading states
+    
+      This knowledge enables effective review of Textual applications for architecture, patterns, performance, and maintainability issues.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753711879800_ra1ipag2o" time="2025/07/28 22:11">
+    <content>
+      PeiDocker GUI uses comprehensive Textual framework APIs for TUI development:
+    
+      **Core Textual Framework:**
+      - App class: Main application entry point with compose() method for initial UI
+      - Screen class: Full terminal containers for different app views
+      - ModalScreen: For modal dialogs and popups
+      - Widget base class: Foundation for custom UI components
+      - ComposeResult: Type hint for compose() method yields
+    
+      **Container Widgets:**
+      - Vertical/Horizontal: Layout containers for organizing widgets
+      - Grid: Grid-based layout container
+      - Center: Centers child widgets within container
+      - Middle: Vertical centering container
+    
+      **Input/Form Widgets:**
+      - Input: Text input with validation support
+      - Button: Clickable buttons with press events
+      - Checkbox: Boolean toggle widgets
+      - Static: Display-only text/content widgets
+      - Label: Text labels for other widgets
+    
+      **UI Structure:**
+      - Header: Top application header with title
+      - Footer: Bottom footer with key bindings
+      - ProgressBar: Progress indication widgets
+    
+      **Validation System:**
+      - Validator base class: Custom validation logic
+      - ValidationResult: Validation outcome objects
+      - Function validator: Functional validation approach
+      - Built-in validators: Number, Range, etc.
+    
+      **Message/Event System:**
+      - Message base class: Custom message definitions
+      - @on decorator: Event handler registration
+      - Event bubbling: Messages propagate up widget hierarchy
+      - Input.Changed/Input.Submitted: Input-specific events
+      - Button.Pressed: Button activation events
+    
+      **Developer Patterns:**
+      - @work decorator: Async background operations
+      - push_screen_wait(): Modal screen handling
+      - query_one(): Widget selection by selector
+      - mount()/compose(): Widget lifecycle management
+      - CSS-like styling with align properties
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753713718605_mr78uconq" time="2025/07/28 22:41">
+    <content>
+      # Tool Skill Memory
+    
+      ## The Wizard User Interface Pattern
+    
+      The Wizard is a design pattern that guides a user through a sequence of steps to accomplish a complex task, such as a setup process, configuration, or a multi-part form. It breaks down a large task into smaller, manageable chunks, presented on separate screens in a specific order.
+    
+      ### Core Components &amp; Architecture
+    
+      1.  **Wizard Controller/Orchestrator**:
+      - The central component responsible for managing the wizard&#x27;s flow and state.
+      - It dictates the sequence of steps, handles navigation logic (Next, Previous, Finish, Cancel), and orchestrates communication between the state model and the step views.
+      - This aligns with the controller/presenter role in MVC/MVP architectures.
+    
+      2.  **Step Screens (Views)**:
+      - Individual UI screens, each dedicated to a specific part of the overall task.
+      - Each step should be focused and self-contained, responsible for gathering a specific set of inputs.
+    
+      3.  **Configuration State Model**:
+      - An in-memory data structure that holds the user&#x27;s input as they progress through the wizard.
+      - This model is updated at each step and serves as the single source of truth for the wizard&#x27;s session.
+      - The data is typically only persisted to a file or database upon explicit user confirmation on the final step.
+    
+      ### Key Behavioral Patterns &amp; Best Practices
+    
+      -   **Linear Navigation**: Enforce a sequential flow. While backward navigation (`Previous`) is essential for corrections, forward navigation (`Next`) should only lead to the immediate next step. Disallow skipping steps to ensure data dependencies are met.
+      -   **Progress Indication**: Always provide clear feedback on the user&#x27;s progress (e.g., &#x27;Step 3 of 11&#x27;, a progress bar). This manages user expectations and reduces fatigue.
+      -   **Memory-First State Management**: All configuration changes should be held in the in-memory state model until the user explicitly saves or finishes. This allows for a non-destructive, iterative workflow where the user can navigate back and forth to make changes without creating partial or corrupt configurations.
+      -   **Step-wise Validation**: Validate the inputs on each step before allowing the user to proceed. Provide clear, immediate feedback on validation errors.
+      -   **Summary Screen**: The final step should be a summary of all the choices the user has made, allowing for a final review before committing.
+      -   **Explicit Commit Action**: The final action (e.g., &#x27;Save&#x27;, &#x27;Finish&#x27;, &#x27;Create&#x27;) should be explicit and only available on the summary screen. After committing, it&#x27;s good practice to allow the user to remain on the summary screen to make further edits and re-save.
+      -   **Cancellability**: The user must be able to safely exit the wizard at any point without making any changes to the system.
+      -   **Idempotent Re-entry**: If possible, allow a user to re-enter the wizard with their previously saved configuration to make modifications.
+    </content>
+    <tags>#其他</tags>
+  </item>
+</memory>

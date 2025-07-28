@@ -511,4 +511,175 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1753706713737_h58pigmdd" time="2025/07/28 20:45">
+    <content>
+      # Project-Specific Memory
+    
+      ## PeiDocker GUI Screen Architecture (14 Screens Total)
+    
+      ### Core Screen Structure
+      - **SC-0** (Index 0): Application Startup - System validation, Docker availability check
+      - **SC-1** (Index 1): Project Directory Selection - Project location setup and validation
+      - **SC-2** (Index 2): Wizard Controller - Controller framework for configuration wizard (not user-facing)
+    
+      ### Configuration Wizard Steps (SC-3 to SC-13)
+      - **SC-3** (Index 3): Project Information (Step 1) - Project name and base Docker image selection
+      - **SC-4** (Index 4): SSH Configuration (Step 2) - SSH access setup with ports, users, and authentication
+      - **SC-5** (Index 5): Proxy Configuration (Step 3) - HTTP proxy settings for container networking
+      - **SC-6** (Index 6): APT Configuration (Step 4) - APT repository mirror selection
+      - **SC-7** (Index 7): Port Mapping (Step 5) - Additional host-to-container port mappings
+      - **SC-8** (Index 8): Environment Variables (Step 6) - Custom environment variable configuration
+      - **SC-9** (Index 9): Device Configuration (Step 7) - GPU and hardware device access setup
+      - **SC-10** (Index 10): Additional Mounts (Step 8) - Volume mount configuration
+      - **SC-11** (Index 11): Custom Entry Point (Step 9) - Custom entry point script setup
+      - **SC-12** (Index 12): Custom Scripts (Step 10) - Custom hook script configuration
+      - **SC-13** (Index 13): Configuration Summary (Step 11) - Final review and save configuration
+    
+      ### Navigation Flow Rules
+      - **Linear progression**: SC-0 → SC-1 → SC-3 to SC-13 (via SC-2 controller)
+      - **SC-2 controller**: Orchestrates Steps 1-11, not directly user-facing
+      - **Step navigation**: Only consecutive steps allowed (no jumping between steps)
+      - **Memory-based workflow**: SC-1 creates project files, SC-3 to SC-13 are memory-only until final save
+    
+      ### Key Implementation Notes for Textual TUI
+      - 14 total screens (indexes 0-13)
+      - Wizard pattern with controlled progression
+      - File creation happens at SC-1, configuration persistence at SC-13
+      - SC-2 acts as navigation controller, not a visible screen
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753711267004_cg8blnctt" time="2025/07/28 22:01">
+    <content>
+      # Tool Skill Memory
+    
+      ## Textual Wizard Pattern Implementation: Complete Guide (2024-2025)
+    
+      ### 🎯 Core Reality
+      **No Built-in Wizard Framework**: Textual does not provide a dedicated wizard controller component. Wizard-like interfaces must be implemented using Screen navigation, widget composition, and custom state management.
+    
+      ### 🛠️ Two Primary Implementation Patterns
+    
+      **Pattern 1: Dynamic Widget Mounting (Recommended)**
+      - Use `compose()` to create the wizard framework (header, progress, navigation)
+      - Use `mount()` and `remove_children()` for dynamic step content
+      - Implement `async def _mount_current_step()` for proper widget lifecycle
+      - Store step widgets in instance dictionary for state preservation
+    
+      **Pattern 2: ContentSwitcher Pattern (Alternative)**
+      - Pre-mount all step widgets in `ContentSwitcher` with `TabPane` containers
+      - Use `switcher.current = &quot;step-id&quot;` for navigation
+      - Higher memory usage but simpler state management
+      - Better for small number of steps with lightweight widgets
+    
+      ### 🚨 Critical Widget Mounting Issues &amp; Solutions
+    
+      **The Problem**: Creating widgets in `compose()` and yielding immediately can fail to render
+      ```python
+      # WRONG - May not render properly
+      def compose(self):
+      step_widget = StepWidget(config)  # Created during compose
+      yield step_widget                 # May appear empty
+      ```
+    
+      **The Solution**: Dynamic mounting after initial composition
+      ```python
+      # CORRECT - Proper lifecycle management
+      async def on_mount(self):
+      await self._mount_current_step()  # Mount after wizard framework ready
+    
+      async def _mount_current_step(self):
+      container = self.query_one(&quot;#step_content&quot;)
+      container.remove_children()       # Clear existing
+      widget = self.step_widgets[self.current_step]
+      await container.mount(widget)     # Mount dynamically
+      ```
+    
+      ### 📋 Wizard Framework Architecture Template
+    
+      **Standard Structure**:
+      1. **Header Section**: Step title, progress indicator
+      2. **Content Container**: Dynamic step widget mounting area
+      3. **Navigation Section**: Previous/Next buttons with state management
+    
+      **Key Components**:
+      - `ProgressBar` for visual progress tracking
+      - `Container` with ID for dynamic content mounting
+      - `Button` controls with proper disabled state management
+      - Screen-level state management for current step tracking
+    
+      ### 🎨 Integration with Flat Material Design
+    
+      **Wizard Chrome Styling**:
+      - No borders/shadows on containers - use solid background colors
+      - Flat buttons with color-based state changes (no depth effects)
+      - Clean typography and generous spacing
+      - Background colors from theme variables (`$surface`, `$primary`)
+    
+      **Widget Embedding Considerations**:
+      - Child widgets inherit theme variables automatically
+      - Use consistent padding/margin patterns across all steps
+      - Focus indicators through color changes, not visual depth
+    
+      ### 🧪 Testing Wizard Interfaces
+    
+      **pytest-textual-snapshot Approach**:
+      - Use `run_before` async function for complex wizard interactions
+      - Always verify widget mounting before screenshot: `assert len(container.children) &gt; 0`
+      - Use `await pilot.pause()` after navigation to ensure rendering completion
+      - Test both initial state and post-navigation states
+    
+      **Common Testing Patterns**:
+      ```python
+      async def setup_wizard_navigation(pilot):
+      await pilot.pause(delay=1.0)              # Wait for mount
+      await pilot.click(&quot;#next-btn&quot;)            # Navigate forward
+      await pilot.pause(delay=0.5)              # Wait for render
+      ```
+    
+      ### 🔄 State Management Best Practices
+    
+      **Step Data Persistence**:
+      - Store step widgets in instance dictionary to preserve user input
+      - Use reactive attributes for cross-step data sharing
+      - Implement validation before allowing step progression
+      - Support both forward and backward navigation with data preservation
+    
+      **Navigation Control**:
+      - Disable navigation buttons based on validation state
+      - Implement step skipping logic for conditional workflows
+      - Handle edge cases (first step, last step, validation failures)
+    
+      ### 📚 Related Textual Components for Wizards
+    
+      **Essential Components**:
+      - `Screen`: Base class for wizard controller
+      - `Container`/`Vertical`/`Horizontal`: Layout containers
+      - `ContentSwitcher`/`TabPane`: Alternative switching mechanism
+      - `ProgressBar`: Visual progress indication
+      - `Button`: Navigation controls
+    
+      **Advanced Components**:
+      - `ModalScreen`: For confirmation dialogs within wizard
+      - `Input` with validators: Form field validation
+      - Custom `Widget` classes: Reusable step components
+    
+      ### 🎯 Implementation Decision Framework
+    
+      **Choose Dynamic Mounting When**:
+      - Large number of steps (&gt;5)
+      - Steps have heavy initialization (network calls, file operations)
+      - Complex validation between steps
+      - Memory efficiency is important
+    
+      **Choose ContentSwitcher When**:
+      - Small number of steps (&lt;5)
+      - Lightweight step widgets
+      - Simple navigation requirements
+      - Prefer implementation simplicity over memory efficiency
+    
+      This wizard pattern knowledge applies to any Textual application requiring sequential user input, configuration wizards, setup flows, or multi-step processes.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

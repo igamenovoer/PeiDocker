@@ -41,16 +41,14 @@ For development and testing, access via `pei-docker-gui dev --project-dir <path>
 @startuml
 left to right direction
 actor "User" as user
-actor "Docker Hub" as hub
 actor "Configuration Store" as config
 
 rectangle "Project Information Screen" {
   usecase "Enter Project Name" as UC1
-  usecase "Select Base Image" as UC2
+  usecase "Enter Base Image" as UC2
   usecase "Validate Project Name" as UC3
   usecase "Validate Base Image" as UC4
   usecase "Preview Docker Images" as UC5
-  usecase "Check Image Existence" as UC6
   usecase "Auto-populate from Directory" as UC7
   usecase "Navigate to Next Step" as UC8
 }
@@ -62,10 +60,8 @@ UC1 --> UC3 : <<include>>
 UC2 --> UC4 : <<include>>
 UC1 --> UC5 : <<include>>
 UC2 --> UC5 : <<include>>
-UC4 --> UC6 : <<include>>
 UC3 --> config
 UC4 --> config
-UC6 --> hub
 UC7 --> UC1 : <<extend>>
 @enduml
 ```
@@ -88,21 +84,20 @@ UC7 --> UC1 : <<extend>>
 
 #### **Base Image Selection and Validation**
 
-**As a** user unfamiliar with Docker images,
-**I want** to select a base image from common options or enter a custom one,
-**So that** I can choose the right foundation for my containerized application.
+**As a** user setting up my containerized application,
+**I want** to enter a Docker base image name,
+**So that** I can specify the foundation for my containerized application.
 
 **Acceptance Criteria:**
-1. List of recommended base images with descriptions
-2. Custom base image name entry
-3. Non-blocking validation that chosen image exists
-4. Suggestions for CUDA/GPU-enabled workflows
-5. Invalid image names flagged with clear guidance
+1. Base image name entry with proper validation
+2. Docker image name format validation
+3. Clear error messages for invalid formats
+4. Form submission blocked until valid image name entered
 
 ### Navigation Options
 
 - **Prev Button**: Return to SC-1 (Project Directory Selection) - handled by SC-2 controller
-- **Next Button**: Advance to SC-2 (SSH Configuration) - handled by SC-2 controller  
+- **Next Button**: Advance to SC-4 (SSH Configuration) - handled by SC-2 controller  
 - **Double ESC**: Return to main menu - handled by SC-2 controller
 - **Single ESC**: Clear current input or go to previous state
 - **Tab Navigation**: Move between form fields
@@ -134,15 +129,6 @@ Screen content embedded within SC-2 controller framework with progress indicator
 │  │  ┌─────────────────────────────────────────────────────────┐ │ │
 │  │  │ ubuntu:24.04                                            │ │ │
 │  │  └─────────────────────────────────────────────────────────┘ │ │
-│  │                                                             │ │
-│  │  Common base images:                                        │ │
-│  │  • ubuntu:24.04 (recommended) - Latest LTS Ubuntu          │ │
-│  │  • ubuntu:22.04 - Previous LTS Ubuntu                      │ │
-│  │  • nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 - CUDA Dev  │ │
-│  │  • nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04 - CUDA Runtime │ │
-│  │  • python:3.11-slim - Minimal Python runtime              │ │
-│  │                                                             │ │
-│  │  ✓ Image exists on Docker Hub                              │ │
 │  │                                                             │ │
 │  │  * Required field                                           │ │
 │  └─────────────────────────────────────────────────────────────┘ │
@@ -203,8 +189,6 @@ Input:focus {
 │  │ my-awesome-project                                      │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │  Docker images: my-awesome-project:stage-1, my-awesome-project:stage-2 │
-│                                                             │
-│  ✓ Image exists on Docker Hub                              │
 ```
 
 #### Error State
@@ -215,18 +199,6 @@ Input:focus {
 │  └─────────────────────────────────────────────────────────┘ │
 │  ⚠ Project name must contain only lowercase letters, numbers, │
 │     hyphens, and underscores. Must start with a letter.     │
-│                                                             │
-│  ✗ Custom image not found on Docker Hub                    │
-```
-
-#### Loading State
-```
-│  Base Docker Image: *                                       │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ custom/image:latest                                     │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ⏳ Checking image availability...                          │
 ```
 
 ## Behavior Specifications
@@ -275,22 +247,12 @@ ValidatingInput --> InvalidName : project_name_invalid
 ValidatingInput --> ValidImage : base_image_valid
 ValidatingInput --> InvalidImage : base_image_invalid
 
-ValidName --> CheckingImage : image_field_changed
 ValidName --> GeneratingPreview : name_updated
-
 InvalidName --> ValidName : name_corrected
 InvalidName --> InvalidName : invalid_input_continues
 
-ValidImage --> CheckingImageExists : image_entered
+ValidImage --> ValidatingInput : validation_complete
 InvalidImage --> ValidImage : image_corrected
-
-CheckingImageExists --> ImageExists : hub_check_success
-CheckingImageExists --> ImageNotFound : hub_check_failed
-CheckingImageExists --> ImageCheckTimeout : hub_timeout
-
-ImageExists --> ValidatingInput
-ImageNotFound --> ValidatingInput
-ImageCheckTimeout --> ValidatingInput
 
 GeneratingPreview --> UpdatePreview
 UpdatePreview --> ValidatingInput
@@ -303,42 +265,19 @@ state InvalidName {
   [*] --> DisableNextButton
   DisableNextButton --> ShowErrorMessage
 }
+
+state ValidImage {
+  [*] --> ImageFormatValid
+}
+
+state InvalidImage {
+  [*] --> ImageFormatInvalid
+  ImageFormatInvalid --> ShowImageError
+}
 @enduml
 ```
 </details>
 
-### Docker Image Existence Check
-
-![Image Existence Check Activity](figures/sc3/image-existence-check.svg)
-
-<details>
-<summary>PlantUML Source</summary>
-
-```plantuml
-@startuml
-start
-:User enters/changes base image;
-:Start non-blocking validation;
-:Show loading indicator;
-fork
-  :Continue with form interaction;
-fork again
-  :Query Docker Hub API;
-  if (Image exists?) then (yes)
-    :Show success indicator;
-  else (no)
-    :Show warning (non-blocking);
-  endif
-  if (Request timeout?) then (yes)
-    :Show timeout message;
-  endif
-end fork
-:Update validation status;
-:Remove loading indicator;
-stop
-@enduml
-```
-</details>
 
 ### Real-time Preview Updates
 
@@ -380,8 +319,6 @@ class ProjectInfoConfig:
     directory_path: str = ""
     stage1_image_name: str = ""
     stage2_image_name: str = ""
-    image_exists_check: Optional[bool] = None
-    image_check_timestamp: Optional[datetime] = None
     
     def validate(self) -> ValidationResult:
         """Validate project information configuration"""
@@ -438,46 +375,6 @@ class ProjectInfoConfig:
 - **Error Messages**: Clear, actionable descriptions of validation failures
 - **Navigation Control**: Disable next button when validation fails
 
-## Base Image Suggestions
-
-### Recommended Images
-
-#### **ubuntu:24.04** (Default)
-- **Description**: Latest Ubuntu LTS release
-- **Use Case**: General-purpose applications
-- **Size**: ~77MB
-- **Package Manager**: apt
-
-#### **ubuntu:22.04**
-- **Description**: Previous Ubuntu LTS release  
-- **Use Case**: Stable, well-tested environment
-- **Size**: ~77MB
-- **Package Manager**: apt
-
-#### **nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04**
-- **Description**: CUDA development environment
-- **Use Case**: GPU-accelerated development, machine learning
-- **Size**: ~8GB
-- **Includes**: CUDA toolkit, cuDNN, development tools
-
-#### **nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04**  
-- **Description**: CUDA runtime environment
-- **Use Case**: GPU-accelerated applications, production ML
-- **Size**: ~4GB
-- **Includes**: CUDA runtime, cuDNN
-
-#### **python:3.11-slim**
-- **Description**: Minimal Python runtime
-- **Use Case**: Python applications, microservices
-- **Size**: ~45MB
-- **Includes**: Python 3.11, pip
-
-### Image Existence Checking
-
-- **Non-blocking Validation**: Image existence checked asynchronously without preventing form interaction
-- **Timeout Handling**: API calls timeout after 5 seconds with graceful fallback
-- **Caching**: Recent image checks cached to avoid redundant API calls
-- **User Guidance**: Clear indicators for image status (exists, not found, checking, timeout)
 
 ## Technical Implementation Notes
 
@@ -490,10 +387,9 @@ class ProjectInfoConfig:
 
 ### Performance Considerations
 
-- **Async Validation**: Docker Hub API calls are non-blocking and cached
 - **Debounced Input**: Text input validation debounced to reduce CPU usage
 - **Memory Efficiency**: Configuration data stored efficiently in SC-2's memory store
-- **UI Responsiveness**: Long-running operations don't block the user interface
+- **UI Responsiveness**: Form validation is immediate and non-blocking
 
 ### Integration with SC-2 Controller
 
@@ -514,12 +410,12 @@ class ProjectInfoConfig:
 - **Clear Messages**: Descriptive error messages with correction guidance
 - **Field Highlighting**: Invalid fields are visually highlighted  
 - **Error Recovery**: Clear path to correct validation errors
-- **Non-blocking Warnings**: Image existence warnings don't prevent progress
+- **Form Validation**: Invalid input prevents progression until corrected
 
 ### User Experience
 - **Auto-population**: Smart defaults based on directory selection
 - **Real-time Feedback**: Immediate validation and preview updates
-- **Progressive Disclosure**: Advanced options revealed as needed  
+- **Simple Interface**: Clean, focused form without unnecessary complexity
 - **Consistent Styling**: Flat material design with consistent visual language
 
 ## Key Design Philosophy
@@ -541,5 +437,5 @@ SC-3 implements the first wizard step with these principles:
 ### **User-Guided Experience**  
 - Smart defaults reduce cognitive load
 - Clear validation prevents invalid configurations
-- Non-blocking image checks don't interrupt workflow
-- Progressive enhancement with helpful suggestions
+- Immediate feedback guides users to correct input
+- Simplified interface focuses on essential information
