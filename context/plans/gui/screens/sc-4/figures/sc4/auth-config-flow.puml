@@ -1,0 +1,30 @@
+@startuml
+start
+:User configures authentication;
+:Validate username format;
+if (Username valid?) then (yes)
+  :Validate password requirements;
+  if (Password valid?) then (yes)
+    :Check UID value;
+    if (UID in valid range?) then (yes)
+      :Configure SSH authentication;
+      if (Key authentication enabled?) then (yes)
+        :Process SSH key configuration;
+        :Validate key format;
+      endif
+      if (Root access enabled?) then (yes)
+        :Configure root password;
+        :Show security warning;
+      endif
+      :Update configuration store;
+    else (no)
+      :Show UID validation error;
+    endif
+  else (no)
+    :Show password validation error;
+  endif
+else (no)
+  :Show username validation error;
+endif
+stop
+@enduml

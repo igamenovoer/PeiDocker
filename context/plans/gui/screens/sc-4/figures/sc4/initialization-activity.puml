@@ -1,0 +1,19 @@
+@startuml
+start
+:Receive control from SC-2 controller;
+:Load existing SSH configuration from memory store;
+:Initialize SSH enable/disable state;
+if (SSH previously configured?) then (yes)
+  :Restore previous SSH settings;
+else (no)
+  :Set SSH defaults (enabled, port 2222, user 'me');
+endif
+:Initialize port validation;
+:Set up password field with masking;
+:Initialize UID field with default 1100;
+:Configure conditional panel visibility;
+:Set up real-time validation;
+:Enable form interactions;
+:Focus on SSH enable toggle;
+stop
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+actor "User" as user
+actor "Configuration Store" as config
+
+rectangle "SSH Configuration Screen" {
+  usecase "Enable/Disable SSH" as UC1
+  usecase "Configure SSH Ports" as UC2
+  usecase "Set SSH User Credentials" as UC3
+  usecase "Configure Key Authentication" as UC4
+  usecase "Set Root Access" as UC5
+  usecase "Validate Port Numbers" as UC6
+  usecase "Validate Password Format" as UC7
+  usecase "Navigate to Next Step" as UC8
+}
+
+user --> UC1
+user --> UC2
+user --> UC3
+user --> UC4
+user --> UC5
+user --> UC8
+UC2 --> UC6 : <<include>>
+UC3 --> UC7 : <<include>>
+UC1 --> config
+UC2 --> config
+UC3 --> config
+UC4 --> config
+UC5 --> config
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+start
+:User modifies port number;
+:Validate port range (1-65535);
+if (Port in valid range?) then (yes)
+  :Check for reserved ports (1-1023);
+  if (Port is reserved?) then (yes)
+    :Show reserved port warning;
+    :Suggest alternative ports;
+  else (no)
+    :Check for common conflicts;
+    if (Potential conflict?) then (yes)
+      :Show conflict warning;
+    else (no)
+      :Mark port as valid;
+      :Update memory store;
+    endif
+  endif
+else (no)
+  :Show invalid range error;
+  :Clear port value;
+endif
+stop
+@enduml
