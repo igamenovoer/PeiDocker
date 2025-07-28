@@ -593,14 +593,14 @@ class ProjectDirectorySelectionScreen(Screen[None]):
         """
         if not self.project_config.project_dir:
             self.app.call_from_thread(self.write_log, "ERROR", "No project directory specified")
-            self.app.call_from_thread(self.notify, "No project directory specified", "error")
+            self.app.call_from_thread(lambda: self.notify("No project directory specified", severity="error"))
             return
         
         try:
             # Disable continue button during creation
             self.app.call_from_thread(self._update_continue_button_disabled, True)
             self.app.call_from_thread(self.write_log, "INFO", "Executing 'pei-docker-cli create' command")
-            self.app.call_from_thread(self.notify, "Creating project structure...", "information")
+            self.app.call_from_thread(lambda: self.notify("Creating project structure...", severity="information"))
             
             # Prepare command
             cmd = [sys.executable, "-m", "pei_docker.pei", "create", "-p", self.project_config.project_dir]
@@ -652,17 +652,17 @@ class ProjectDirectorySelectionScreen(Screen[None]):
             # Handle result
             if return_code == 0:
                 self.app.call_from_thread(self.write_log, "SUCCESS", "Project created successfully!")
-                self.app.call_from_thread(self.notify, "Project created successfully!", "information")
+                self.app.call_from_thread(lambda: self.notify("Project created successfully!", severity="information"))
                 # Navigate to Simple Wizard Controller (SC-2)
                 self.app.call_from_thread(self._navigate_to_simple_wizard)
             else:
                 self.app.call_from_thread(self.write_log, "ERROR", f"Project creation failed with return code {return_code}")
-                self.app.call_from_thread(self.notify, "Failed to create project. Check logs for details.", "error")
+                self.app.call_from_thread(lambda: self.notify("Failed to create project. Check logs for details.", severity="error"))
                 
         except Exception as e:
             error_msg = f"Unexpected error during project creation: {e}"
             self.app.call_from_thread(self.write_log, "ERROR", error_msg)
-            self.app.call_from_thread(self.notify, error_msg, "error")
+            self.app.call_from_thread(lambda: self.notify(error_msg, severity="error"))
         finally:
             # Re-enable continue button
             self.app.call_from_thread(self._update_continue_button_disabled, False)

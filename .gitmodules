@@ -1,3 +1,6 @@
 [submodule "context/refcode/textual-wizard"]
 	path = context/refcode/textual-wizard
 	url = https://github.com/SkwalExe/textual-wizard.git
+[submodule "context/refcode/textual"]
+	path = context/refcode/textual
+	url = https://github.com/Textualize/textual.git
