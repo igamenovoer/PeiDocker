@@ -36,7 +36,7 @@ dependencies = [
     "omegaconf>=2.3.0,<3",
     "attrs>=25.3.0,<26",
     "click>=8.2.1,<9",
-    "rich>=10.0.0,<14", "textual>=4.0.0,<5", "textual-fspicker>=0.4.1,<0.5",
+    "rich>=10.0.0", "textual>=4.0.0,<5", "textual-fspicker>=0.4.1,<0.5",
 ]
 
 [project.optional-dependencies]
@@ -115,6 +115,7 @@ platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 [tool.pixi.dependencies]
 # Python and other conda dependencies can go here
 python = ">=3.11"
+nicegui = ">=2.21.1,<3"
 
 [tool.pixi.pypi-dependencies]
 # Install the package itself in editable mode for development
