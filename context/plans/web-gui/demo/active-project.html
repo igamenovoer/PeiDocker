@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeiDocker Web GUI - Active Project</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="saveConfiguration()">
+                        💾 Save
+                    </button>
+                    <button class="btn btn-warning" onclick="configureProject()">
+                        ⚙️ Configure
+                    </button>
+                    <button class="btn btn-info" onclick="downloadProject()">
+                        📦 Download
+                    </button>
+                    <button class="btn btn-secondary" onclick="newProject()">
+                        🔄 New Project
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Project Info Bar -->
+        <div class="project-info-bar">
+            <div class="project-info">
+                <span class="project-label">Project:</span>
+                <span class="project-path">/tmp/peidocker_demo_project_20250729_143022</span>
+                <span class="project-status">● Unsaved changes</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn active" onclick="switchTab('project')">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn" onclick="switchTab('ssh')">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn" onclick="switchTab('network')">
+                    🌐 Network
+                </button>
+                <button class="tab-btn" onclick="switchTab('environment')">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn has-errors" onclick="switchTab('storage')">
+                    💾 Storage
+                </button>
+                <button class="tab-btn" onclick="switchTab('scripts')">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn" onclick="switchTab('summary')">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="welcome-panel" class="tab-panel">
+                <div class="tab-title">
+                    🏗️ Project Configuration Active
+                </div>
+                <p class="tab-description">
+                    Your project has been created successfully! Configure your Docker containerized development environment 
+                    through the tabs above. All changes are stored in memory until you save them.
+                </p>
+
+                <div class="alert alert-success">
+                    <strong>✅ Project Created:</strong> Project directory initialized with pei-docker-cli create.
+                    You can now configure all aspects of your containerized environment.
+                </div>
+
+                <!-- Configuration Overview -->
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            🏗️ Project Configuration
+                        </div>
+                        <div class="card-content">
+                            Set up basic project information, Docker base image, and project structure.
+                            <div class="mt-4">
+                                <a href="project_tab.html" class="btn btn-primary">View Project Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            🔐 SSH Access
+                        </div>
+                        <div class="card-content">
+                            Configure SSH access to your container with user accounts and authentication.
+                            <div class="mt-4">
+                                <a href="ssh_tab.html" class="btn btn-primary">View SSH Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            🌐 Network Settings
+                        </div>
+                        <div class="card-content">
+                            Set up proxy configuration, APT mirrors, and port mappings for network access.
+                            <div class="mt-4">
+                                <a href="network_tab.html" class="btn btn-primary">View Network Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            ⚙️ Environment
+                        </div>
+                        <div class="card-content">
+                            Configure environment variables and device access including GPU support.
+                            <div class="mt-4">
+                                <a href="environment_tab.html" class="btn btn-primary">View Environment Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            💾 Storage Management
+                        </div>
+                        <div class="card-content">
+                            Set up volume mounts and storage configuration for both build and runtime stages.
+                            <div class="mt-4">
+                                <a href="storage_tab.html" class="btn btn-primary">View Storage Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            📜 Custom Scripts
+                        </div>
+                        <div class="card-content">
+                            Configure custom entry points and lifecycle hook scripts for automation.
+                            <div class="mt-4">
+                                <a href="scripts_tab.html" class="btn btn-primary">View Scripts Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        📋 Configuration Summary
+                    </div>
+                    <div class="card-content">
+                        Review your complete configuration, validate settings, and save your user_config.yml file.
+                        <div class="mt-4">
+                            <a href="summary_tab.html" class="btn btn-primary">View Summary Tab Demo</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Actions Guide -->
+                <div class="tab-title">
+                    🔄 Next Steps
+                </div>
+                <p class="tab-description">
+                    Complete your project setup using these actions:
+                </p>
+
+                <div class="grid grid-3">
+                    <div class="workflow-card">
+                        <div class="workflow-icon">💾</div>
+                        <div class="workflow-title">1. Save Configuration</div>
+                        <div class="workflow-description">
+                            Save your changes to write user_config.yml and create script files in your project directory.
+                        </div>
+                        <button class="btn btn-success btn-sm" onclick="saveConfiguration()">Save Now</button>
+                    </div>
+                    <div class="workflow-card">
+                        <div class="workflow-icon">⚙️</div>
+                        <div class="workflow-title">2. Configure Project</div>
+                        <div class="workflow-description">
+                            Run pei-docker-cli configure to build the complete project structure and prepare Docker images.
+                        </div>
+                        <button class="btn btn-warning btn-sm" onclick="configureProject()">Configure</button>
+                    </div>
+                    <div class="workflow-card">
+                        <div class="workflow-icon">📦</div>
+                        <div class="workflow-title">3. Download Project</div>
+                        <div class="workflow-description">
+                            Export your complete project as a ZIP file for deployment, sharing, or backup.
+                        </div>
+                        <button class="btn btn-info btn-sm" onclick="downloadProject()">Download</button>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 style="margin-bottom: 1rem;">Active Features</h3>
+                    <div class="grid grid-3">
+                        <div class="status-indicator">
+                            <div class="status-dot saved"></div>
+                            <span>Real-time Validation</span>
+                        </div>
+                        <div class="status-indicator">
+                            <div class="status-dot modified"></div>
+                            <span>Memory-first State</span>
+                        </div>
+                        <div class="status-indicator">
+                            <div class="status-dot saved"></div>
+                            <span>Tab-based Navigation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>1 validation error in Storage tab</span>
+                <span>•</span>
+                <span>Project not yet configured</span>
+            </div>
+            <div class="status-right">
+                <span>PeiDocker v0.8.0</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // This is just for demo purposes - would be handled by NiceGUI in real app
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // In real app, this would switch the content
+            console.log(`Switched to ${tabName} tab`);
+        }
+
+        function saveConfiguration() {
+            if (confirm('Save current configuration to user_config.yml and create script files?')) {
+                alert('Demo: Configuration saved successfully! All changes written to project directory.');
+                // In real app, this would save config and update status
+            }
+        }
+
+        function configureProject() {
+            if (confirm('Run pei-docker-cli configure to build project structure? This may take a few minutes.')) {
+                alert('Demo: Project configuration started. In the real app, you would see live command output here.');
+                // In real app, this would run configure command and show progress
+            }
+        }
+
+        function downloadProject() {
+            // Simulate the warning checks from the task requirements
+            const hasUnsavedChanges = true; // Demo state
+            const notConfigured = true; // Demo state
+            
+            let warnings = [];
+            if (notConfigured) {
+                warnings.push('Project has not been configured yet.');
+            }
+            if (hasUnsavedChanges) {
+                warnings.push('You have unsaved changes.');
+            }
+            
+            if (warnings.length > 0) {
+                const warningMessage = 'Warning:\n' + warnings.join('\n') + '\n\nDo you want to continue with the download?';
+                if (confirm(warningMessage)) {
+                    alert('Demo: Project ZIP file would be downloaded. In the real app, the download would start now.');
+                }
+            } else {
+                alert('Demo: Project ZIP file would be downloaded.');
+            }
+        }
+
+        function newProject() {
+            if (confirm('Create a new project? Any unsaved changes will be lost.')) {
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

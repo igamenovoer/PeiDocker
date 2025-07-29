@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeiDocker Web GUI - Project Selection</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <!-- Empty in initial state -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="project-selection-panel" class="tab-panel">
+                <div class="tab-title">
+                    🚀 Create or Load PeiDocker Project
+                </div>
+                <p class="tab-description">
+                    Get started by creating a new project or loading an existing one. 
+                    Choose a directory for your project files and configuration.
+                </p>
+
+                <!-- Project Directory Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        📁 Project Directory
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="project-dir">Project Directory Path:</label>
+                            <div class="input-group">
+                                <input type="text" id="project-dir" class="form-input" 
+                                       placeholder="/path/to/your/project or leave empty for temporary directory"
+                                       value="">
+                                <button class="btn btn-secondary" onclick="browseDirectory()">
+                                    📁 Browse
+                                </button>
+                            </div>
+                            <div class="help-text">
+                                Directory must be empty or non-existent. Leave empty to use a generated temporary directory.
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn btn-primary btn-large" onclick="createProject()">
+                                🚀 Create Project
+                            </button>
+                            <button class="btn btn-outline btn-large" onclick="loadProject()" disabled>
+                                📂 Load Project
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <strong>Note:</strong> Load Project functionality is not yet implemented. 
+                            You will see a warning dialog if you click this button.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature Overview -->
+                <div class="tab-title">
+                    ✨ What You Can Do
+                </div>
+                <p class="tab-description">
+                    Once you create a project, you'll have access to a comprehensive configuration interface 
+                    with the following features:
+                </p>
+
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            🏗️ Project Configuration
+                        </div>
+                        <div class="card-content">
+                            Set up basic project information, Docker base image, and project structure.
+                            <div class="mt-4">
+                                <a href="project_tab.html" class="btn btn-primary">View Project Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            🔐 SSH Access
+                        </div>
+                        <div class="card-content">
+                            Configure SSH access to your container with user accounts and authentication.
+                            <div class="mt-4">
+                                <a href="ssh_tab.html" class="btn btn-primary">View SSH Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            🌐 Network Settings
+                        </div>
+                        <div class="card-content">
+                            Set up proxy configuration, APT mirrors, and port mappings for network access.
+                            <div class="mt-4">
+                                <a href="network_tab.html" class="btn btn-primary">View Network Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            ⚙️ Environment
+                        </div>
+                        <div class="card-content">
+                            Configure environment variables and device access including GPU support.
+                            <div class="mt-4">
+                                <a href="environment_tab.html" class="btn btn-primary">View Environment Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            💾 Storage Management
+                        </div>
+                        <div class="card-content">
+                            Set up volume mounts and storage configuration for both build and runtime stages.
+                            <div class="mt-4">
+                                <a href="storage_tab.html" class="btn btn-primary">View Storage Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            📜 Custom Scripts
+                        </div>
+                        <div class="card-content">
+                            Configure custom entry points and lifecycle hook scripts for automation.
+                            <div class="mt-4">
+                                <a href="scripts_tab.html" class="btn btn-primary">View Scripts Tab Demo</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        📋 Configuration Summary
+                    </div>
+                    <div class="card-content">
+                        Review your complete configuration, validate settings, and save your user_config.yml file.
+                        <div class="mt-4">
+                            <a href="summary_tab.html" class="btn btn-primary">View Summary Tab Demo</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Management Workflow -->
+                <div class="tab-title">
+                    🔄 Project Management Workflow  
+                </div>
+                <p class="tab-description">
+                    After creating your project, you'll have access to powerful project management features:
+                </p>
+
+                <div class="grid grid-3">
+                    <div class="workflow-card">
+                        <div class="workflow-icon">💾</div>
+                        <div class="workflow-title">Save Configuration</div>
+                        <div class="workflow-description">
+                            Write your configuration to user_config.yml and create script files in the project directory.
+                        </div>
+                    </div>
+                    <div class="workflow-card">
+                        <div class="workflow-icon">⚙️</div>
+                        <div class="workflow-title">Configure Project</div>
+                        <div class="workflow-description">
+                            Run pei-docker-cli configure to build the complete project structure and Docker images.
+                        </div>
+                    </div>
+                    <div class="workflow-card">
+                        <div class="workflow-icon">📦</div>
+                        <div class="workflow-title">Download Project</div>
+                        <div class="workflow-description">
+                            Export your complete project as a ZIP file for deployment or sharing.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demo Navigation -->
+                <div class="card mt-6">
+                    <div class="card-header">
+                        🎭 Demo Navigation
+                    </div>
+                    <div class="card-content">
+                        <p>Explore the full application interface by creating a project or viewing the active project demo:</p>
+                        <div class="button-group">
+                            <button class="btn btn-success" onclick="simulateCreateProject()">
+                                🚀 Simulate Create Project
+                            </button>
+                            <a href="active-project.html" class="btn btn-primary">
+                                🏗️ View Active Project Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>No active project</span>
+                </div>
+            </div>
+            <div class="status-right">
+                <span>PeiDocker v0.8.0</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function browseDirectory() {
+            alert('In the real application, this would open a directory browser dialog.');
+        }
+
+        function createProject() {
+            const projectDir = document.getElementById('project-dir').value;
+            if (projectDir.trim() === '') {
+                alert('Demo: Would create project in temporary directory and switch to active project interface.');
+            } else {
+                alert(`Demo: Would validate directory "${projectDir}" and create project there.`);
+            }
+            // In real app, this would trigger project creation and switch to active state
+        }
+
+        function loadProject() {
+            alert('Load Project functionality is not yet implemented. This feature will allow you to load existing PeiDocker projects.');
+        }
+
+        function simulateCreateProject() {
+            if (confirm('This will simulate creating a project and redirect to the active project demo. Continue?')) {
+                window.location.href = 'active-project.html';
+            }
+        }
+    </script>
+</body>
+</html>

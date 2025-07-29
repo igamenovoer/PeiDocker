@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="saveConfiguration()">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn has-errors">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn active">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    📋 Configuration Summary
+                </div>
+                <p class="tab-description">
+                    Review your complete PeiDocker configuration, validate all settings, and save your user_config.yml file.
+                </p>
+
+                <!-- Validation Status -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🔍 Validation Status
+                    </div>
+                    <div class="card-content">
+                        <div class="grid grid-3">
+                            <div class="status-indicator">
+                                <div class="status-dot saved"></div>
+                                <span>Project: Valid</span>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-dot saved"></div>
+                                <span>SSH: Valid</span>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-dot saved"></div>
+                                <span>Network: Valid</span>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-dot saved"></div>
+                                <span>Environment: Valid</span>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-dot error"></div>
+                                <span>Storage: 2 errors</span>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-dot saved"></div>
+                                <span>Scripts: Valid</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span>❌</span>
+                                <span class="text-sm font-weight-600" style="color: #ef4444;">Configuration Errors</span>
+                            </div>
+                            <div class="text-sm" style="color: #ef4444;">
+                                <div>• Storage Tab: Host directory /nonexistent does not exist</div>
+                                <div>• Storage Tab: Mount path /invalid/path contains invalid characters</div>
+                            </div>
+                            <div class="mt-2">
+                                <button class="btn btn-error text-sm" onclick="goToStorageTab()">
+                                    Fix Storage Errors
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2">
+                    <!-- Left Column - Configuration Overview -->
+                    <div>
+                        <!-- Project Settings -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🏗️ Project Settings
+                            </div>
+                            <div class="card-content">
+                                <div class="grid grid-2 text-sm">
+                                    <div>
+                                        <div><strong>Name:</strong></div>
+                                        <div><strong>Base Image:</strong></div>
+                                        <div><strong>Directory:</strong></div>
+                                    </div>
+                                    <div>
+                                        <div>my-awesome-project</div>
+                                        <div>ubuntu:24.04</div>
+                                        <div>/workspace/code/my-awesome-project</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SSH Configuration -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🔐 SSH Configuration
+                            </div>
+                            <div class="card-content">
+                                <div class="text-sm">
+                                    <div class="mb-2">✅ <strong>Enabled</strong> (port 2222:22)</div>
+                                    <div class="mb-2">👤 User: me (password auth, UID: 1100)</div>
+                                    <div class="mb-2">🔑 Public key: Not configured</div>
+                                    <div>👑 Root access: Disabled</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Network Configuration -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🌐 Network Configuration
+                            </div>
+                            <div class="card-content">
+                                <div class="text-sm">
+                                    <div class="mb-2">🔄 Proxy: Disabled</div>
+                                    <div class="mb-2">📦 APT Mirror: Default</div>
+                                    <div class="mb-2"><strong>Port Mappings:</strong></div>
+                                    <ul style="margin-left: 1rem;">
+                                        <li>2222:22 (SSH)</li>
+                                        <li>8080:80 (Web)</li>
+                                        <li>3000:3000 (App)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Environment Configuration -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                ⚙️ Environment Configuration
+                            </div>
+                            <div class="card-content">
+                                <div class="text-sm">
+                                    <div class="mb-2"><strong>Environment Variables:</strong></div>
+                                    <ul style="margin-left: 1rem;" class="font-mono text-xs">
+                                        <li>NODE_ENV=production</li>
+                                        <li>DEBUG=true</li>
+                                    </ul>
+                                    <div class="mt-2">🎮 GPU Support: Disabled</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Advanced Configuration -->
+                    <div>
+                        <!-- Storage Configuration -->
+                        <div class="card mb-6" style="border-color: #ef4444;">
+                            <div class="card-header" style="color: #ef4444;">
+                                💾 Storage Configuration (Has Errors)
+                            </div>
+                            <div class="card-content">
+                                <div class="text-sm">
+                                    <div class="mb-2"><strong>Stage-1 Mounts:</strong></div>
+                                    <ul style="margin-left: 1rem;" class="font-mono text-xs">
+                                        <li>✅ /app/data → auto-volume</li>
+                                        <li>✅ /workspace → /home/user/code</li>
+                                        <li style="color: #ef4444;">❌ /invalid/path → /nonexistent</li>
+                                    </ul>
+                                    <div class="mt-2">Stage-2 Mounts: Not configured</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scripts Configuration -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                📜 Scripts Configuration
+                            </div>
+                            <div class="card-content">
+                                <div class="text-sm">
+                                    <div class="mb-2">🚀 Stage-1 Entry Point: Not set</div>
+                                    <div class="mb-2">🏁 Stage-2 Entry Point: Not set</div>
+                                    <div class="mb-2"><strong>Stage-1 Custom Scripts:</strong></div>
+                                    <ul style="margin-left: 1rem;" class="font-mono text-xs">
+                                        <li>on_build: setup.sh --verbose</li>
+                                        <li>on_every_run: health-check.sh</li>
+                                    </ul>
+                                    <div class="mt-2">Stage-2 Scripts: Not configured</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🚀 Quick Actions
+                            </div>
+                            <div class="card-content">
+                                <div class="flex flex-col gap-2">
+                                    <button class="btn btn-primary text-sm" onclick="testConfiguration()" disabled>
+                                        🧪 Test Configuration
+                                    </button>
+                                    <button class="btn btn-secondary text-sm" onclick="generateDockerCommands()">
+                                        📋 Generate Docker Commands
+                                    </button>
+                                    <button class="btn btn-secondary text-sm" onclick="exportConfiguration()">
+                                        📤 Export Configuration
+                                    </button>
+                                    <button class="btn btn-secondary text-sm" onclick="previewYaml()">
+                                        👀 Preview YAML
+                                    </button>
+                                </div>
+                                <div class="mt-2 text-xs text-secondary">
+                                    Test Configuration is disabled due to validation errors
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generated Docker Commands -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🐳 Generated Docker Commands
+                    </div>
+                    <div class="card-content">
+                        <div class="preview-panel">
+                            <div class="font-mono text-sm">
+                                <div># Build stage-1 image</div>
+                                <div>docker build -t my-awesome-project:stage-1 ./stage-1/</div>
+                                <div style="margin-top: 0.5rem;"># Build stage-2 image</div>
+                                <div>docker build -t my-awesome-project:stage-2 ./stage-2/</div>
+                                <div style="margin-top: 0.5rem;"># Run container with full configuration</div>
+                                <div>docker run -d \</div>
+                                <div>  --name my-awesome-project \</div>
+                                <div>  -p 2222:22 \</div>
+                                <div>  -p 8080:80 \</div>
+                                <div>  -p 3000:3000 \</div>
+                                <div>  -v my-data-volume:/app/data \</div>
+                                <div>  -v /home/user/code:/workspace \</div>
+                                <div>  -e NODE_ENV=production \</div>
+                                <div>  -e DEBUG=true \</div>
+                                <div>  my-awesome-project:stage-2</div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-secondary text-sm" onclick="copyToClipboard()">
+                                📋 Copy Commands
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration File Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        📄 user_config.yml Preview
+                    </div>
+                    <div class="card-content">
+                        <div class="preview-panel" style="max-height: 400px; overflow-y: auto;">
+                            <div class="font-mono text-xs">
+                                <div># PeiDocker Configuration</div>
+                                <div># Generated by PeiDocker Web GUI</div>
+                                <div style="margin-top: 0.5rem;">project:</div>
+                                <div>  name: my-awesome-project</div>
+                                <div>  base_image: ubuntu:24.04</div>
+                                <div style="margin-top: 0.5rem;">stage1:</div>
+                                <div>  ssh:</div>
+                                <div>    enabled: true</div>
+                                <div>    container_port: 22</div>
+                                <div>    host_port: 2222</div>
+                                <div>    username: me</div>
+                                <div>    password: "123456"</div>
+                                <div>    uid: 1100</div>
+                                <div>  ports:</div>
+                                <div>    - "8080:80"</div>
+                                <div>    - "3000:3000"</div>
+                                <div>  environment:</div>
+                                <div>    NODE_ENV: production</div>
+                                <div>    DEBUG: "true"</div>
+                                <div>  volumes:</div>
+                                <div>    - type: auto-volume</div>
+                                <div>      destination: /app/data</div>
+                                <div>    - type: host</div>
+                                <div>      source: /home/user/code</div>
+                                <div>      destination: /workspace</div>
+                                <div>  custom:</div>
+                                <div>    on_build:</div>
+                                <div>      - "setup.sh --verbose"</div>
+                                <div>    on_every_run:</div>
+                                <div>      - "health-check.sh"</div>
+                                <div style="margin-top: 0.5rem;">stage2:</div>
+                                <div>  # Inherits from stage1 (no overrides)</div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-secondary text-sm" onclick="downloadYaml()">
+                                💾 Download YAML
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Actions -->
+                <div class="card mt-6">
+                    <div class="card-header">
+                        💾 Save Configuration
+                    </div>
+                    <div class="card-content">
+                        <div class="grid grid-3">
+                            <div>
+                                <button class="btn btn-success w-full" onclick="saveConfiguration()" disabled>
+                                    💾 Save to Project
+                                </button>
+                                <div class="text-xs text-secondary mt-1 text-center">
+                                    Disabled: Fix validation errors first
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary w-full" onclick="goBackToEdit()">
+                                    ✏️ Continue Editing
+                                </button>
+                                <div class="text-xs text-secondary mt-1 text-center">
+                                    Navigate back to make changes
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary w-full" onclick="cancelConfiguration()">
+                                    ❌ Cancel
+                                </button>
+                                <div class="text-xs text-secondary mt-1 text-center">
+                                    Return without saving
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <div class="text-sm">
+                                <strong>💡 After saving:</strong> You'll remain on this page and can continue to navigate back to other tabs, make changes, and save again as needed.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot error"></div>
+                    <span>Configuration has errors</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>2 validation errors in Storage tab</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function saveConfiguration() {
+            alert('Configuration would be saved to user_config.yml in the project directory');
+        }
+
+        function testConfiguration() {
+            alert('Configuration test would validate Docker commands and check for issues');
+        }
+
+        function generateDockerCommands() {
+            alert('Docker commands generated and ready to copy');
+        }
+
+        function exportConfiguration() {
+            alert('Configuration exported as downloadable file');
+        }
+
+        function previewYaml() {
+            alert('YAML preview expanded');
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(`# Build stage-1 image
+docker build -t my-awesome-project:stage-1 ./stage-1/
+
+# Build stage-2 image  
+docker build -t my-awesome-project:stage-2 ./stage-2/
+
+# Run container with full configuration
+docker run -d \\
+  --name my-awesome-project \\
+  -p 2222:22 \\
+  -p 8080:80 \\
+  -p 3000:3000 \\
+  -v my-data-volume:/app/data \\
+  -v /home/user/code:/workspace \\
+  -e NODE_ENV=production \\
+  -e DEBUG=true \\
+  my-awesome-project:stage-2`);
+            alert('Docker commands copied to clipboard!');
+        }
+
+        function downloadYaml() {
+            alert('user_config.yml downloaded');
+        }
+
+        function goBackToEdit() {
+            alert('Navigate back to any tab to continue editing');
+        }
+
+        function cancelConfiguration() {
+            if (confirm('Unsaved changes will be lost. Continue?')) {
+                alert('Configuration cancelled');
+            }
+        }
+
+        function goToStorageTab() {
+            window.location.href = 'storage_tab.html';
+        }
+    </script>
+</body>
+</html>

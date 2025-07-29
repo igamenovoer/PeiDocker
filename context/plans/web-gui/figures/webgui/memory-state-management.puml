@@ -1,0 +1,30 @@
+@startuml
+start
+:User modifies configuration;
+:Store changes in memory;
+:Update UI reactively;
+:Mark configuration as dirty;
+
+while (User continues editing?) is (yes)
+  :Switch between tabs;
+  :Modify different sections;
+  :All changes stored in memory;
+endwhile (no)
+
+if (User clicks Save?) then (yes)
+  :Validate all configuration;
+  if (Validation passes?) then (yes)
+    :Write user_config.yml to project directory;
+    :Create/update script files in stage directories;
+    :Mark configuration as saved;
+    :Display success notification;
+  else (no)
+    :Highlight validation errors;
+    :Keep changes in memory;
+  endif
+else (no)
+  :Keep changes in memory;
+  :Warn about unsaved changes if navigating away;
+endif
+stop
+@enduml

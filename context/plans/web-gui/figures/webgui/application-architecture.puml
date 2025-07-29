@@ -1,0 +1,21 @@
+@startuml
+package "NiceGUI Web Application" {
+  [Main Application] as main
+  [Configuration State] as state
+  [Tab Controller] as tabs
+  [Tab Components] as ui
+  [File Operations] as files
+  [Docker Utils] as docker
+}
+
+[Browser] --> main : HTTP/WebSocket
+main --> state : reactive updates
+main --> tabs : tab management
+tabs --> ui : tab rendering
+tabs --> files : project operations
+tabs --> docker : validation
+state --> ui : data binding
+
+note right of state : In-memory configuration\nuntil explicit save
+note right of tabs : Tab-based navigation\nwith 7 main tabs
+@enduml
