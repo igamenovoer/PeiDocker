@@ -59,7 +59,7 @@
                     🌐 Network Configuration
                 </div>
                 <p class="tab-description">
-                    Configure network settings including proxy, package repository mirrors, and port mappings for your container.
+                    Configure network settings including proxy (applied globally to both stages), package repository mirrors, and port mappings for your container.
                 </p>
 
                 <!-- Proxy Configuration -->
@@ -77,7 +77,7 @@
                                 <div>
                                     <div class="form-label">Use HTTP Proxy</div>
                                     <div class="form-help">
-                                        Configure proxy for container internet access
+                                        Enable proxy globally for both stages
                                     </div>
                                 </div>
                             </div>
@@ -104,19 +104,11 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <div class="form-label">Proxy Usage</div>
+                                        <div class="form-label">Proxy Scope</div>
                                         <div class="flex flex-col gap-2">
-                                            <label class="flex items-center gap-2">
-                                                <input type="radio" name="proxy-usage" value="build-only" checked>
-                                                <span>Build-time only (removed after build)</span>
-                                            </label>
-                                            <label class="flex items-center gap-2">
-                                                <input type="radio" name="proxy-usage" value="persistent">
-                                                <span>Build and runtime (persistent)</span>
-                                            </label>
-                                        </div>
-                                        <div class="form-help">
-                                            Whether proxy is available only during build or also at runtime
+                                            <div class="form-help">
+                                                Proxy will be enabled globally for both stages with persistent access (enable_globally: true, remove_after_build: false)
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

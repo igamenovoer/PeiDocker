@@ -2,7 +2,7 @@
     📜 Custom Scripts Configuration
 </div>
 <p class="tab-description">
-    Configure custom entry points and lifecycle hook scripts for both build and runtime stages.
+    Configure custom entry points and lifecycle hook scripts for Stage-1 and Stage-2 sequential image builds.
 </p>
 
 <div class="grid grid-2">
@@ -10,7 +10,7 @@
     <div>
         <div class="card mb-6">
             <div class="card-header">
-                🏗️ Stage-1 Build Scripts
+                🏗️ Stage-1 Image Scripts
             </div>
             <div class="card-content">
                 <!-- Custom Entry Point -->
@@ -54,7 +54,7 @@
                     
                     <div id="stage1-lifecycle-scripts">
                         <div class="mb-4">
-                            <div class="form-label text-sm">on_build - Runs during image build</div>
+                            <div class="form-label text-sm">on_build - Runs during Stage-1 image building</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_build', 'file')">
                                     📁 Add File
@@ -67,7 +67,7 @@
                         </div>
                         
                         <div class="mb-4">
-                            <div class="form-label text-sm">on_first_run - Runs on first container start</div>
+                            <div class="form-label text-sm">on_first_run - Runs on first container start (respective stage)</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_first_run', 'file')">
                                     📁 Add File
@@ -80,7 +80,7 @@
                         </div>
                         
                         <div>
-                            <div class="form-label text-sm">on_every_run - Runs on every container start</div>
+                            <div class="form-label text-sm">on_every_run - Runs on every container start (respective stage)</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_every_run', 'file')">
                                     📁 Add File
@@ -121,7 +121,7 @@
     <div>
         <div class="card mb-6">
             <div class="card-header">
-                🚀 Stage-2 Runtime Scripts
+                🚀 Stage-2 Image Scripts
             </div>
             <div class="card-content">
                 <!-- Custom Entry Point -->
@@ -165,7 +165,7 @@
                     
                     <div id="stage2-lifecycle-scripts">
                         <div class="mb-4">
-                            <div class="form-label text-sm">on_user_login - Runs when user logs in via SSH</div>
+                            <div class="form-label text-sm">on_user_login - Runs when user logs in via SSH (respective stage)</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_user_login', 'file')">
                                     📁 Add File
@@ -195,7 +195,7 @@
                         </div>
                         
                         <div class="mb-4">
-                            <div class="form-label text-sm">on_first_run - Runs on first container start</div>
+                            <div class="form-label text-sm">on_first_run - Runs on first container start (respective stage)</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_first_run', 'file')">
                                     📁 Add File
@@ -208,7 +208,7 @@
                         </div>
                         
                         <div>
-                            <div class="form-label text-sm">on_every_run - Runs on every container start</div>
+                            <div class="form-label text-sm">on_every_run - Runs on every container start (respective stage)</div>
                             <div class="flex gap-2 mb-2">
                                 <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_every_run', 'file')">
                                     📁 Add File

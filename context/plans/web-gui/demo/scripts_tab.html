@@ -59,7 +59,7 @@
                     📜 Custom Scripts Configuration
                 </div>
                 <p class="tab-description">
-                    Configure custom entry point scripts and lifecycle hook scripts that will execute at different stages of your container's lifecycle.
+                    Configure custom entry point scripts and lifecycle hook scripts for Stage-1 and Stage-2 sequential image builds.
                 </p>
 
                 <!-- Stage-1 Entry Point -->
@@ -191,7 +191,7 @@
                                 <div>
                                     <div class="form-label">Set Custom Entry Point for Stage-2</div>
                                     <div class="form-help">
-                                        Override the stage-1 entry point for runtime stage
+                                        Override the stage-1 entry point for Stage-1 containers
                                     </div>
                                 </div>
                             </div>
@@ -231,7 +231,7 @@
                                         type="text" 
                                         id="stage2-entry-script" 
                                         class="form-input" 
-                                        placeholder="/path/to/runtime-entrypoint.sh"
+                                        placeholder="/path/to/stage1-entrypoint.sh"
                                     >
                                     <button class="btn btn-secondary">
                                         📁 Browse
@@ -248,7 +248,7 @@
                                     type="text" 
                                     id="stage2-entry-name" 
                                     class="form-input" 
-                                    placeholder="runtime-entrypoint.sh"
+                                    placeholder="stage1-entrypoint.sh"
                                 >
                                 <div class="form-help">
                                     Name for the script file (will be created in project directory)
@@ -261,7 +261,7 @@
                                     id="stage2-entry-content" 
                                     class="form-input" 
                                     rows="8" 
-                                    placeholder="#!/bin/bash&#10;# Your runtime entry point script here&#10;echo 'Runtime container starting...'&#10;exec &quot;$@&quot;"
+                                    placeholder="#!/bin/bash&#10;# Your Stage-1 entry point script here&#10;echo 'Stage-1 container starting...'&#10;exec &quot;$@&quot;"
                                     style="font-family: 'Courier New', monospace; resize: vertical;"
                                 ></textarea>
                                 <div class="form-help">
@@ -287,7 +287,7 @@
                                 <div>
                                     <div class="form-label">Configure Stage-1 Custom Scripts</div>
                                     <div class="form-help">
-                                        Add lifecycle hook scripts for different container events
+                                        Add lifecycle hook scripts for Stage-1 container events
                                     </div>
                                 </div>
                             </div>
@@ -299,7 +299,7 @@
                                     <div class="form-group">
                                         <label class="form-label">Script Type</label>
                                         <select class="form-select" id="script-type-stage1">
-                                            <option value="on_build">on_build - Run during Docker image build</option>
+                                            <option value="on_build">on_build - Run during Stage-1 image building</option>
                                             <option value="on_first_run">on_first_run - Run on first container startup</option>
                                             <option value="on_every_run">on_every_run - Run on every container startup</option>
                                             <option value="on_user_login">on_user_login - Run when user logs in via SSH</option>
@@ -459,7 +459,7 @@
                                 <div>
                                     <div class="form-label">Configure Stage-2 Custom Scripts</div>
                                     <div class="form-help">
-                                        Add additional scripts for the runtime stage
+                                        Add additional scripts for Stage-2 image building
                                     </div>
                                 </div>
                             </div>
@@ -471,7 +471,7 @@
                                     <div class="form-group">
                                         <label class="form-label">Script Type</label>
                                         <select class="form-select" id="script-type-stage2">
-                                            <option value="on_build">on_build - Run during Docker image build</option>
+                                            <option value="on_build">on_build - Run during Stage-1 image building</option>
                                             <option value="on_first_run">on_first_run - Run on first container startup</option>
                                             <option value="on_every_run">on_every_run - Run on every container startup</option>
                                             <option value="on_user_login">on_user_login - Run when user logs in via SSH</option>
@@ -568,7 +568,7 @@
                                 <div class="form-label mb-2">Script Execution Timeline</div>
                                 <div class="preview-panel">
                                     <div class="font-mono text-sm">
-                                        <div># 1. During Docker Build (on_build)</div>
+                                        <div># 1. During Image Building (on_build)</div>
                                         <div>RUN stage-1/custom/setup.sh --verbose</div>
                                         <div style="margin-top: 0.5rem;"># 2. First Container Start (on_first_run)</div>
                                         <div style="color: #6b7280;"># No scripts configured</div>
@@ -585,7 +585,7 @@
                                 <div class="preview-panel">
                                     <div class="text-sm">
                                         <div class="mb-2">
-                                            <strong>🏗️ on_build:</strong> Scripts executed during Docker image build process. Useful for installing dependencies, configuring services.
+                                            <strong>🏗️ on_build:</strong> Scripts executed during Stage-1 and Stage-2 image building processes. Useful for installing dependencies, configuring services.
                                         </div>
                                         <div class="mb-2">
                                             <strong>🚀 on_first_run:</strong> Scripts executed only on the first container startup. Good for initialization tasks.

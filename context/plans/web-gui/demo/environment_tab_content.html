@@ -24,9 +24,10 @@
                     <div id="env-variables">
                         <div class="list-item">
                             <div class="list-item-content">
-                                <div class="grid grid-2 gap-2">
-                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="NODE_ENV">
-                                    <input type="text" class="form-input" placeholder="value" value="development">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="NODE_ENV" style="flex: 1;">
+                                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                                    <input type="text" class="form-input" placeholder="value" value="development" style="flex: 1;">
                                 </div>
                             </div>
                             <div class="list-item-actions">
@@ -38,9 +39,10 @@
                         
                         <div class="list-item">
                             <div class="list-item-content">
-                                <div class="grid grid-2 gap-2">
-                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="DEBUG">
-                                    <input type="text" class="form-input" placeholder="value" value="true">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="DEBUG" style="flex: 1;">
+                                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                                    <input type="text" class="form-input" placeholder="value" value="true" style="flex: 1;">
                                 </div>
                             </div>
                             <div class="list-item-actions">
@@ -54,10 +56,6 @@
                     <button class="btn btn-secondary" onclick="addEnvVariable()">
                         ➕ Add Environment Variable
                     </button>
-                </div>
-                
-                <div class="alert alert-info mt-4">
-                    <strong>Tip:</strong> Use ${VAR:-default} syntax for variable substitution with fallback values.
                 </div>
             </div>
         </div>
@@ -77,7 +75,6 @@
                     <select id="device-type" class="form-select" onchange="updateDeviceConfig()">
                         <option value="cpu">CPU Only</option>
                         <option value="gpu">GPU Support</option>
-                        <option value="custom">Custom Device</option>
                     </select>
                     <div class="form-help">
                         Select the type of hardware access needed
@@ -118,51 +115,9 @@
                         </div>
                     </div>
                 </div>
-
-                <div id="custom-device-config" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label" for="custom-device">
-                            Custom Device Path
-                        </label>
-                        <input 
-                            type="text" 
-                            id="custom-device" 
-                            class="form-input" 
-                            placeholder="/dev/device_name"
-                        >
-                        <div class="form-help">
-                            Specify custom device path to mount
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                🔧 Runtime Configuration
-            </div>
-            <div class="card-content">
-                <div class="form-group">
-                    <div class="flex items-center gap-4">
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="toggle-input" id="privileged-mode">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <div>
-                            <div class="form-label">Privileged Mode</div>
-                            <div class="form-help">
-                                Grant extended privileges to the container
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="alert alert-warning">
-                    <strong>Warning:</strong> Privileged mode gives the container nearly all capabilities of the host machine. Use with caution.
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -175,9 +130,10 @@
         div.className = 'list-item';
         div.innerHTML = `
             <div class="list-item-content">
-                <div class="grid grid-2 gap-2">
-                    <input type="text" class="form-input" placeholder="VARIABLE_NAME">
-                    <input type="text" class="form-input" placeholder="value">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" style="flex: 1;">
+                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                    <input type="text" class="form-input" placeholder="value" style="flex: 1;">
                 </div>
             </div>
             <div class="list-item-actions">
@@ -187,6 +143,17 @@
             </div>
         `;
         container.appendChild(div);
+        
+        // Add event listeners to the new inputs for configuration tracking
+        const newInputs = div.querySelectorAll('input');
+        newInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (typeof markConfigurationModified === 'function') {
+                    markConfigurationModified();
+                }
+            });
+        });
+        
         envVariableCount++;
     }
 
@@ -198,9 +165,12 @@
     function updateDeviceConfig() {
         const deviceType = document.getElementById('device-type').value;
         const gpuConfig = document.getElementById('gpu-config');
-        const customConfig = document.getElementById('custom-device-config');
         
         gpuConfig.style.display = deviceType === 'gpu' ? 'block' : 'none';
-        customConfig.style.display = deviceType === 'custom' ? 'block' : 'none';
     }
+
+    // Make environment functions globally available
+    window.addEnvVariable = addEnvVariable;
+    window.removeEnvVariable = removeEnvVariable;
+    window.updateDeviceConfig = updateDeviceConfig;
 </script>

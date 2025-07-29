@@ -121,10 +121,39 @@
                 const response = await fetch(`${tabName}_tab_content.html`);
                 if (response.ok) {
                     const content = await response.text();
-                    document.getElementById('tab-content').innerHTML = content;
                     
-                    // Initialize tab-specific functionality
-                    initializeTabContent(tabName);
+                    // Extract and execute scripts from the loaded content
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = content;
+                    
+                    // Extract HTML content without scripts
+                    const scripts = tempDiv.querySelectorAll('script');
+                    const htmlContent = tempDiv.innerHTML;
+                    
+                    // Set the HTML content
+                    document.getElementById('tab-content').innerHTML = htmlContent;
+                    
+                    // Execute scripts manually
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        if (script.src) {
+                            newScript.src = script.src;
+                        } else {
+                            newScript.textContent = script.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                        // Remove the script after execution to avoid duplicates
+                        setTimeout(() => {
+                            if (newScript.parentNode) {
+                                newScript.parentNode.removeChild(newScript);
+                            }
+                        }, 100);
+                    });
+                    
+                    // Initialize tab-specific functionality after a short delay
+                    setTimeout(() => {
+                        initializeTabContent(tabName);
+                    }, 100);
                 } else {
                     // Fallback to existing full tab file for demo
                     window.location.href = `${tabName}_tab.html`;
@@ -145,6 +174,14 @@
                 }, 10);
             } else if (tabName === 'ssh') {
                 initializeSSHTab();
+            } else if (tabName === 'network') {
+                setTimeout(() => {
+                    initializeNetworkTab();
+                }, 10);
+            } else if (tabName === 'environment') {
+                setTimeout(() => {
+                    initializeEnvironmentTab();
+                }, 10);
             }
             // Add other tab initializations as needed
         }
@@ -390,6 +427,85 @@
         window.addUser = addUser;  
         window.removeUser = removeUser;
         window.toggleUidInput = toggleUidInput;
+
+        // Network Tab Initialization and Functions
+        function initializeNetworkTab() {
+            // Initialize network tab specific functionality
+            console.log('Initializing Network Tab...');
+            
+            // Check if we have the port mapping elements
+            const portMappingsContainer = document.getElementById('port-mappings');
+            if (portMappingsContainer) {
+                console.log('Port mappings container found, initializing...');
+                
+                // Initialize port mapping functionality
+                // Reset counters and arrays for fresh initialization
+                if (typeof portMappingCount !== 'undefined') {
+                    portMappingCount = 0;
+                }
+                if (typeof portMappings !== 'undefined') {
+                    portMappings = [];
+                }
+                
+                // Re-run the DOMContentLoaded logic for port mappings
+                setTimeout(() => {
+                    initializePortMappings();
+                }, 50);
+            } else {
+                console.warn('Port mappings container not found in network tab');
+            }
+        }
+
+        function initializePortMappings() {
+            // Add one example mapping by default
+            if (typeof addPortMapping === 'function') {
+                addPortMapping('8080', '80');
+                
+                if (typeof updatePortMappingsSummary === 'function') {
+                    updatePortMappingsSummary();
+                }
+            } else {
+                console.error('addPortMapping function not available');
+            }
+        }
+
+        // Make network functions globally available
+        window.initializeNetworkTab = initializeNetworkTab;
+        window.initializePortMappings = initializePortMappings;
+
+        // Environment Tab Initialization and Functions
+        function initializeEnvironmentTab() {
+            // Initialize environment tab specific functionality
+            console.log('Initializing Environment Tab...');
+            
+            // Check if we have the environment variables container
+            const envVariablesContainer = document.getElementById('env-variables');
+            if (envVariablesContainer) {
+                console.log('Environment variables container found, initializing...');
+                
+                // Initialize any environment-specific functionality
+                const deviceTypeSelect = document.getElementById('device-type');
+                if (deviceTypeSelect) {
+                    deviceTypeSelect.addEventListener('change', function() {
+                        if (typeof updateDeviceConfig === 'function') {
+                            updateDeviceConfig();
+                        }
+                        markConfigurationModified();
+                    });
+                }
+                
+                // Add change listeners to all environment variable inputs
+                const envInputs = envVariablesContainer.querySelectorAll('input');
+                envInputs.forEach(input => {
+                    input.addEventListener('input', markConfigurationModified);
+                });
+            } else {
+                console.warn('Environment variables container not found in environment tab');
+            }
+        }
+
+        // Make environment functions globally available
+        window.initializeEnvironmentTab = initializeEnvironmentTab;
 
         function markConfigurationModified() {
             configState.modified = true;

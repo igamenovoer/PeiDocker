@@ -1639,4 +1639,321 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1753799420019_wl5zlgkqr" time="2025/07/29 22:30">
+    <content>
+      # PeiDocker Stage-1 and Stage-2 Architecture - CORRECTED UNDERSTANDING
+    
+      ## Key Architectural Concept
+      Stage-1 and Stage-2 are **sequential Docker image building stages**, NOT &quot;build time vs runtime&quot; differentiation.
+    
+      ## Two-Stage Build Process
+      1. **Stage-1**: Builds `pei-image:stage-1` Docker image
+      - Base system setup using APT packages
+      - System-level configuration (SSH, proxy, networking)
+      - Foundation image with core system components
+    
+      2. **Stage-2**: Builds `pei-image:stage-2` Docker image **based on Stage-1**
+      - Uses Stage-1 image as its base (`base: null` means inherit from Stage-1 output)
+      - Adds application-level customizations
+      - Adds custom packages (.deb, .whl files)
+      - **Includes dynamic storage feature** - the key differentiator
+    
+      ## Both Images Are Usable
+      - Both images can be run as containers: `docker compose up stage-1` or `docker compose up stage-2`
+      - Stage-2 is typically the target image due to enhanced features
+      - Stage-1 can be used independently for simpler use cases
+    
+      ## Stage-2 Enhanced Features
+      **Dynamic Storage System:**
+      - `/soft/app`, `/soft/data`, `/soft/workspace` directories
+      - Smart linking: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
+      - Allows switching between in-image and external storage after build
+      - Only available in Stage-2 images
+    
+      ## Configuration Relationship
+      - **Inheritance**: Stage-2 inherits Stage-1 settings when values are `null`
+      - **Override**: Stage-2 can override Stage-1 settings (device, proxy, etc.)
+      - **Append**: Stage-2 appends additional configurations (ports, environment vars)
+      - **Separate Scripts**: Each stage has its own custom scripts directory
+    
+      ## GUI Implications
+      - Proxy configuration affects BOTH stages when enabled (not build vs runtime)
+      - Storage configuration is primarily Stage-2 focused (dynamic storage)
+      - Both stages need their custom scripts managed separately
+      - Configuration must account for Stage-1 → Stage-2 inheritance patterns
+    
+      This layered architecture allows progressive enhancement from base system (Stage-1) to full-featured application environment (Stage-2).
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753799807929_jloem9lu0" time="2025/07/29 22:36">
+    <content>
+      # PeiDocker Documentation Update - Architecture Correction Complete
+    
+      ## Major Documentation Revision Completed
+      Successfully updated both the design documentation and demo files to reflect the correct PeiDocker two-stage architecture.
+    
+      ## Key Changes Made
+    
+      ### 1. Design Document (webgui-general-design.md)
+      - **Added comprehensive architecture section** explaining Stage-1 → Stage-2 sequential builds
+      - **Corrected Storage tab description** to emphasize Stage-2&#x27;s unique dynamic storage feature
+      - **Updated Scripts tab documentation** to clarify both stages have full lifecycle hooks
+      - **Fixed Environment tab** to show inheritance and override patterns
+      - **Removed all build/runtime temporal language** throughout
+    
+      ### 2. Demo Files Updated
+      **Storage Tab (storage_tab.html &amp; storage_tab_content.html):**
+      - Updated descriptions to &quot;Stage-1 and Stage-2 sequential image builds&quot;
+      - Emphasized Stage-2&#x27;s dynamic storage system (`/soft/app`, `/soft/data`, `/soft/workspace`)
+      - Changed &quot;Build Stage&quot; to &quot;Stage-1 Image&quot; and &quot;Runtime Stage&quot; to &quot;Stage-2 Image&quot;
+    
+      **Scripts Tab (scripts_tab.html &amp; scripts_tab_content.html):**
+      - Updated to &quot;Stage-1 and Stage-2 sequential image builds&quot;
+      - Clarified lifecycle hooks run during respective image building processes
+      - Updated all script descriptions to mention &quot;respective stage&quot;
+    
+      **Network Tab (already corrected):**
+      - Proxy configuration correctly shows &quot;applied globally to both stages&quot;
+    
+      ## Architectural Understanding Now Correct
+    
+      ### Before (Incorrect):
+      - Stage-1 = &quot;build time&quot;, Stage-2 = &quot;runtime&quot;
+      - Temporal distinction between phases
+    
+      ### After (Correct):
+      - **Stage-1**: Builds `pei-image:stage-1` (foundation image)
+      - **Stage-2**: Builds `pei-image:stage-2` based on Stage-1 (enhanced with dynamic storage)
+      - **Both images usable**: Can run either with `docker compose up`
+      - **Sequential builds**: Stage-1 → Stage-2 with inheritance patterns
+    
+      ## Key Differentiators Emphasized
+      - **Stage-2 Dynamic Storage**: `/soft/xxx` → `/hard/volume/xxx` OR `/hard/image/xxx`
+      - **Configuration Inheritance**: Stage-2 inherits Stage-1, can override/append
+      - **Both Stages Have Full Lifecycle**: on_build, on_first_run, on_every_run, on_user_login, on_entry
+    
+      This correction ensures GUI design properly reflects PeiDocker&#x27;s actual architecture of sequential Docker image builds rather than temporal build vs runtime phases.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753801600938_mupucn97k" time="2025/07/29 23:06">
+    <content>
+      # Project-Specific Memory
+    
+      ## Critical Web Development Pattern: Script Tags Not Executing in Dynamic HTML Loading
+    
+      ### The Problem
+      When loading HTML content dynamically using `fetch()` and setting it with `innerHTML`, `&lt;script&gt;` tags within that loaded HTML **DO NOT EXECUTE**. This is a fundamental browser security feature that affects all dynamic HTML loading scenarios.
+    
+      ### Common Manifestation in PeiDocker Web GUI
+      - Active-project.html loads tab content dynamically via `switchTab()` function
+      - Network tab content (network_tab_content.html) contains JavaScript for port mapping functionality
+      - After loading via `fetch()` and `innerHTML`, the JavaScript functions are undefined
+      - Symptoms: &quot;addPortMapping function not available&quot; errors, non-functional buttons
+    
+      ### Technical Root Cause
+      Browser security: Scripts are only executed when:
+      1. Initially parsed during document load
+      2. Explicitly added to DOM programmatically (createElement + appendChild)
+    
+      ### Solution Pattern (Proven Working)
+      ```javascript
+      // Load HTML content
+      const response = await fetch(&#x27;content.html&#x27;);
+      const content = await response.text();
+    
+      // Parse and extract scripts
+      const tempDiv = document.createElement(&#x27;div&#x27;);
+      tempDiv.innerHTML = content;
+      const scripts = tempDiv.querySelectorAll(&#x27;script&#x27;);
+    
+      // Set HTML content (without scripts)
+      document.getElementById(&#x27;target&#x27;).innerHTML = tempDiv.innerHTML;
+    
+      // Execute scripts manually
+      scripts.forEach(script =&gt; {
+      const newScript = document.createElement(&#x27;script&#x27;);
+      if (script.src) {
+      newScript.src = script.src;
+      } else {
+      newScript.textContent = script.textContent;
+      }
+      document.body.appendChild(newScript);
+      // Cleanup to avoid duplicates
+      setTimeout(() =&gt; {
+      if (newScript.parentNode) {
+      newScript.parentNode.removeChild(newScript);
+      }
+      }, 100);
+      });
+      ```
+    
+      ### Prevention Checklist - ALWAYS CHECK THESE:
+      1. **Dynamic HTML Loading**: Are we using fetch() + innerHTML?
+      2. **Script Dependencies**: Does the loaded HTML contain &lt;script&gt; tags?
+      3. **Function Availability**: Are JavaScript functions from loaded content accessible?
+      4. **Initialization Timing**: Do we need delayed initialization after script execution?
+      5. **CORS Issues**: Are we running from file:// protocol (blocks fetch)?
+    
+      ### Testing Strategy
+      - Use HTTP server for testing (not file:// protocol)
+      - Console.log to verify function availability after loading
+      - Check for &quot;function not available&quot; errors
+      - Test all interactive elements in dynamically loaded content
+    
+      ### PeiDocker-Specific Implementation
+      - File: /workspace/code/PeiDocker/context/plans/web-gui/demo/active-project.html
+      - Function: switchTab() - handles dynamic tab content loading
+      - Fix: Manual script extraction and execution (lines 125-151)
+      - Initialization: initializeTabContent() with proper timing
+    
+      ### Red Flags - Always Investigate:
+      - Tab content loads but buttons don&#x27;t work
+      - Console errors about undefined functions
+      - Scripts in loaded HTML files
+      - Dynamic content with interactive elements
+      - fetch() followed by innerHTML usage
+    
+      This pattern occurs frequently in single-page applications with dynamic content loading. Always consider this when implementing tab systems, modal content, or any dynamic HTML loading in web GUI applications.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753801618025_lb023hfyq" time="2025/07/29 23:06">
+    <content>
+      # Project-Specific Memory - Dynamic HTML Loading Checklist
+    
+      ## Quick Reference: Script Execution Issues in Dynamic Content
+    
+      ### 🚨 IMMEDIATE RED FLAGS - Check These First:
+      1. **Dynamic HTML loading with fetch() + innerHTML?** → Scripts won&#x27;t execute
+      2. **Interactive elements not working after content loads?** → Missing script execution
+      3. **&quot;Function not available&quot; console errors?** → Script execution problem
+      4. **Testing from file:// protocol?** → CORS will block fetch requests
+      5. **Buttons/forms work in standalone HTML but not in loaded content?** → Script issue
+    
+      ### 🔧 Quick Diagnostic Steps:
+      ```javascript
+      // After loading content, test if functions are available:
+      console.log(&#x27;Function available?&#x27;, typeof someFunction !== &#x27;undefined&#x27;);
+    
+      // Check if scripts exist in loaded content:
+      const scripts = loadedElement.querySelectorAll(&#x27;script&#x27;);
+      console.log(&#x27;Scripts found:&#x27;, scripts.length);
+      ```
+    
+      ### ⚡ Immediate Fix Pattern:
+      1. Extract scripts from loaded HTML
+      2. Set HTML content without scripts
+      3. Execute scripts manually via createElement + appendChild
+      4. Add proper initialization timing (setTimeout)
+      5. Test with HTTP server, not file://
+    
+      ### 📋 Prevention Strategy:
+      - **Design Phase**: Minimize dynamic HTML with scripts
+      - **Development**: Use HTTP server for testing
+      - **Testing**: Verify all interactive elements work
+      - **Code Review**: Flag any fetch() + innerHTML patterns
+    
+      ### 🎯 PeiDocker Context:
+      This issue specifically affected:
+      - Network tab port mapping functionality
+      - SSH tab user management
+      - Any dynamically loaded tab content with JavaScript
+    
+      Always check switchTab() function and tab initialization patterns for this issue.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753802659837_cdf0k0r9s" time="2025/07/29 23:24">
+    <content>
+      # PeiDocker Storage vs Mount - CORRECTED UNDERSTANDING
+    
+      ## Key Distinction: Storage vs Mount are DIFFERENT concepts
+    
+      ### **Storage (Stage-2 ONLY - Unique Feature)**
+      - **Purpose**: Stage-2&#x27;s dynamic storage system for predefined application directories
+      - **Predefined directories**: Only `/soft/app`, `/soft/data`, `/soft/workspace`
+      - **Smart linking mechanism**: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
+      - **Dynamic switching**: Can switch between in-image and external storage AFTER build
+      - **Four types**: `auto-volume`, `manual-volume`, `host`, `image`
+      - **Stage-2 exclusive**: This is what differentiates Stage-2 from Stage-1
+    
+      ### **Mount (Both Stage-1 and Stage-2)**
+      - **Purpose**: General volume mounting for any directory/path
+      - **User-defined**: Any volume name, any destination path in container
+      - **No inheritance**: Stage-1 mounts don&#x27;t transfer to Stage-2, must be redefined
+      - **Three types**: `auto-volume`, `manual-volume`, `host` (NOT `image`)
+      - **Flexible destinations**: Can mount external volumes to any container path
+    
+      ## The Four Types Explained
+    
+      ### 1. `auto-volume`
+      - Docker automatically creates and manages the volume
+      - Used when: `host_path: null`, `volume_name: null`
+      - Available for: Both storage and mount
+    
+      ### 2. `manual-volume`
+      - User specifies custom volume name
+      - Used when: `volume_name: &quot;my-custom-volume&quot;`, `host_path: null`
+      - Available for: Both storage and mount
+    
+      ### 3. `host`
+      - Direct mount of host directory into container
+      - Used when: `host_path: &quot;/path/on/host&quot;`, `volume_name: null`
+      - Available for: Both storage and mount
+    
+      ### 4. `image` (STORAGE ONLY)
+      - Keep data inside the image itself (no external storage)
+      - Used when: `host_path: null`, `volume_name: null`, `type: image`
+      - Available for: Storage ONLY (mount cannot use `image` type)
+    
+      ## YAML Configuration Structure
+    
+      ### Storage (stage_2.storage)
+      ```yaml
+      stage_2:
+      storage:  # Only these 3 predefined directories
+      app:
+      type: auto-volume|manual-volume|host|image
+      host_path: null  # when type=host
+      volume_name: null  # when type=manual-volume
+      data:
+      type: auto-volume|manual-volume|host|image
+      host_path: null
+      volume_name: null
+      workspace:
+      type: auto-volume|manual-volume|host|image
+      host_path: null
+      volume_name: null
+      ```
+    
+      ### Mount (stage_1.mount &amp; stage_2.mount)
+      ```yaml
+      stage_1:
+      mount:  # User-defined mount points
+      {mount_name}:  # Any name
+      type: auto-volume|manual-volume|host  # NO &#x27;image&#x27; type
+      dst_path: /any/container/path  # Any destination
+      host_path: null  # when type=host
+      volume_name: null  # when type=manual-volume
+    
+      stage_2:
+      mount:  # Must redefine, no inheritance from stage_1
+      {mount_name}:
+      type: auto-volume|manual-volume|host
+      dst_path: /any/container/path
+      host_path: null
+      volume_name: null
+      ```
+    
+      ## GUI Implementation Implications
+      - Storage section: Fixed 3 directories (app, data, workspace) with 4 type options
+      - Mount section: Dynamic list with add/remove, user defines mount name and destination
+      - Storage supports &#x27;image&#x27; type, Mount does not
+      - Mount requires destination path field, Storage uses predefined paths
+      - Stage-1 has only Mount, Stage-2 has both Storage and Mount
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

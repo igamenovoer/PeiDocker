@@ -55,7 +55,132 @@
       "args": [
         "nicegui-developer"
       ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "action",
+      "timestamp": "2025-07-29T14:14:51.801Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-07-29T14:30:20.018Z",
+      "args": [
+        "nicegui-developer",
+        "# PeiDocker Stage-1 and Stage-2 Architecture - CORRECTED UNDERSTANDING\n\n## Key Architectural Concept\nStage-1 and Stage-2 are **sequential Docker image building stages**, NOT \"build time vs runtime\" differentiation.\n\n## Two-Stage Build Process\n1. **Stage-1**: Builds `pei-image:stage-1` Docker image\n   - Base system setup using APT packages\n   - System-level configuration (SSH, proxy, networking)\n   - Foundation image with core system components\n\n2. **Stage-2**: Builds `pei-image:stage-2` Docker image **based on Stage-1**\n   - Uses Stage-1 image as its base (`base: null` means inherit from Stage-1 output)\n   - Adds application-level customizations\n   - Adds custom packages (.deb, .whl files)\n   - **Includes dynamic storage feature** - the key differentiator\n\n## Both Images Are Usable\n- Both images can be run as containers: `docker compose up stage-1` or `docker compose up stage-2`\n- Stage-2 is typically the target image due to enhanced features\n- Stage-1 can be used independently for simpler use cases\n\n## Stage-2 Enhanced Features\n**Dynamic Storage System:**\n- `/soft/app`, `/soft/data`, `/soft/workspace` directories\n- Smart linking: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)\n- Allows switching between in-image and external storage after build\n- Only available in Stage-2 images\n\n## Configuration Relationship\n- **Inheritance**: Stage-2 inherits Stage-1 settings when values are `null`\n- **Override**: Stage-2 can override Stage-1 settings (device, proxy, etc.)  \n- **Append**: Stage-2 appends additional configurations (ports, environment vars)\n- **Separate Scripts**: Each stage has its own custom scripts directory\n\n## GUI Implications\n- Proxy configuration affects BOTH stages when enabled (not build vs runtime)\n- Storage configuration is primarily Stage-2 focused (dynamic storage)\n- Both stages need their custom scripts managed separately\n- Configuration must account for Stage-1 → Stage-2 inheritance patterns\n\nThis layered architecture allows progressive enhancement from base system (Stage-1) to full-featured application environment (Stage-2).",
+        "--tags",
+        "architecture peidocker stages docker-images build-process dynamic-storage"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "remember",
+      "timestamp": "2025-07-29T14:36:47.927Z",
+      "args": [
+        "nicegui-developer",
+        "# PeiDocker Documentation Update - Architecture Correction Complete\n\n## Major Documentation Revision Completed\nSuccessfully updated both the design documentation and demo files to reflect the correct PeiDocker two-stage architecture.\n\n## Key Changes Made\n\n### 1. Design Document (webgui-general-design.md)\n- **Added comprehensive architecture section** explaining Stage-1 → Stage-2 sequential builds\n- **Corrected Storage tab description** to emphasize Stage-2's unique dynamic storage feature\n- **Updated Scripts tab documentation** to clarify both stages have full lifecycle hooks\n- **Fixed Environment tab** to show inheritance and override patterns\n- **Removed all build/runtime temporal language** throughout\n\n### 2. Demo Files Updated\n**Storage Tab (storage_tab.html & storage_tab_content.html):**\n- Updated descriptions to \"Stage-1 and Stage-2 sequential image builds\"\n- Emphasized Stage-2's dynamic storage system (`/soft/app`, `/soft/data`, `/soft/workspace`)\n- Changed \"Build Stage\" to \"Stage-1 Image\" and \"Runtime Stage\" to \"Stage-2 Image\"\n\n**Scripts Tab (scripts_tab.html & scripts_tab_content.html):**\n- Updated to \"Stage-1 and Stage-2 sequential image builds\"\n- Clarified lifecycle hooks run during respective image building processes\n- Updated all script descriptions to mention \"respective stage\"\n\n**Network Tab (already corrected):**\n- Proxy configuration correctly shows \"applied globally to both stages\"\n\n## Architectural Understanding Now Correct\n\n### Before (Incorrect):\n- Stage-1 = \"build time\", Stage-2 = \"runtime\"\n- Temporal distinction between phases\n\n### After (Correct):\n- **Stage-1**: Builds `pei-image:stage-1` (foundation image)\n- **Stage-2**: Builds `pei-image:stage-2` based on Stage-1 (enhanced with dynamic storage)\n- **Both images usable**: Can run either with `docker compose up`\n- **Sequential builds**: Stage-1 → Stage-2 with inheritance patterns\n\n## Key Differentiators Emphasized\n- **Stage-2 Dynamic Storage**: `/soft/xxx` → `/hard/volume/xxx` OR `/hard/image/xxx`\n- **Configuration Inheritance**: Stage-2 inherits Stage-1, can override/append  \n- **Both Stages Have Full Lifecycle**: on_build, on_first_run, on_every_run, on_user_login, on_entry\n\nThis correction ensures GUI design properly reflects PeiDocker's actual architecture of sequential Docker image builds rather than temporal build vs runtime phases.",
+        "--tags",
+        "architecture-correction documentation-update stage-1-stage-2 sequential-builds dynamic-storage"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "init",
+      "timestamp": "2025-07-29T14:37:27.147Z",
+      "args": [
+        {
+          "workingDirectory": "/workspace/code/PeiDocker",
+          "ideType": "claude"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-29T14:37:31.812Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "action",
+      "timestamp": "2025-07-29T14:52:43.912Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-07-29T15:06:40.937Z",
+      "args": [
+        "nicegui-developer",
+        "# Project-Specific Memory\n\n## Critical Web Development Pattern: Script Tags Not Executing in Dynamic HTML Loading\n\n### The Problem\nWhen loading HTML content dynamically using `fetch()` and setting it with `innerHTML`, `<script>` tags within that loaded HTML **DO NOT EXECUTE**. This is a fundamental browser security feature that affects all dynamic HTML loading scenarios.\n\n### Common Manifestation in PeiDocker Web GUI\n- Active-project.html loads tab content dynamically via `switchTab()` function\n- Network tab content (network_tab_content.html) contains JavaScript for port mapping functionality\n- After loading via `fetch()` and `innerHTML`, the JavaScript functions are undefined\n- Symptoms: \"addPortMapping function not available\" errors, non-functional buttons\n\n### Technical Root Cause\nBrowser security: Scripts are only executed when:\n1. Initially parsed during document load\n2. Explicitly added to DOM programmatically (createElement + appendChild)\n\n### Solution Pattern (Proven Working)\n```javascript\n// Load HTML content\nconst response = await fetch('content.html');\nconst content = await response.text();\n\n// Parse and extract scripts\nconst tempDiv = document.createElement('div');\ntempDiv.innerHTML = content;\nconst scripts = tempDiv.querySelectorAll('script');\n\n// Set HTML content (without scripts)\ndocument.getElementById('target').innerHTML = tempDiv.innerHTML;\n\n// Execute scripts manually\nscripts.forEach(script => {\n    const newScript = document.createElement('script');\n    if (script.src) {\n        newScript.src = script.src;\n    } else {\n        newScript.textContent = script.textContent;\n    }\n    document.body.appendChild(newScript);\n    // Cleanup to avoid duplicates\n    setTimeout(() => {\n        if (newScript.parentNode) {\n            newScript.parentNode.removeChild(newScript);\n        }\n    }, 100);\n});\n```\n\n### Prevention Checklist - ALWAYS CHECK THESE:\n1. **Dynamic HTML Loading**: Are we using fetch() + innerHTML?\n2. **Script Dependencies**: Does the loaded HTML contain <script> tags?\n3. **Function Availability**: Are JavaScript functions from loaded content accessible?\n4. **Initialization Timing**: Do we need delayed initialization after script execution?\n5. **CORS Issues**: Are we running from file:// protocol (blocks fetch)?\n\n### Testing Strategy\n- Use HTTP server for testing (not file:// protocol)\n- Console.log to verify function availability after loading\n- Check for \"function not available\" errors\n- Test all interactive elements in dynamically loaded content\n\n### PeiDocker-Specific Implementation\n- File: /workspace/code/PeiDocker/context/plans/web-gui/demo/active-project.html\n- Function: switchTab() - handles dynamic tab content loading\n- Fix: Manual script extraction and execution (lines 125-151)\n- Initialization: initializeTabContent() with proper timing\n\n### Red Flags - Always Investigate:\n- Tab content loads but buttons don't work\n- Console errors about undefined functions\n- Scripts in loaded HTML files\n- Dynamic content with interactive elements\n- fetch() followed by innerHTML usage\n\nThis pattern occurs frequently in single-page applications with dynamic content loading. Always consider this when implementing tab systems, modal content, or any dynamic HTML loading in web GUI applications.",
+        "--tags",
+        "web-development dynamic-html script-execution browser-security troubleshooting"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "remember",
+      "timestamp": "2025-07-29T15:06:58.024Z",
+      "args": [
+        "nicegui-developer",
+        "# Project-Specific Memory - Dynamic HTML Loading Checklist\n\n## Quick Reference: Script Execution Issues in Dynamic Content\n\n### 🚨 IMMEDIATE RED FLAGS - Check These First:\n1. **Dynamic HTML loading with fetch() + innerHTML?** → Scripts won't execute\n2. **Interactive elements not working after content loads?** → Missing script execution  \n3. **\"Function not available\" console errors?** → Script execution problem\n4. **Testing from file:// protocol?** → CORS will block fetch requests\n5. **Buttons/forms work in standalone HTML but not in loaded content?** → Script issue\n\n### 🔧 Quick Diagnostic Steps:\n```javascript\n// After loading content, test if functions are available:\nconsole.log('Function available?', typeof someFunction !== 'undefined');\n\n// Check if scripts exist in loaded content:\nconst scripts = loadedElement.querySelectorAll('script');\nconsole.log('Scripts found:', scripts.length);\n```\n\n### ⚡ Immediate Fix Pattern:\n1. Extract scripts from loaded HTML\n2. Set HTML content without scripts  \n3. Execute scripts manually via createElement + appendChild\n4. Add proper initialization timing (setTimeout)\n5. Test with HTTP server, not file://\n\n### 📋 Prevention Strategy:\n- **Design Phase**: Minimize dynamic HTML with scripts\n- **Development**: Use HTTP server for testing\n- **Testing**: Verify all interactive elements work\n- **Code Review**: Flag any fetch() + innerHTML patterns\n\n### 🎯 PeiDocker Context:\nThis issue specifically affected:\n- Network tab port mapping functionality \n- SSH tab user management\n- Any dynamically loaded tab content with JavaScript\n\nAlways check switchTab() function and tab initialization patterns for this issue.",
+        "--tags",
+        "checklist troubleshooting dynamic-html quick-reference"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "init",
+      "timestamp": "2025-07-29T15:07:57.803Z",
+      "args": [
+        {
+          "workingDirectory": "/workspace/code/PeiDocker",
+          "ideType": "claude"
+        }
+      ]
+    },
+    {
+      "from": "initialized",
+      "command": "action",
+      "timestamp": "2025-07-29T15:08:01.680Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "action",
+      "timestamp": "2025-07-29T15:20:29.804Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-07-29T15:24:19.837Z",
+      "args": [
+        "nicegui-developer",
+        "# PeiDocker Storage vs Mount - CORRECTED UNDERSTANDING\n\n## Key Distinction: Storage vs Mount are DIFFERENT concepts\n\n### **Storage (Stage-2 ONLY - Unique Feature)**\n- **Purpose**: Stage-2's dynamic storage system for predefined application directories\n- **Predefined directories**: Only `/soft/app`, `/soft/data`, `/soft/workspace` \n- **Smart linking mechanism**: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)\n- **Dynamic switching**: Can switch between in-image and external storage AFTER build\n- **Four types**: `auto-volume`, `manual-volume`, `host`, `image`\n- **Stage-2 exclusive**: This is what differentiates Stage-2 from Stage-1\n\n### **Mount (Both Stage-1 and Stage-2)**\n- **Purpose**: General volume mounting for any directory/path\n- **User-defined**: Any volume name, any destination path in container\n- **No inheritance**: Stage-1 mounts don't transfer to Stage-2, must be redefined\n- **Three types**: `auto-volume`, `manual-volume`, `host` (NOT `image`)\n- **Flexible destinations**: Can mount external volumes to any container path\n\n## The Four Types Explained\n\n### 1. `auto-volume`\n- Docker automatically creates and manages the volume\n- Used when: `host_path: null`, `volume_name: null`\n- Available for: Both storage and mount\n\n### 2. `manual-volume` \n- User specifies custom volume name\n- Used when: `volume_name: \"my-custom-volume\"`, `host_path: null`\n- Available for: Both storage and mount\n\n### 3. `host`\n- Direct mount of host directory into container\n- Used when: `host_path: \"/path/on/host\"`, `volume_name: null`\n- Available for: Both storage and mount\n\n### 4. `image` (STORAGE ONLY)\n- Keep data inside the image itself (no external storage)\n- Used when: `host_path: null`, `volume_name: null`, `type: image`\n- Available for: Storage ONLY (mount cannot use `image` type)\n\n## YAML Configuration Structure\n\n### Storage (stage_2.storage)\n```yaml\nstage_2:\n  storage:  # Only these 3 predefined directories\n    app:\n      type: auto-volume|manual-volume|host|image\n      host_path: null  # when type=host\n      volume_name: null  # when type=manual-volume\n    data:\n      type: auto-volume|manual-volume|host|image\n      host_path: null\n      volume_name: null\n    workspace:\n      type: auto-volume|manual-volume|host|image\n      host_path: null\n      volume_name: null\n```\n\n### Mount (stage_1.mount & stage_2.mount)\n```yaml\nstage_1:\n  mount:  # User-defined mount points\n    {mount_name}:  # Any name\n      type: auto-volume|manual-volume|host  # NO 'image' type\n      dst_path: /any/container/path  # Any destination\n      host_path: null  # when type=host\n      volume_name: null  # when type=manual-volume\n\nstage_2:\n  mount:  # Must redefine, no inheritance from stage_1\n    {mount_name}:\n      type: auto-volume|manual-volume|host\n      dst_path: /any/container/path\n      host_path: null\n      volume_name: null\n```\n\n## GUI Implementation Implications\n- Storage section: Fixed 3 directories (app, data, workspace) with 4 type options\n- Mount section: Dynamic list with add/remove, user defines mount name and destination\n- Storage supports 'image' type, Mount does not\n- Mount requires destination path field, Storage uses predefined paths\n- Stage-1 has only Mount, Stage-2 has both Storage and Mount",
+        "--tags",
+        "storage mount configuration yaml gui-design peidocker"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "action",
+      "timestamp": "2025-07-29T15:36:47.031Z",
+      "args": [
+        "nicegui-developer"
+      ]
     }
   ],
-  "lastUpdated": "2025-07-29T12:17:23.827Z"
+  "lastUpdated": "2025-07-29T15:36:47.034Z"
 }
