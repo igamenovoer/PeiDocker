@@ -4,9 +4,9 @@
   "metadata": {
     "version": "2.0.0",
     "description": "project 级资源注册表",
-    "createdAt": "2025-07-28T18:36:23.947Z",
-    "updatedAt": "2025-07-28T18:36:23.949Z",
-    "resourceCount": 8
+    "createdAt": "2025-07-29T05:07:32.588Z",
+    "updatedAt": "2025-07-29T05:07:32.590Z",
+    "resourceCount": 10
   },
   "resources": [
     {
@@ -17,9 +17,9 @@
       "description": "专业角色，提供特定领域的专业能力",
       "reference": "@project://.promptx/resource/role/code-reviewer/code-reviewer.role.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.948Z",
-        "updatedAt": "2025-07-28T18:36:23.948Z",
-        "scannedAt": "2025-07-28T18:36:23.948Z",
+        "createdAt": "2025-07-29T05:07:32.589Z",
+        "updatedAt": "2025-07-29T05:07:32.589Z",
+        "scannedAt": "2025-07-29T05:07:32.589Z",
         "path": "role/code-reviewer/code-reviewer.role.md"
       }
     },
@@ -31,9 +31,9 @@
       "description": "执行模式，定义具体的行为模式",
       "reference": "@project://.promptx/resource/role/code-reviewer/execution/code-review-workflow.execution.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.948Z",
-        "updatedAt": "2025-07-28T18:36:23.948Z",
-        "scannedAt": "2025-07-28T18:36:23.948Z",
+        "createdAt": "2025-07-29T05:07:32.589Z",
+        "updatedAt": "2025-07-29T05:07:32.589Z",
+        "scannedAt": "2025-07-29T05:07:32.589Z",
         "path": "role/code-reviewer/execution/code-review-workflow.execution.md"
       }
     },
@@ -45,9 +45,9 @@
       "description": "思维模式，指导AI的思考方式",
       "reference": "@project://.promptx/resource/role/code-reviewer/thought/analytical-thinking.thought.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.589Z",
+        "updatedAt": "2025-07-29T05:07:32.589Z",
+        "scannedAt": "2025-07-29T05:07:32.589Z",
         "path": "role/code-reviewer/thought/analytical-thinking.thought.md"
       }
     },
@@ -59,10 +59,38 @@
       "description": "思维模式，指导AI的思考方式",
       "reference": "@project://.promptx/resource/role/code-reviewer/thought/detail-oriented.thought.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.589Z",
+        "updatedAt": "2025-07-29T05:07:32.589Z",
+        "scannedAt": "2025-07-29T05:07:32.589Z",
         "path": "role/code-reviewer/thought/detail-oriented.thought.md"
+      }
+    },
+    {
+      "id": "nicegui-developer",
+      "source": "project",
+      "protocol": "role",
+      "name": "Nicegui Developer 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/role/nicegui-developer/nicegui-developer.role.md",
+      "metadata": {
+        "createdAt": "2025-07-29T05:07:32.589Z",
+        "updatedAt": "2025-07-29T05:07:32.589Z",
+        "scannedAt": "2025-07-29T05:07:32.589Z",
+        "path": "role/nicegui-developer/nicegui-developer.role.md"
+      }
+    },
+    {
+      "id": "nicegui-development-workflow",
+      "source": "project",
+      "protocol": "execution",
+      "name": "Nicegui Development Workflow 执行模式",
+      "description": "执行模式，定义具体的行为模式",
+      "reference": "@project://.promptx/resource/role/nicegui-developer/thought/nicegui-development-workflow.execution.md",
+      "metadata": {
+        "createdAt": "2025-07-29T05:07:32.590Z",
+        "updatedAt": "2025-07-29T05:07:32.590Z",
+        "scannedAt": "2025-07-29T05:07:32.590Z",
+        "path": "role/nicegui-developer/thought/nicegui-development-workflow.execution.md"
       }
     },
     {
@@ -73,9 +101,9 @@
       "description": "执行模式，定义具体的行为模式",
       "reference": "@project://.promptx/resource/role/textual-tui-developer/execution/textual-development-workflow.execution.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.590Z",
+        "updatedAt": "2025-07-29T05:07:32.590Z",
+        "scannedAt": "2025-07-29T05:07:32.590Z",
         "path": "role/textual-tui-developer/execution/textual-development-workflow.execution.md"
       }
     },
@@ -87,9 +115,9 @@
       "description": "专业角色，提供特定领域的专业能力",
       "reference": "@project://.promptx/resource/role/textual-tui-developer/textual-tui-developer.role.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.590Z",
+        "updatedAt": "2025-07-29T05:07:32.590Z",
+        "scannedAt": "2025-07-29T05:07:32.590Z",
         "path": "role/textual-tui-developer/textual-tui-developer.role.md"
       }
     },
@@ -101,9 +129,9 @@
       "description": "思维模式，指导AI的思考方式",
       "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/textual-architecture-thinking.thought.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.590Z",
+        "updatedAt": "2025-07-29T05:07:32.590Z",
+        "scannedAt": "2025-07-29T05:07:32.590Z",
         "path": "role/textual-tui-developer/thought/textual-architecture-thinking.thought.md"
       }
     },
@@ -115,22 +143,22 @@
       "description": "思维模式，指导AI的思考方式",
       "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/tui-design-patterns.thought.md",
       "metadata": {
-        "createdAt": "2025-07-28T18:36:23.949Z",
-        "updatedAt": "2025-07-28T18:36:23.949Z",
-        "scannedAt": "2025-07-28T18:36:23.949Z",
+        "createdAt": "2025-07-29T05:07:32.590Z",
+        "updatedAt": "2025-07-29T05:07:32.590Z",
+        "scannedAt": "2025-07-29T05:07:32.590Z",
         "path": "role/textual-tui-developer/thought/tui-design-patterns.thought.md"
       }
     }
   ],
   "stats": {
-    "totalResources": 8,
+    "totalResources": 10,
     "byProtocol": {
-      "role": 2,
-      "execution": 2,
+      "role": 3,
+      "execution": 3,
       "thought": 4
     },
     "bySource": {
-      "project": 8
+      "project": 10
     }
   }
 }

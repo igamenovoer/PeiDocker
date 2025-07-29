@@ -161,4 +161,4 @@ default = {solve-group = "default"}
 dev = {features = ["dev"], solve-group = "default"}
 
 [dependency-groups]
-dev = [ "pytest>=8.4.1,<9", "pytest-asyncio>=1.1.0,<2", "pytest-textual-snapshot>=1.1.0,<2", "pytest-cov>=6.2.1,<7", "black>=25.1.0,<26", "ruff>=0.12.4,<0.13", "mypy>=1.17.0,<2"]
+dev = [ "pytest>=8.4.1,<9", "pytest-asyncio>=1.1.0,<2", "pytest-textual-snapshot>=1.1.0,<2", "pytest-cov>=6.2.1,<7", "black>=25.1.0,<26", "ruff>=0.12.4,<0.13", "mypy>=1.17.0,<2", "pytest-playwright>=0.7.0,<0.8"]

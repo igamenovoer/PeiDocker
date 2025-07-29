@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<memory>
+  <item id="mem_1753763621909_ocbrx5ng5" time="2025/07/29 12:33">
+    <content>
+      # Tool Skill Memory
+    
+      ## NiceGUI Framework Overview
+      NiceGUI is a Python-based web UI framework built on FastAPI, Vue.js, and Quasar. It runs in browsers or as native desktop apps. Key characteristics:
+      - Browser-based GUI with automatic hot reloading
+      - Python-first approach with declarative syntax
+      - Built on FastAPI/Starlette with WebSocket communication
+      - Supports both web server mode and native desktop mode
+    
+      ## Core Usage Pattern
+      ```python
+      from nicegui import ui
+    
+      # Basic structure: declare UI elements, then run
+      ui.label(&#x27;Hello World&#x27;)
+      ui.button(&#x27;Click me&#x27;, on_click=lambda: ui.notify(&#x27;Clicked!&#x27;))
+      ui.run()  # Starts the server
+      ```
+    
+      ## Essential UI Components
+      **Basic Elements**: label, button, input, textarea, checkbox, switch, radio, select, slider, range, knob, rating, image, video, audio, icon
+      **Layout Elements**: row, column, card, grid, header, footer, drawer, separator, space, splitter
+      **Advanced Elements**: table, aggrid, plotly, pyplot, echart, scene (3D), leaflet (maps), joystick, interactive_image, codemirror, json_editor, markdown, chat_message, timeline
+      **Input Elements**: All support value binding and event handling
+    
+      ## Layout Patterns
+      ```python
+      # Row/column layout with context managers
+      with ui.row().classes(&#x27;items-center gap-4&#x27;):
+      ui.button(&#x27;Button 1&#x27;)
+      ui.button(&#x27;Button 2&#x27;)
+    
+      with ui.column().classes(&#x27;w-full max-w-lg&#x27;):
+      ui.input(&#x27;Name&#x27;)
+      ui.textarea(&#x27;Description&#x27;)
+    
+      # Card containers
+      with ui.card().classes(&#x27;w-80&#x27;):
+      ui.label(&#x27;Card Title&#x27;).classes(&#x27;text-xl font-bold&#x27;)
+      ```
+    
+      ## Event Handling Patterns
+      ```python
+      # Click events
+      ui.button(&#x27;Click&#x27;, on_click=lambda: ui.notify(&#x27;Clicked&#x27;))
+    
+      # Input events
+      ui.input(&#x27;Type here&#x27;, on_change=lambda e: print(f&#x27;Value: {e.value}&#x27;))
+    
+      # Keyboard events
+      ui.input().on(&#x27;keydown.enter&#x27;, lambda: handle_enter())
+    
+      # Custom event handlers
+      element.on(&#x27;custom-event&#x27;, callback_function)
+      ```
+    
+      ## Data Binding System
+      ```python
+      # Two-way data binding
+      class Data:
+      name = &#x27;John&#x27;
+      data = Data()
+    
+      # Bind input to object attribute
+      ui.input().bind_value(data, &#x27;name&#x27;)
+      ui.label().bind_text_from(data, &#x27;name&#x27;)
+    
+      # Manual value access
+      input_element = ui.input(&#x27;Default&#x27;)
+      print(input_element.value)  # Get current value
+      input_element.set_value(&#x27;New value&#x27;)  # Set value programmatically
+      ```
+    
+      ## Refreshable UI Pattern
+      ```python
+      # Refreshable decorator for dynamic content
+      @ui.refreshable
+      def dynamic_content():
+      ui.label(f&#x27;Current time: {datetime.now()}&#x27;)
+      for item in data_list:
+      ui.label(item.name)
+    
+      # Refresh the UI section
+      dynamic_content.refresh()
+    
+      # Use in event handlers
+      ui.button(&#x27;Update&#x27;, on_click=dynamic_content.refresh)
+      ```
+    
+      ## Page and Routing System
+      ```python
+      # Define pages with decorators
+      @ui.page(&#x27;/&#x27;)
+      def index():
+      ui.label(&#x27;Home Page&#x27;)
+    
+      @ui.page(&#x27;/about&#x27;)
+      def about():
+      ui.label(&#x27;About Page&#x27;)
+    
+      # Navigation
+      ui.link(&#x27;Go to About&#x27;, &#x27;/about&#x27;)
+      ui.button(&#x27;Navigate&#x27;, on_click=lambda: ui.navigate.to(&#x27;/about&#x27;))
+    
+      # Route parameters
+      @ui.page(&#x27;/user/{user_id}&#x27;)
+      def user_page(user_id: str):
+      ui.label(f&#x27;User: {user_id}&#x27;)
+      ```
+    
+      ## App Configuration and Run Options
+      ```python
+      ui.run(
+      host=&#x27;0.0.0.0&#x27;,          # Server host
+      port=8080,               # Server port
+      title=&#x27;My App&#x27;,          # Browser title
+      dark=False,              # Dark mode (None for auto)
+      reload=True,             # Auto reload on code changes
+      native=False,            # Desktop window mode
+      window_size=(1024, 768), # Native window size
+      show=True,               # Auto-open browser
+      storage_secret=&#x27;key123&#x27;  # Required for user storage
+      )
+      ```
+    
+      ## Styling with Tailwind CSS
+      ```python
+      # Tailwind classes for styling
+      ui.label(&#x27;Title&#x27;).classes(&#x27;text-2xl font-bold text-blue-600&#x27;)
+      ui.button(&#x27;Primary&#x27;).classes(&#x27;bg-blue-500 hover:bg-blue-700&#x27;)
+      ui.card().classes(&#x27;w-full max-w-md shadow-lg&#x27;)
+    
+      # Responsive design
+      ui.row().classes(&#x27;flex-col md:flex-row gap-4&#x27;)
+    
+      # Custom CSS
+      ui.add_css(&#x27;body { background-color: #f0f0f0; }&#x27;)
+      ```
+    
+      ## State Management Patterns
+      ```python
+      # Global state with refreshable UI
+      app_state = {&#x27;counter&#x27;: 0}
+    
+      @ui.refreshable
+      def counter_ui():
+      ui.label(f&quot;Count: {app_state[&#x27;counter&#x27;]}&quot;)
+      ui.button(&#x27;+1&#x27;, on_click=lambda: increment_counter())
+    
+      def increment_counter():
+      app_state[&#x27;counter&#x27;] += 1
+      counter_ui.refresh()
+    
+      # User session storage
+      from nicegui import app
+      app.storage.user[&#x27;username&#x27;] = &#x27;john&#x27;
+      username = app.storage.user.get(&#x27;username&#x27;, &#x27;anonymous&#x27;)
+    
+      # Browser local storage
+      app.storage.browser[&#x27;preference&#x27;] = &#x27;dark_mode&#x27;
+      ```
+    
+      ## Component Properties and Methods
+      ```python
+      # Quasar component properties via props()
+      ui.input().props(&#x27;outlined dense&#x27;)
+      ui.button().props(&#x27;flat round icon=search&#x27;)
+    
+      # Method chaining pattern
+      ui.input(&#x27;Label&#x27;).classes(&#x27;w-full&#x27;).props(&#x27;outlined&#x27;).on(&#x27;keydown.enter&#x27;, handler)
+    
+      # Component styling
+      ui.element(&#x27;div&#x27;).style(&#x27;background: red; padding: 1rem;&#x27;)
+      ```
+    
+      ## Advanced Integration Patterns
+      ```python
+      # FastAPI integration
+      from nicegui import app
+      from fastapi import Request
+    
+      @app.get(&#x27;/api/data&#x27;)
+      def api_endpoint():
+      return {&#x27;status&#x27;: &#x27;ok&#x27;}
+    
+      # Middleware usage
+      from starlette.middleware.base import BaseHTTPMiddleware
+      app.add_middleware(CustomMiddleware)
+    
+      # JavaScript execution
+      ui.run_javascript(&#x27;window.alert(&quot;Hello from Python!&quot;)&#x27;)
+    
+      # Timer for periodic updates
+      ui.timer(1.0, lambda: update_data())  # Every 1 second
+      ```
+    
+      ## Testing and Development
+      ```python
+      # Component testing with marks
+      ui.button(&#x27;Test Button&#x27;).mark(&#x27;test-button&#x27;)
+    
+      # Pytest integration available via nicegui.testing module
+      # Development mode with auto-reload enabled by default
+      # Browser dev tools work for debugging rendered HTML/CSS
+      ```
+    
+      ## Best Practices
+      - Use `@ui.refreshable` for dynamic content that changes based on state
+      - Leverage context managers (`with ui.row():`) for clean layout code
+      - Use data binding instead of manual value updates when possible
+      - Structure larger apps with multiple pages and separate modules
+      - Use Tailwind classes for responsive, maintainable styling
+      - Implement proper error handling with `ui.notify()` for user feedback
+      - Use `app.storage.user` for session data, `app.storage.browser` for client-side persistence
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753763760284_vel8gqg9o" time="2025/07/29 12:36">
+    <content>
+      # Tool Skill Memory
+    
+      ## PlantUML for GUI Design Documentation
+    
+      PlantUML provides text-based UML diagram creation that&#x27;s excellent for documenting GUI application design, user flows, and component interactions.
+    
+      ## Core UML Diagram Types for GUI Design
+    
+      ### 1. State Diagrams (State Charts)
+      **Purpose**: Model UI component states and system state transitions triggered by user actions.
+    
+      **Best for**: Modal dialogs, form validation states, application workflow states, component lifecycle.
+    
+      **Basic Pattern**:
+      ```plantuml
+      @startuml
+      [*] --&gt; InitialState
+      InitialState --&gt; SecondState : user_action
+      SecondState --&gt; FinalState : completion_event
+      FinalState --&gt; [*]
+    
+      state InitialState {
+      [*] --&gt; SubState1
+      SubState1 --&gt; SubState2 : internal_event
+      }
+      @enduml
+      ```
+    
+      ### 2. Activity Diagrams
+      **Purpose**: Model user workflows, business processes, and complex interaction flows.
+    
+      **Best for**: Multi-step wizards, user onboarding flows, complex business processes, decision-based navigation.
+    
+      **Basic Pattern**:
+      ```plantuml
+      @startuml
+      start
+      :User action;
+      if (Condition?) then (yes)
+      :Success path;
+      else (no)
+      :Error path;
+      stop
+      endif
+      :Continue flow;
+      stop
+      @enduml
+      ```
+    
+      ### 3. Sequence Diagrams
+      **Purpose**: Model interactions between UI components, backend services, and user actions over time.
+    
+      **Best for**: API calls and responses, component communication, event handling chains, asynchronous operations.
+    
+      **Basic Pattern**:
+      ```plantuml
+      @startuml
+      actor User
+      participant &quot;UI Component&quot; as UI
+      participant &quot;Service&quot; as Service
+      database &quot;Database&quot; as DB
+    
+      User -&gt; UI : user_action
+      UI -&gt; Service : api_call()
+      Service -&gt; DB : query()
+      DB --&gt; Service : result
+      Service --&gt; UI : response
+      UI --&gt; User : updated_ui
+      @enduml
+      ```
+    
+      ### 4. Use Case Diagrams
+      **Purpose**: Model user goals and system functionality from user perspective.
+    
+      **Best for**: Requirements gathering, feature overview, user role definition, system boundaries.
+    
+      **Basic Pattern**:
+      ```plantuml
+      @startuml
+      left to right direction
+      actor &quot;User Type&quot; as user
+      rectangle &quot;System&quot; {
+      usecase &quot;Feature 1&quot; as UC1
+      usecase &quot;Feature 2&quot; as UC2
+      }
+      user --&gt; UC1
+      user --&gt; UC2
+      @enduml
+      ```
+    
+      ## Advanced PlantUML Features
+    
+      ### Styling and Themes
+      ```plantuml
+      @startuml
+      !theme cerulean-outline
+    
+      skinparam state {
+      BackgroundColor LightBlue
+      BorderColor DarkBlue
+      FontColor Black
+      }
+    
+      skinparam activity {
+      BackgroundColor LightGreen
+      BorderColor DarkGreen
+      }
+      @enduml
+      ```
+    
+      ### Custom Stereotypes and Colors
+      ```plantuml
+      @startuml
+      skinparam state {
+      BackgroundColor&lt;&lt;UI&gt;&gt; LightCyan
+      BackgroundColor&lt;&lt;Error&gt;&gt; LightPink
+      BackgroundColor&lt;&lt;Loading&gt;&gt; LightYellow
+      }
+    
+      state &quot;Login Screen&quot; &lt;&lt;UI&gt;&gt;
+      state &quot;Error State&quot; &lt;&lt;Error&gt;&gt;
+      @enduml
+      ```
+    
+      ### Notes and Documentation
+      ```plantuml
+      @startuml
+      state LoginForm {
+      [*] --&gt; Empty
+      Empty --&gt; Filled : user_input
+    
+      note right of Empty : Initial state when\nform loads
+      note bottom of Filled : All validation\nrules active
+      }
+      @enduml
+      ```
+    
+      ### Hierarchical State Organization
+      ```plantuml
+      @startuml
+      state &quot;Application&quot; {
+      state &quot;Authentication Flow&quot; {
+      state Login
+      state Register
+      }
+    
+      state &quot;Main Application&quot; {
+      state Dashboard
+      state Settings
+      }
+      }
+      @enduml
+      ```
+    
+      ## Best Practices for GUI Documentation
+    
+      ### 1. Clear State Naming Conventions
+      - Use descriptive names: `WaitingForUserInput` instead of `State1`
+      - Include context: `LoginForm_ValidatingCredentials` instead of `Validating`
+      - Be consistent across diagrams
+    
+      ### 2. Document State Transitions with Conditions
+      ```plantuml
+      @startuml
+      state Form {
+      Empty --&gt; Filled : user_types_valid_email
+      Filled --&gt; Submitting : submit_button_clicked [form_valid]
+      Submitting --&gt; Success : api_success
+      Submitting --&gt; Error : api_error / show_error_message
+      Error --&gt; Filled : user_dismisses_error
+      }
+      @enduml
+      ```
+    
+      ### 3. Version Control Integration
+      ```plantuml
+      @startuml
+      !define VERSION v2.1.0
+      title User Authentication Flow (VERSION)
+    
+      &#x27; Include modular components
+      !include common-styles.puml
+      @enduml
+      ```
+    
+      ### 4. Configuration Variables for Flexibility
+      ```plantuml
+      @startuml
+      !$SHOW_DETAILED_STATES = %true()
+    
+      !if $SHOW_DETAILED_STATES
+      state DetailedValidation {
+      state CheckFormat
+      state CheckLength
+      }
+      !endif
+      @enduml
+      ```
+    
+      ## Common GUI Design Patterns
+    
+      ### Modal Dialog State Machine
+      ```plantuml
+      @startuml
+      [*] --&gt; Closed
+      Closed --&gt; Opening : open_modal()
+      Opening --&gt; Opened : animation_complete
+      Opened --&gt; Closing : close_modal() / save_data()
+      Closing --&gt; Closed : animation_complete
+      Opened --&gt; Opened : user_interaction / update_content()
+      @enduml
+      ```
+    
+      ### Form Validation Pattern
+      ```plantuml
+      @startuml
+      [*] --&gt; Pristine
+      Pristine --&gt; Dirty : user_input
+      Dirty --&gt; Validating : on_blur / validate_field()
+      Validating --&gt; Valid : validation_success
+      Validating --&gt; Invalid : validation_error / show_error()
+      Valid --&gt; Dirty : user_input
+      Invalid --&gt; Dirty : user_input
+      @enduml
+      ```
+    
+      ### Async Operation Pattern
+      ```plantuml
+      @startuml
+      [*] --&gt; Idle
+      Idle --&gt; Loading : start_operation()
+      Loading --&gt; Success : operation_complete
+      Loading --&gt; Error : operation_failed
+      Success --&gt; Idle : user_acknowledge
+      Error --&gt; Idle : user_retry
+      Error --&gt; Loading : auto_retry [retry_count &lt; 3]
+      @enduml
+      ```
+    
+      ## Development Workflow Integration
+    
+      ### Documentation-Driven Development Flow
+      1. Create use case diagrams for requirements
+      2. Design activity flows for user journeys
+      3. Create detailed state diagrams for components
+      4. Implement components based on diagrams
+      5. Validate implementation against design
+      6. Update diagrams or code as needed
+    
+      ### Living Documentation Strategy
+      - Store PlantUML files in version control alongside code
+      - Generate diagrams automatically in CI/CD pipeline
+      - Embed generated diagrams in technical documentation
+      - Link diagrams to design decisions and requirements
+      - Use diagrams for code reviews and team collaboration
+    
+      ### Multi-Diagram Documentation Approach
+      For comprehensive GUI documentation:
+      - **Use Cases** → Requirements and user goals
+      - **Activity Diagrams** → High-level user flows
+      - **State Diagrams** → Detailed component behavior
+      - **Sequence Diagrams** → Interaction details and timing
+    
+      ## PlantUML Integration Tools
+      - **VS Code**: PlantUML extension for live preview
+      - **IntelliJ IDEA**: Built-in PlantUML support
+      - **Web Interface**: plantuml.com for quick prototyping
+      - **CLI Tools**: Local PlantUML JAR for automation
+    
+      ## Export and Sharing Options
+      - PNG/SVG for documentation embedding
+      - PDF for printable specifications
+      - ASCII for text-only environments
+      - Direct integration with documentation platforms
+    
+      ## Review and Collaboration Patterns
+      ```plantuml
+      @startuml
+      !procedure $review_state($name, $reviewer, $status)
+      state $name {
+      note right : Reviewed by: $reviewer\nStatus: $status
+      }
+      !endprocedure
+    
+      $review_state(&quot;LoginFlow&quot;, &quot;UI Team&quot;, &quot;Approved&quot;)
+      $review_state(&quot;ValidationLogic&quot;, &quot;Backend Team&quot;, &quot;Under Review&quot;)
+      @enduml
+      ```
+    
+      ## Key Benefits for GUI Development
+      - **Visual Requirements**: Clear communication of complex UI behavior
+      - **Implementation Guide**: Step-by-step development roadmap
+      - **Testing Reference**: Test cases derived from state transitions
+      - **Maintenance Aid**: Understanding existing component behavior
+      - **Team Collaboration**: Shared understanding of UI design
+      - **Documentation Consistency**: Standardized diagram formats across projects
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753764074240_507yaq4m9" time="2025/07/29 12:41">
+    <content>
+      # Project-Specific Memory
+    
+      ## PeiDocker Project Overview
+    
+      PeiDocker is a sophisticated Docker automation framework that transforms YAML configurations into reproducible containerized environments. The core philosophy is: &quot;Don&#x27;t keep your docker images around, keep the build files!&quot;
+    
+      ### Design Philosophy
+      - **Configuration-driven**: Everything controlled through `user_config.yml` with extensive customization options
+      - **Two-stage architecture**: Separates system-level setup (stage-1) from application-level configuration (stage-2)
+      - **Flexible storage strategy**: Automatic switching between external volumes and in-image storage
+      - **Environment variable substitution**: Docker Compose-style `${VAR:-default}` syntax throughout all configurations
+      - **Cross-platform compatibility**: Works consistently across Windows (WSL), Linux, and macOS
+    
+      ### Development Environment
+      - Uses Pixi integrated with pyproject.toml for package management
+      - Command line tools: `pei-docker-cli create`, `pei-docker-cli configure`
+      - Main CLI entry point: `src/pei_docker/pei.py`
+    
+      ### Project Structure
+      - `src/pei_docker/` - Main package directory
+      - `src/pei_docker/gui/` - **EXISTING GUI MODULE** using Textual framework
+      - `docs/` - Comprehensive documentation with examples
+      - `examples/` - YAML configuration examples for various use cases
+    
+      ### Current GUI Implementation Status
+    
+      **IMPORTANT**: There is already a GUI implementation using Textual at `src/pei_docker/gui/` with:
+      - Main application: `app.py` with PeiDockerApp class
+      - Screen-based navigation (SC-0 to SC-13)
+      - CLI command: `pei-docker-gui start` and `pei-docker-gui dev`
+      - Project configuration models in `models/config.py`
+      - Docker utilities in `utils/docker_utils.py`
+      - Startup screen, project setup screen, simple wizard controller implemented
+    
+      ### Current GUI Architecture
+      ```
+      src/pei_docker/gui/
+      ├── app.py                    # Main application entry point (IMPLEMENTED)
+      ├── screens/
+      │   ├── startup.py            # System check and welcome screen (IMPLEMENTED)
+      │   ├── project_setup.py      # Project directory selection (IMPLEMENTED)
+      │   └── simple/
+      │       ├── wizard.py         # Wizard controller (IMPLEMENTED)
+      │       ├── project_info.py   # Project settings (IMPLEMENTED)
+      │       ├── ssh_config.py     # SSH configuration (IMPLEMENTED)
+      │       └── summary.py        # Final review and save (IMPLEMENTED)
+      ├── models/
+      │   └── config.py            # Configuration data models (IMPLEMENTED)
+      └── utils/
+      ├── docker_utils.py      # Docker integration utilities (IMPLEMENTED)
+      └── file_utils.py        # File system utilities (IMPLEMENTED)
+      ```
+    
+      ### GUI Task Requirements from context/tasks/task-gui.md
+    
+      The task specifies creating additional wizard steps for Simple Mode:
+      1. ✅ Project Information (DONE)
+      2. ✅ SSH Configuration (DONE)
+      3. ⏳ Proxy Configuration
+      4. ⏳ Apt Configuration
+      5. ⏳ Port Mapping
+      6. ⏳ Environment Variables
+      7. ⏳ Device (GPU) Configuration
+      8. ⏳ Additional Mounts (stage-1 and stage-2)
+      9. ⏳ Custom Entry Point
+      10. ⏳ Custom Scripts
+      11. ✅ Summary/Save (DONE)
+    
+      ### Configuration Template Reference
+      The full configuration template is at `src/pei_docker/templates/config-template-full.yml` with all possible options.
+    
+      ### Key Implementation Notes
+      - GUI only handles stage-1 configuration for most sections (proxy, apt, ssh, ports, env vars, device)
+      - Stage-2 configuration requires manual config file editing
+      - Uses in-memory configuration until user explicitly saves
+      - Supports environment variable substitution: `${VAR:-default}`
+      - Docker availability check on startup with graceful degradation
+      - Cross-platform file path handling (Windows/Linux/macOS)
+    
+      ### Development Commands
+      ```bash
+      # Install dependencies
+      pixi install
+    
+      # Run GUI
+      pei-docker-gui start
+      pei-docker-gui start --project-dir ./my-project
+      pei-docker-gui dev --project-dir ./test --screen sc-1
+    
+      # Run CLI
+      pei-docker-cli create -p ./build
+      pei-docker-cli configure -p ./build
+      ```
+    
+      This is critical project context for any GUI development work on PeiDocker.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753764952813_lxfu86u5n" time="2025/07/29 12:55">
+    <content>
+      # Project-Specific Memory
+    
+      ## Available Development Tools for PeiDocker Project
+    
+      The following tools are available in this development environment for the PeiDocker project:
+    
+      ### Python Environment &amp; Testing
+      - **pixi**: Python environment management tool
+      - Testing command: `pixi run -e dev &lt;your test script&gt;`
+      - This is the primary package manager for the project
+      - Used for installing dependencies and running development tasks
+    
+      ### Documentation &amp; Diagramming Tools
+      - **dot (graphviz)**: Graph visualization and diagramming
+      - Useful for creating architecture diagrams, workflow charts
+      - Can generate various output formats (PNG, SVG, PDF)
+    
+      - **plantuml**: UML diagram generation from text
+      - Excellent for documenting GUI design workflows
+      - Can create state diagrams, sequence diagrams, activity diagrams
+      - Particularly useful for documenting the wizard step flows in the GUI
+      - Can visualize the screen navigation architecture (SC-0 to SC-13)
+    
+      ### Testing &amp; Validation Tools
+      - **playwright**: Automated web testing framework
+      - **pytest-playwright**: Python bindings for Playwright
+      - Useful for testing the Textual GUI application
+      - Can automate GUI interaction testing
+      - May be helpful for testing the wizard workflows and screen transitions
+    
+      ### Media Processing Tools
+      - **imagemagick**: Image processing and manipulation
+      - Can be used for creating screenshots, icons, or processing GUI assets
+      - Useful for documentation with visual examples
+    
+      - **ffmpeg**: Video processing and conversion
+      - Could be used for creating demo videos of the GUI workflow
+      - Useful for documenting complex wizard interactions
+    
+      ### Development Workflow Integration
+      These tools complement the existing PeiDocker GUI development workflow:
+      1. Use **pixi** for running the GUI in development mode
+      2. Use **plantuml** to document the wizard step flows and screen architecture
+      3. Use **playwright** for automated testing of GUI interactions
+      4. Use **graphviz** for visualizing the project configuration relationships
+      5. Use **imagemagick** for processing any GUI assets or screenshots
+    
+      ### Specific Use Cases for PeiDocker GUI Development
+      - **plantuml**: Document the wizard step state machine and user flows
+      - **playwright**: Test the complete wizard workflow from project creation to config save
+      - **pixi**: Run GUI in development mode with different screen starting points
+      - **graphviz**: Visualize the configuration dependencies between stage-1 and stage-2
+      - **imagemagick**: Process any GUI documentation screenshots
+    
+      This tool ecosystem supports comprehensive GUI development, testing, and documentation for the PeiDocker project.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753765440275_cgl6w23x0" time="2025/07/29 13:04">
+    <content>
+      # Tool Skill Memory
+    
+      ## Testing Web UI Applications with Playwright in Python
+    
+      Playwright is a powerful end-to-end testing framework for web applications that provides cross-browser automation capabilities. This skill applies to testing any Python-based web UI framework.
+    
+      ### Installation and Setup
+      ```bash
+      # Core installation
+      pip install playwright pytest-playwright
+    
+      # Install browser drivers
+      playwright install
+    
+      # Platform-specific drivers (if needed)
+      # Linux: sudo apt-get install chromium-chromedriver
+      # macOS: brew install chromedriver
+      # Windows: choco install chromedriver
+      ```
+    
+      ### Testing Approaches
+    
+      #### Method 1: Direct Playwright Testing
+      ```python
+      import asyncio
+      import pytest
+      from playwright.async_api import async_playwright
+      import threading
+      import time
+    
+      @pytest.fixture
+      async def web_app():
+      &quot;&quot;&quot;Start web app in separate thread&quot;&quot;&quot;
+      def run_app():
+      # Start your web framework here
+      app.run(port=8080, show=False, reload=False)
+    
+      thread = threading.Thread(target=run_app, daemon=True)
+      thread.start()
+      time.sleep(2)  # Wait for server startup
+      yield &quot;http://localhost:8080&quot;
+    
+      @pytest.mark.asyncio
+      async def test_web_app_with_playwright(web_app):
+      async with async_playwright() as p:
+      browser = await p.chromium.launch(headless=True)
+      page = await browser.new_page()
+    
+      await page.goto(web_app)
+      await page.wait_for_selector(&#x27;text=Expected Content&#x27;)
+    
+      # Test interactions
+      await page.click(&#x27;button:has-text(&quot;Click me&quot;)&#x27;)
+      await page.fill(&#x27;input&#x27;, &#x27;Test input&#x27;)
+    
+      # Verify results
+      assert await page.text_content(&#x27;h1&#x27;) == &#x27;Expected Title&#x27;
+    
+      await browser.close()
+      ```
+    
+      ### Advanced Testing Scenarios
+    
+      #### Real-time Updates Testing
+      ```python
+      @pytest.mark.asyncio
+      async def test_realtime_updates(web_app):
+      async with async_playwright() as p:
+      browser = await p.chromium.launch()
+      page = await browser.new_page()
+    
+      await page.goto(web_app)
+    
+      # Wait for WebSocket connection
+      await page.wait_for_function(
+      &quot;window.socket &amp;&amp; window.socket.connected&quot;
+      )
+    
+      # Test dynamic updates
+      await page.click(&#x27;button:has-text(&quot;Update Counter&quot;)&#x27;)
+      await page.wait_for_function(
+      &quot;document.querySelector(&#x27;#counter&#x27;).textContent !== &#x27;0&#x27;&quot;
+      )
+    
+      await browser.close()
+      ```
+    
+      #### Cross-Browser Testing
+      ```python
+      @pytest.mark.parametrize(&quot;browser_name&quot;, [&quot;chromium&quot;, &quot;firefox&quot;, &quot;webkit&quot;])
+      @pytest.mark.asyncio
+      async def test_cross_browser(web_app, browser_name):
+      async with async_playwright() as p:
+      browser = await getattr(p, browser_name).launch()
+      page = await browser.new_page()
+    
+      await page.goto(web_app)
+      # Perform cross-browser tests
+    
+      await browser.close()
+      ```
+    
+      ### Screenshot Capabilities
+    
+      #### Full Page Screenshots
+      ```python
+      @pytest.mark.asyncio
+      async def test_full_page_screenshot(web_app):
+      async with async_playwright() as p:
+      browser = await p.chromium.launch(headless=True)
+      context = await browser.new_context(
+      viewport={&quot;width&quot;: 1280, &quot;height&quot;: 720}
+      )
+      page = await context.new_page()
+    
+      await page.goto(web_app)
+      await page.wait_for_load_state(&quot;networkidle&quot;)
+    
+      # Full page screenshot
+      await page.screenshot(
+      path=&quot;full_page_screenshot.png&quot;,
+      full_page=True
+      )
+    
+      await browser.close()
+      ```
+    
+      #### Element-Specific Screenshots
+      ```python
+      # Screenshot specific components
+      await page.locator(&#x27;.content-section&#x27;).screenshot(
+      path=&quot;content_section.png&quot;
+      )
+    
+      # Screenshot with custom options
+      await page.screenshot(
+      path=&quot;custom_screenshot.png&quot;,
+      full_page=True,
+      quality=95,  # For JPEG
+      type=&quot;png&quot;,
+      clip={       # Specific area
+      &quot;x&quot;: 0, &quot;y&quot;: 0,
+      &quot;width&quot;: 800, &quot;height&quot;: 600
+      }
+      )
+      ```
+    
+      #### Screenshots as Base64 Buffer
+      ```python
+      # In-memory screenshot processing
+      screenshot_bytes = await page.screenshot()
+      import base64
+      screenshot_b64 = base64.b64encode(screenshot_bytes).decode()
+      ```
+    
+      #### Visual Regression Testing
+      ```python
+      import filecmp
+      from pathlib import Path
+    
+      @pytest.mark.asyncio
+      async def test_visual_regression(web_app):
+      # Take current screenshot
+      await page.screenshot(path=&quot;current_ui.png&quot;, full_page=True)
+    
+      # Compare with baseline
+      if Path(&quot;baseline_ui.png&quot;).exists():
+      assert filecmp.cmp(&quot;current_ui.png&quot;, &quot;baseline_ui.png&quot;), \
+      &quot;UI has changed compared to baseline&quot;
+      else:
+      # Establish baseline on first run
+      import shutil
+      shutil.copy(&quot;current_ui.png&quot;, &quot;baseline_ui.png&quot;)
+      ```
+    
+      ### Configuration and Best Practices
+    
+      #### pytest Configuration (pytest.ini)
+      ```ini
+      [tool:pytest]
+      asyncio_mode = auto
+      testpaths = tests
+      addopts =
+      --browser chromium
+      --headed
+      --slowmo 100
+      ```
+    
+      #### Environment Configuration (conftest.py)
+      ```python
+      @pytest.fixture(scope=&quot;session&quot;)
+      async def browser():
+      async with async_playwright() as p:
+      browser = await p.chromium.launch(
+      headless=False,  # Set True for CI/CD
+      slow_mo=50      # Debugging aid
+      )
+      yield browser
+      await browser.close()
+    
+      @pytest.fixture
+      async def page(browser):
+      page = await browser.new_page()
+      yield page
+      await page.close()
+      ```
+    
+      #### Screenshot on Test Failure
+      ```python
+      @pytest.fixture(autouse=True)
+      async def screenshot_on_failure(request):
+      yield
+    
+      if request.node.rep_call.failed:
+      if hasattr(request.node, &#x27;_page&#x27;):
+      page = request.node._page
+      screenshot_path = f&quot;failure_{request.node.name}_{int(time.time())}.png&quot;
+      await page.screenshot(path=screenshot_path, full_page=True)
+      ```
+    
+      ### Common Challenges and Solutions
+    
+      #### Dynamic Content Loading
+      ```python
+      # Wait for specific element
+      await page.wait_for_selector(&#x27;.dynamic-content&#x27;)
+    
+      # Wait for network idle
+      await page.wait_for_load_state(&#x27;networkidle&#x27;)
+    
+      # Wait for custom condition
+      await page.wait_for_function(&quot;customCondition()&quot;)
+      ```
+    
+      #### WebSocket Connection Handling
+      ```python
+      # Ensure WebSocket is connected
+      await page.wait_for_function(
+      &quot;window.socket &amp;&amp; window.socket.connected&quot;
+      )
+      ```
+    
+      ### Mobile Device Testing
+      ```python
+      # Emulate mobile device
+      mobile_context = await browser.new_context(
+      viewport={&quot;width&quot;: 375, &quot;height&quot;: 667},  # iPhone SE
+      user_agent=&quot;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7 like Mac OS X)&quot;,
+      is_mobile=True,
+      has_touch=True
+      )
+      ```
+    
+      ### Performance Testing
+      ```python
+      @pytest.mark.asyncio
+      async def test_performance(web_app):
+      # Start performance monitoring
+      await page.evaluate(&quot;performance.mark(&#x27;start&#x27;)&quot;)
+    
+      await page.goto(web_app)
+      await page.wait_for_selector(&#x27;text=Content&#x27;)
+    
+      # Measure performance
+      await page.evaluate(&quot;performance.mark(&#x27;end&#x27;)&quot;)
+      duration = await page.evaluate(&quot;&quot;&quot;
+      performance.measure(&#x27;test&#x27;, &#x27;start&#x27;, &#x27;end&#x27;);
+      performance.getEntriesByName(&#x27;test&#x27;)[0].duration;
+      &quot;&quot;&quot;)
+    
+      assert duration &lt; 2000  # Less than 2 seconds
+      ```
+    
+      ### Best Practices
+    
+      1. **Consistent Viewport**: Always set fixed viewport for consistent screenshots
+      2. **Wait Strategies**: Use appropriate wait strategies for dynamic content
+      3. **Resource Management**: Properly close browsers and contexts
+      4. **Error Handling**: Implement screenshot capture on test failures
+      5. **CI/CD Integration**: Configure headless mode for automated pipelines
+      6. **Cross-browser Coverage**: Test across multiple browsers
+      7. **Performance Monitoring**: Include performance assertions
+      8. **Visual Testing**: Implement screenshot comparison for UI regression
+      9. **Mobile Testing**: Include responsive design testing
+    
+      ### Debugging Tips
+      - Use `headless=False` for visual debugging
+      - Add `page.pause()` to open Playwright inspector
+      - Implement automatic screenshot capture on failures
+      - Use `slow_mo` parameter to slow down actions for observation
+      - Wait for `networkidle` state before taking screenshots
+    
+      This comprehensive testing approach with Playwright enables robust end-to-end testing of any web-based UI application across multiple browsers and scenarios.
+    </content>
+    <tags>#其他</tags>
+  </item>
+</memory>
