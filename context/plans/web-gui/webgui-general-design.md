@@ -26,6 +26,36 @@ This design choice reflects NiceGUI's architecture and is suitable for local dev
 - **File-based persistence**: Projects are saved as directory structures with YAML configuration
 - **Non-linear navigation**: Users can switch between tabs freely to configure different aspects
 
+## PeiDocker Two-Stage Architecture
+
+PeiDocker uses a sequential two-stage Docker image building process that is fundamental to understanding the GUI design:
+
+**Stage-1 Image Building:**
+- Builds `pei-image:stage-1` from base Ubuntu image
+- System-level setup: SSH, proxy, networking, APT packages
+- Foundation image with core system components
+- Fully usable Docker image for basic use cases
+
+**Stage-2 Image Building:**
+- Builds `pei-image:stage-2` **based on Stage-1 image** as foundation
+- Inherits all Stage-1 configurations (when Stage-2 values are `null`)
+- Adds application-level customizations and packages
+- **Key Enhancement**: Dynamic storage system unique to Stage-2
+  - `/soft/app`, `/soft/data`, `/soft/workspace` directories
+  - Smart linking: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
+  - Allows switching between in-image and external storage after build
+
+**Both Images Are Usable:**
+- Users can run either: `docker compose up stage-1` or `docker compose up stage-2`
+- Stage-2 is typically the target due to enhanced features
+- Configuration inheritance: Stage-2 inherits Stage-1 settings, can override or append
+
+**GUI Design Implications:**
+- Configuration affects sequential image builds, not temporal build vs runtime phases
+- Storage tab emphasizes Stage-2's unique dynamic storage feature
+- Scripts tab manages lifecycle hooks for both image stages
+- Environment and device settings follow inheritance patterns
+
 ## Technology Approach
 
 - **Framework**: NiceGUI (Python web framework)
@@ -299,7 +329,7 @@ The application maintains all configuration data in memory during the editing se
 - SSH access settings and authentication
 - Network configuration (proxy, APT mirrors, port mappings)
 - Environment variables and device access
-- Storage mounts for both build and runtime stages
+- Storage mounts for Stage-1 and Stage-2 sequential image builds
 - Custom scripts and entry points with dual input modes (file or inline)
 
 **State Tracking:**
@@ -458,27 +488,67 @@ The configuration is organized into 7 logical tabs that group related settings:
 - Root access settings
 
 #### 3. Network Tab 🌐
-- **Proxy Configuration**: HTTP proxy settings for build/runtime
+- **Proxy Configuration**: HTTP proxy settings enabled globally for both stages
+  - Address input with "http://" fixed prefix label and hostname/IP input field
+  - Default address: `host.docker.internal:7890`
+  - Enable/disable toggle with global proxy settings
 - **APT Configuration**: Repository mirror selection (tuna, aliyun, 163, ustc, cn)
-- **Port Mapping**: Additional port mappings beyond SSH
+- **Port Mapping**: Additional port mappings beyond SSH with dynamic add/remove functionality
+  - **Supported Formats**: Docker Compose networking format
+    - Single port mapping: `2222:22` (host_port:container_port)
+    - Port range mapping: `9090-9099:9090-9099` 
+    - Both Stage-1 and Stage-2 port configurations
+  - **GUI Interaction**: 
+    - Dynamic list with "Add Port Mapping" button
+    - Each entry has host port and container port input fields
+    - Individual "Remove" button for each mapping
+    - Real-time validation for port numbers (1-65535)
+    - Support for both single ports and port ranges
+    - Visual feedback for invalid port entries
+  - **Stage Behavior**: Stage-2 port mappings are appended to Stage-1 mappings
+  - **SSH Separation**: SSH port mapping (2222:22) configured separately in SSH tab
 
 #### 4. Environment Tab ⚙️
-- **Environment Variables**: Custom environment variables management
-- **Device Configuration**: GPU support enablement and device access
+- **Environment Variables**: Custom environment variables for both stages (Stage-2 inherits and can add more)
+- **Device Configuration**: GPU support enablement and device access (Stage-2 can override Stage-1 settings)
 
 #### 5. Storage Tab 💾
-- **Stage-1 Mounts**: Volume mounting configuration for build stage
-- **Stage-2 Mounts**: Volume mounting configuration for runtime stage
-- Mount type selection (automatic, manual, host directory)
+
+**Storage vs Mount - Two Different Concepts:**
+
+- **Storage (Stage-2 ONLY)**: Stage-2's unique dynamic storage system for predefined directories
+  - **Predefined directories**: `/soft/app`, `/soft/data`, `/soft/workspace` only
+  - **Smart linking**: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
+  - **Dynamic switching**: Can switch between in-image and external storage after build
+  - **Four storage types**: `auto-volume`, `manual-volume`, `host`, `image`
+  - **Stage-2 exclusive**: This dynamic storage system is what differentiates Stage-2 from Stage-1
+
+- **Mount (Both Stages)**: General volume mounting for any directory
+  - **User-defined**: Any volume name, any destination path in container
+  - **No inheritance**: Stage-1 mounts don't transfer to Stage-2, must be redefined
+  - **Three mount types**: `auto-volume`, `manual-volume`, `host` (NOT `image`)
+  - **Flexible destinations**: Can mount external volumes to any container path
+
+**Storage Types (Stage-2 storage only):**
+- `auto-volume`: Docker auto-creates and manages the volume
+- `manual-volume`: User specifies custom volume name
+- `host`: Direct mount of host directory
+- `image`: Keep data inside the image itself (no external storage)
+
+**Mount Types (Both stages):**
+- `auto-volume`: Docker auto-creates and manages the volume  
+- `manual-volume`: User specifies custom volume name
+- `host`: Direct mount of host directory
 - Path validation and conflict detection
 
 #### 6. Scripts Tab 📜
+- **Sequential Stage Scripts**: Both Stage-1 and Stage-2 have full lifecycle hook support during their respective image building processes
 - **Custom Entry Points**: Stage-1 and Stage-2 entry point scripts with dual input modes
-- **Custom Scripts**: Lifecycle hook scripts (on_build, on_first_run, on_every_run, on_user_login)
+- **Custom Scripts**: Lifecycle hook scripts (on_build, on_first_run, on_every_run, on_user_login) for both image stages
 - **Script Creation Options**: 
   - Use existing script files (file browser and validation)
   - Create new scripts inline (name + content editor with syntax highlighting)
-- **Script Management**: View, edit, and manage both external and inline scripts
+- **Script Management**: View, edit, and manage both external and inline scripts for both stages
 
 #### 7. Summary Tab 📋
 - **Configuration Review**: Complete configuration overview
@@ -508,35 +578,58 @@ Each GUI tab directly modifies specific sections of the `user_config.yml` file:
   - `uid` - User ID for the account
 
 **Network Tab** modifies:
-- `stage_1.proxy` - Build stage proxy configuration
-- `stage_1.apt.repo_source` - APT repository mirror selection
+- `stage_1.proxy` and `stage_2.proxy` - Proxy configuration applied to both stages
+  - `address` - Proxy server address (default: `host.docker.internal`)
+  - `port` - Proxy server port (default: `7890`)
+  - `enable_globally: true` and `remove_after_build: false` when proxy is enabled
+- `stage_1.apt.repo_source` - APT repository mirror selection (tuna, aliyun, 163, ustc, cn, or empty for default)
 - `stage_1.apt.use_proxy` - APT proxy usage settings
-- `stage_1.ports` - Additional port mappings for stage-1
-- `stage_2.proxy` - Runtime stage proxy overrides
-- `stage_2.ports` - Additional port mappings for stage-2
+- `stage_1.ports` - Stage-1 port mappings in Docker Compose format (array of strings)
+  - Format: `['2222:22', '8080:80', '9090-9099:9090-9099']`
+- `stage_2.ports` - Stage-2 port mappings (appended to Stage-1 mappings)
+  - Same format as Stage-1, merged during compose generation
 
 **Environment Tab** modifies:
-- `stage_1.environment` - Stage-1 environment variables list
-- `stage_1.device.type` - Device configuration (CPU/GPU)
-- `stage_2.environment` - Stage-2 environment variables list
-- `stage_2.device.type` - Runtime device configuration overrides
+- `stage_1.environment` - Stage-1 environment variables (inherited by Stage-2)
+- `stage_1.device.type` - Stage-1 device configuration (CPU/GPU)
+- `stage_2.environment` - Stage-2 additional environment variables (appended to Stage-1)
+- `stage_2.device.type` - Stage-2 device configuration (overrides Stage-1 when specified)
 
 **Storage Tab** modifies:
-- `stage_1.mount` - Build stage volume mount configurations
-- `stage_2.storage` - Runtime storage configurations (app, data, workspace)
-- `stage_2.mount` - Runtime stage volume mount configurations
+
+*Storage (Stage-2 ONLY):*
+- `stage_2.storage.app` - Stage-2 dynamic storage for `/soft/app` directory
+  - `type`: `auto-volume` | `manual-volume` | `host` | `image`
+  - `host_path`: Host directory path (when `type=host`)
+  - `volume_name`: Custom volume name (when `type=manual-volume`)
+- `stage_2.storage.data` - Stage-2 dynamic storage for `/soft/data` directory (same fields)
+- `stage_2.storage.workspace` - Stage-2 dynamic storage for `/soft/workspace` directory (same fields)
+
+*Mount (Both Stages):*
+- `stage_1.mount` - Stage-1 general volume mount configurations (user-defined mounts)
+  - `{mount_name}.type`: `auto-volume` | `manual-volume` | `host` (NOT `image`)
+  - `{mount_name}.dst_path`: Destination path in container
+  - `{mount_name}.host_path`: Host directory path (when `type=host`)
+  - `{mount_name}.volume_name`: Custom volume name (when `type=manual-volume`)
+- `stage_2.mount` - Stage-2 general volume mount configurations (same fields as Stage-1)
+
+*Key Differences:*
+- **Storage**: Fixed predefined directories (`app`, `data`, `workspace`) with smart linking system
+- **Mount**: Flexible user-defined volumes that can mount to any container path
+- **Types**: Storage supports `image` type, Mount does not
+- **Inheritance**: Mounts don't inherit between stages, Storage only exists in Stage-2
 
 **Scripts Tab** modifies:
-- `stage_1.custom.on_build` - Build-time execution scripts
-- `stage_1.custom.on_first_run` - First container run scripts
-- `stage_1.custom.on_every_run` - Every container run scripts  
-- `stage_1.custom.on_user_login` - User login scripts
-- `stage_1.custom.on_entry` - Custom entry point script
-- `stage_2.custom.on_build` - Stage-2 build-time scripts
-- `stage_2.custom.on_first_run` - Stage-2 first run scripts
-- `stage_2.custom.on_every_run` - Stage-2 every run scripts
-- `stage_2.custom.on_user_login` - Stage-2 user login scripts
-- `stage_2.custom.on_entry` - Stage-2 entry point script
+- `stage_1.custom.on_build` - Scripts executed during Stage-1 image building
+- `stage_1.custom.on_first_run` - Scripts executed on first run of Stage-1 containers
+- `stage_1.custom.on_every_run` - Scripts executed on every run of Stage-1 containers
+- `stage_1.custom.on_user_login` - Scripts executed on user login to Stage-1 containers
+- `stage_1.custom.on_entry` - Custom entry point script for Stage-1 containers
+- `stage_2.custom.on_build` - Scripts executed during Stage-2 image building (based on Stage-1)
+- `stage_2.custom.on_first_run` - Scripts executed on first run of Stage-2 containers
+- `stage_2.custom.on_every_run` - Scripts executed on every run of Stage-2 containers
+- `stage_2.custom.on_user_login` - Scripts executed on user login to Stage-2 containers
+- `stage_2.custom.on_entry` - Custom entry point script for Stage-2 containers
 
 Note: Inline scripts created in the GUI are automatically saved to `stage-1/custom/` or `stage-2/custom/` directories and referenced by relative paths in the YAML configuration.
 
@@ -691,14 +784,15 @@ pei-docker-webgui dev [--project-dir PATH] [--here] [--port 8080] [--reload]
 7. Enable and configure SSH access if needed (SSH tab)
 8. Set up network configuration - proxy, APT mirrors, ports (Network tab)
 9. Define environment variables and device access (Environment tab)
-10. Configure storage mounts for build and runtime (Storage tab)
+10. Configure storage mounts for Stage-1 and Stage-2 images, including Stage-2's dynamic storage (Storage tab)
 11. Add custom scripts and entry points as needed (Scripts tab)
 12. Review complete configuration in Summary tab
 
 **Project Finalization Phase:**
 13. Save configuration to write `user_config.yml` and script files
-14. Run Configure to execute `pei-docker-cli configure` and build project structure
-15. Download project as ZIP archive for deployment or sharing
+14. Run Configure to execute `pei-docker-cli configure` and generate Docker compose files
+15. Build Docker images: `docker compose build stage-1` then `docker compose build stage-2`
+16. Download project as ZIP archive for deployment or sharing
 
 **Session Management:**
 - Configuration changes are kept in browser memory until explicitly saved
