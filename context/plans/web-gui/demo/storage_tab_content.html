@@ -1,0 +1,228 @@
+<div class="tab-title">
+    💾 Storage Configuration
+</div>
+<p class="tab-description">
+    Configure volume mounts and storage settings for both build and runtime stages.
+</p>
+
+<div class="alert alert-warning mb-6">
+    <strong>⚠️ Validation Errors:</strong> This tab contains configuration errors that need to be fixed before saving.
+</div>
+
+<div class="grid grid-2">
+    <!-- Stage-1 Storage -->
+    <div>
+        <div class="card mb-6">
+            <div class="card-header">
+                🏗️ Stage-1 Build Storage
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">
+                        Build Stage Mounts
+                    </label>
+                    <div class="form-help mb-4">
+                        Volume mounts available during the Docker image build process
+                    </div>
+                    
+                    <div id="stage1-mounts">
+                        <div class="list-item">
+                            <div class="list-item-content">
+                                <div class="grid grid-2 gap-2">
+                                    <input type="text" class="form-input" placeholder="Host path" value="/home/user/code">
+                                    <input type="text" class="form-input" placeholder="Container path" value="/workspace">
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage1')">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- This mount has errors -->
+                        <div class="list-item" style="border-color: #ef4444; background-color: #fef2f2;">
+                            <div class="list-item-content">
+                                <div class="grid grid-2 gap-2">
+                                    <input type="text" class="form-input" placeholder="Host path" value="/nonexistent" style="border-color: #ef4444;">
+                                    <input type="text" class="form-input" placeholder="Container path" value="/invalid/path" style="border-color: #ef4444;">
+                                </div>
+                                <div class="form-error mt-2">
+                                    Host directory does not exist • Container path contains invalid characters
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage1')">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="addMount('stage1')">
+                        ➕ Add Stage-1 Mount
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage-2 Storage -->
+    <div>
+        <div class="card mb-6">
+            <div class="card-header">
+                🚀 Stage-2 Runtime Storage
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">
+                        Runtime Storage Configuration
+                    </label>
+                    <div class="form-help mb-4">
+                        Configure persistent storage for the running container
+                    </div>
+                    
+                    <!-- App Storage -->
+                    <div class="mb-4">
+                        <div class="form-label">Application Storage</div>
+                        <select class="form-select">
+                            <option value="auto">Automatic (recommended)</option>
+                            <option value="manual">Manual configuration</option>
+                            <option value="host">Host directory</option>
+                        </select>
+                        <div class="form-help">
+                            How to handle application files and dependencies
+                        </div>
+                    </div>
+                    
+                    <!-- Data Storage -->
+                    <div class="mb-4">
+                        <div class="form-label">Data Storage</div>
+                        <select class="form-select">
+                            <option value="auto">Automatic (recommended)</option>
+                            <option value="manual">Manual configuration</option>
+                            <option value="host">Host directory</option>
+                        </select>
+                        <div class="form-help">
+                            How to handle user data and persistent files
+                        </div>
+                    </div>
+                    
+                    <!-- Workspace Storage -->
+                    <div>
+                        <div class="form-label">Workspace Storage</div>
+                        <select class="form-select">
+                            <option value="auto">Automatic (recommended)</option>
+                            <option value="manual">Manual configuration</option>
+                            <option value="host" selected>Host directory</option>
+                        </select>
+                        <div class="form-help">
+                            How to handle workspace and development files
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Additional Runtime Mounts
+                    </label>
+                    <div class="form-help mb-4">
+                        Additional volume mounts for the running container
+                    </div>
+                    
+                    <div id="stage2-mounts">
+                        <div class="list-item">
+                            <div class="list-item-content">
+                                <div class="grid grid-2 gap-2">
+                                    <input type="text" class="form-input" placeholder="Host path" value="/home/user/data">
+                                    <input type="text" class="form-input" placeholder="Container path" value="/data">
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage2')">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="addMount('stage2')">
+                        ➕ Add Stage-2 Mount
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Preview -->
+<div class="card mt-6">
+    <div class="card-header">
+        📋 Storage Configuration Preview
+    </div>
+    <div class="card-content">
+        <div class="grid grid-2">
+            <div>
+                <h4 class="form-label mb-2">Build Stage Volumes</h4>
+                <div class="preview-panel">
+                    <div class="font-mono text-sm">
+                        <div>-v /home/user/code:/workspace</div>
+                        <div style="color: #ef4444;">-v /nonexistent:/invalid/path</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h4 class="form-label mb-2">Runtime Stage Volumes</h4>
+                <div class="preview-panel">
+                    <div class="font-mono text-sm">
+                        <div>-v /home/user/data:/data</div>
+                        <div>-v workspace_vol:/workspace</div>
+                        <div>-v app_vol:/app</div>
+                        <div>-v data_vol:/var/data</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stage1MountCount = 2;
+    let stage2MountCount = 1;
+
+    function addMount(stage) {
+        const container = document.getElementById(`${stage}-mounts`);
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <div class="list-item-content">
+                <div class="grid grid-2 gap-2">
+                    <input type="text" class="form-input" placeholder="Host path">
+                    <input type="text" class="form-input" placeholder="Container path">
+                </div>
+            </div>
+            <div class="list-item-actions">
+                <button class="btn btn-error btn-sm" onclick="removeMount(this, '${stage}')">
+                    🗑️ Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        if (stage === 'stage1') {
+            stage1MountCount++;
+        } else {
+            stage2MountCount++;
+        }
+    }
+
+    function removeMount(button, stage) {
+        button.closest('.list-item').remove();
+        
+        if (stage === 'stage1') {
+            stage1MountCount--;
+        } else {
+            stage2MountCount--;
+        }
+    }
+</script>

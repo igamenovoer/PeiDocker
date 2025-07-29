@@ -24,46 +24,23 @@
         <main class="main-content">
             <div id="project-selection-panel" class="tab-panel">
                 <div class="tab-title">
-                    🚀 Create or Load PeiDocker Project
+                    🚀 PeiDocker Web GUI
                 </div>
                 <p class="tab-description">
-                    Get started by creating a new project or loading an existing one. 
-                    Choose a directory for your project files and configuration.
+                    Redirecting to the main application interface...
                 </p>
 
-                <!-- Project Directory Selection -->
+                <!-- Note: This page now redirects to active-project.html -->
                 <div class="card">
                     <div class="card-header">
-                        📁 Project Directory
+                        🔄 Redirecting...
                     </div>
                     <div class="card-content">
-                        <div class="form-group">
-                            <label for="project-dir">Project Directory Path:</label>
-                            <div class="input-group">
-                                <input type="text" id="project-dir" class="form-input" 
-                                       placeholder="/path/to/your/project or leave empty for temporary directory"
-                                       value="">
-                                <button class="btn btn-secondary" onclick="browseDirectory()">
-                                    📁 Browse
-                                </button>
-                            </div>
-                            <div class="help-text">
-                                Directory must be empty or non-existent. Leave empty to use a generated temporary directory.
-                            </div>
-                        </div>
-
-                        <div class="button-group">
-                            <button class="btn btn-primary btn-large" onclick="createProject()">
-                                🚀 Create Project
-                            </button>
-                            <button class="btn btn-outline btn-large" onclick="loadProject()" disabled>
-                                📂 Load Project
-                            </button>
-                        </div>
+                        <p>Redirecting to the main application interface.</p>
+                        <p>Project creation is now handled within the Project tab for a more streamlined experience.</p>
                         
                         <div class="alert alert-info">
-                            <strong>Note:</strong> Load Project functionality is not yet implemented. 
-                            You will see a warning dialog if you click this button.
+                            <strong>Note:</strong> If you are not automatically redirected, please click <a href="active-project.html">here</a> to access the main application.
                         </div>
                     </div>
                 </div>
@@ -100,23 +77,6 @@
                     </div>
                 </div>
 
-                <!-- Demo Navigation -->
-                <div class="card mt-6">
-                    <div class="card-header">
-                        🎭 Demo Navigation
-                    </div>
-                    <div class="card-content">
-                        <p>Explore the full application interface by creating a project or viewing the active project demo:</p>
-                        <div class="button-group">
-                            <button class="btn btn-success" onclick="simulateCreateProject()">
-                                🚀 Simulate Create Project
-                            </button>
-                            <a href="active-project.html" class="btn btn-primary">
-                                🏗️ View Active Project Demo
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
         </main>
 
@@ -135,29 +95,9 @@
     </div>
 
     <script>
-        function browseDirectory() {
-            alert('In the real application, this would open a directory browser dialog.');
-        }
-
-        function createProject() {
-            const projectDir = document.getElementById('project-dir').value;
-            if (projectDir.trim() === '') {
-                alert('Demo: Would create project in temporary directory and switch to active project interface.');
-            } else {
-                alert(`Demo: Would validate directory "${projectDir}" and create project there.`);
-            }
-            // In real app, this would trigger project creation and switch to active state
-        }
-
-        function loadProject() {
-            alert('Load Project functionality is not yet implemented. This feature will allow you to load existing PeiDocker projects.');
-        }
-
-        function simulateCreateProject() {
-            if (confirm('This will simulate creating a project and redirect to the active project demo. Continue?')) {
-                window.location.href = 'active-project.html';
-            }
-        }
+        // Redirect to the main application interface
+        // Project creation is now handled within the Project tab
+        window.location.href = 'active-project.html';
     </script>
 </body>
 </html>

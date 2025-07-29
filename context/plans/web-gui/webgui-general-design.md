@@ -454,7 +454,7 @@ The configuration is organized into 7 logical tabs that group related settings:
 - SSH service enable/disable
 - Port configuration (container and host)
 - User account settings (username, password, UID)
-- SSH key configuration (public/private keys)
+- SSH key copying configuration (copy public/private keys into container)
 - Root access settings
 
 #### 3. Network Tab 🌐
@@ -499,7 +499,13 @@ Each GUI tab directly modifies specific sections of the `user_config.yml` file:
 - `stage_1.ssh.enable` - SSH service enable/disable toggle
 - `stage_1.ssh.port` - SSH container port number
 - `stage_1.ssh.host_port` - Host port mapping for SSH
-- `stage_1.ssh.users` - User accounts with passwords, SSH keys, and UIDs
+- `stage_1.ssh.users` - User accounts with the following per-user settings:
+  - `password` - User password for authentication
+  - `pubkey_file` - Path to public key file to copy into container (mutually exclusive with pubkey_text)
+  - `pubkey_text` - Direct public key content to copy into container (mutually exclusive with pubkey_file)
+  - `privkey_file` - Path to private key file to copy into container (mutually exclusive with privkey_text)
+  - `privkey_text` - Direct private key content to copy into container (mutually exclusive with privkey_file)
+  - `uid` - User ID for the account
 
 **Network Tab** modifies:
 - `stage_1.proxy` - Build stage proxy configuration

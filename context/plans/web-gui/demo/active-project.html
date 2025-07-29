@@ -31,11 +31,11 @@
             </div>
         </header>
 
-        <!-- Project Info Bar -->
-        <div class="project-info-bar">
+        <!-- Project Info Bar (initially hidden) -->
+        <div class="project-info-bar" id="project-info-bar" style="display: none;">
             <div class="project-info">
                 <span class="project-label">Project:</span>
-                <span class="project-path">/tmp/peidocker_demo_project_20250729_143022</span>
+                <span class="project-path"></span>
                 <span class="project-status">● Unsaved changes</span>
             </div>
         </div>
@@ -69,159 +69,15 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <div id="welcome-panel" class="tab-panel">
+            <!-- Dynamic Content Area -->
+            <div id="tab-content" class="tab-panel">
+                <!-- Tab content will be loaded here dynamically -->
                 <div class="tab-title">
-                    🏗️ Project Configuration Active
+                    🏗️ Getting Started...
                 </div>
                 <p class="tab-description">
-                    Your project has been created successfully! Configure your Docker containerized development environment 
-                    through the tabs above. All changes are stored in memory until you save them.
+                    Please wait while the Project tab loads.
                 </p>
-
-                <div class="alert alert-success">
-                    <strong>✅ Project Created:</strong> Project directory initialized with pei-docker-cli create.
-                    You can now configure all aspects of your containerized environment.
-                </div>
-
-                <!-- Configuration Overview -->
-                <div class="grid grid-2">
-                    <div class="card">
-                        <div class="card-header">
-                            🏗️ Project Configuration
-                        </div>
-                        <div class="card-content">
-                            Set up basic project information, Docker base image, and project structure.
-                            <div class="mt-4">
-                                <a href="project_tab.html" class="btn btn-primary">View Project Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            🔐 SSH Access
-                        </div>
-                        <div class="card-content">
-                            Configure SSH access to your container with user accounts and authentication.
-                            <div class="mt-4">
-                                <a href="ssh_tab.html" class="btn btn-primary">View SSH Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            🌐 Network Settings
-                        </div>
-                        <div class="card-content">
-                            Set up proxy configuration, APT mirrors, and port mappings for network access.
-                            <div class="mt-4">
-                                <a href="network_tab.html" class="btn btn-primary">View Network Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            ⚙️ Environment
-                        </div>
-                        <div class="card-content">
-                            Configure environment variables and device access including GPU support.
-                            <div class="mt-4">
-                                <a href="environment_tab.html" class="btn btn-primary">View Environment Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            💾 Storage Management
-                        </div>
-                        <div class="card-content">
-                            Set up volume mounts and storage configuration for both build and runtime stages.
-                            <div class="mt-4">
-                                <a href="storage_tab.html" class="btn btn-primary">View Storage Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            📜 Custom Scripts
-                        </div>
-                        <div class="card-content">
-                            Configure custom entry points and lifecycle hook scripts for automation.
-                            <div class="mt-4">
-                                <a href="scripts_tab.html" class="btn btn-primary">View Scripts Tab Demo</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mt-4">
-                    <div class="card-header">
-                        📋 Configuration Summary
-                    </div>
-                    <div class="card-content">
-                        Review your complete configuration, validate settings, and save your user_config.yml file.
-                        <div class="mt-4">
-                            <a href="summary_tab.html" class="btn btn-primary">View Summary Tab Demo</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Project Actions Guide -->
-                <div class="tab-title">
-                    🔄 Next Steps
-                </div>
-                <p class="tab-description">
-                    Complete your project setup using these actions:
-                </p>
-
-                <div class="grid grid-3">
-                    <div class="workflow-card">
-                        <div class="workflow-icon">💾</div>
-                        <div class="workflow-title">1. Save Configuration</div>
-                        <div class="workflow-description">
-                            Save your changes to write user_config.yml and create script files in your project directory.
-                        </div>
-                        <button class="btn btn-success btn-sm" onclick="saveConfiguration()">Save Now</button>
-                    </div>
-                    <div class="workflow-card">
-                        <div class="workflow-icon">⚙️</div>
-                        <div class="workflow-title">2. Configure Project</div>
-                        <div class="workflow-description">
-                            Run pei-docker-cli configure to build the complete project structure and prepare Docker images.
-                        </div>
-                        <button class="btn btn-warning btn-sm" onclick="configureProject()">Configure</button>
-                    </div>
-                    <div class="workflow-card">
-                        <div class="workflow-icon">📦</div>
-                        <div class="workflow-title">3. Download Project</div>
-                        <div class="workflow-description">
-                            Export your complete project as a ZIP file for deployment, sharing, or backup.
-                        </div>
-                        <button class="btn btn-info btn-sm" onclick="downloadProject()">Download</button>
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <h3 style="margin-bottom: 1rem;">Active Features</h3>
-                    <div class="grid grid-3">
-                        <div class="status-indicator">
-                            <div class="status-dot saved"></div>
-                            <span>Real-time Validation</span>
-                        </div>
-                        <div class="status-indicator">
-                            <div class="status-dot modified"></div>
-                            <span>Memory-first State</span>
-                        </div>
-                        <div class="status-indicator">
-                            <div class="status-dot saved"></div>
-                            <span>Tab-based Navigation</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </main>
 
@@ -233,11 +89,7 @@
                     <span>Configuration modified</span>
                 </div>
                 <span>•</span>
-                <span>Last saved: Never</span>
-                <span>•</span>
-                <span>1 validation error in Storage tab</span>
-                <span>•</span>
-                <span>Project not yet configured</span>
+                <span>Welcome to PeiDocker Web GUI</span>
             </div>
             <div class="status-right">
                 <span>PeiDocker v0.8.0</span>
@@ -246,34 +98,375 @@
     </div>
 
     <script>
-        function switchTab(tabName) {
-            // This is just for demo purposes - would be handled by NiceGUI in real app
+        // Configuration state management
+        let configState = {
+            modified: false,
+            lastSaved: null,
+            currentTab: 'project',
+            validationErrors: {
+                storage: true // Demo: storage tab has errors
+            }
+        };
+
+        // Tab content loading
+        async function switchTab(tabName) {
             const tabs = document.querySelectorAll('.tab-btn');
             tabs.forEach(tab => tab.classList.remove('active'));
             event.target.classList.add('active');
             
-            // In real app, this would switch the content
-            console.log(`Switched to ${tabName} tab`);
+            configState.currentTab = tabName;
+            
+            try {
+                // Load tab content from separate file
+                const response = await fetch(`${tabName}_tab_content.html`);
+                if (response.ok) {
+                    const content = await response.text();
+                    document.getElementById('tab-content').innerHTML = content;
+                    
+                    // Initialize tab-specific functionality
+                    initializeTabContent(tabName);
+                } else {
+                    // Fallback to existing full tab file for demo
+                    window.location.href = `${tabName}_tab.html`;
+                }
+            } catch (error) {
+                console.error('Error loading tab content:', error);
+                // Fallback to existing full tab file
+                window.location.href = `${tabName}_tab.html`;
+            }
         }
+
+        function initializeTabContent(tabName) {
+            // Initialize any tab-specific functionality
+            if (tabName === 'project') {
+                // Use setTimeout to ensure DOM elements are ready
+                setTimeout(() => {
+                    initializeProjectTab();
+                }, 10);
+            } else if (tabName === 'ssh') {
+                initializeSSHTab();
+            }
+            // Add other tab initializations as needed
+        }
+
+        function initializeProjectTab() {
+            // Initialize project tab specific functionality
+            const projectNameInput = document.getElementById('project-name');
+            if (projectNameInput) {
+                projectNameInput.addEventListener('input', function() {
+                    markConfigurationModified();
+                    updatePreview();
+                });
+                
+                // Call updatePreview initially to set up the display
+                updatePreview();
+            }
+        }
+        
+        // Global updatePreview function that can be called from loaded content
+        function updatePreview() {
+            const projectName = document.getElementById('project-name');
+            if (!projectName) return;
+            
+            const nameValue = projectName.value.trim() || 'my-project';
+            const stage1Element = document.getElementById('stage1-image');
+            const stage2Element = document.getElementById('stage2-image');
+            
+            if (stage1Element) {
+                stage1Element.textContent = `${nameValue}:stage-1`;
+            }
+            if (stage2Element) {
+                stage2Element.textContent = `${nameValue}:stage-2`;
+            }
+        }
+        
+        // Make updatePreview available globally
+        window.updatePreview = updatePreview;
+
+        function initializeSSHTab() {
+            // Initialize SSH tab specific functionality
+            const sshToggle = document.getElementById('ssh-enabled');
+            if (sshToggle) {
+                sshToggle.addEventListener('change', function() {
+                    markConfigurationModified();
+                });
+            }
+        }
+
+        // SSH-specific functions (needed for dynamic content loading)
+        let userCounter = 1;
+
+        function generateRandomId() {
+            // Generate a random 6-character string for unique usernames
+            return Math.random().toString(36).substring(2, 8);
+        }
+
+        function toggleSSH() {
+            const sshEnabled = document.getElementById('ssh-enabled').checked;
+            const sshConfig = document.getElementById('ssh-config');
+            const sshWarning = document.getElementById('ssh-warning');
+            
+            if (sshEnabled) {
+                sshConfig.style.display = 'block';
+                sshWarning.style.display = 'none';
+            } else {
+                sshConfig.style.display = 'none';
+                sshWarning.style.display = 'block';
+            }
+        }
+
+        function toggleKeyInput(userId, keyType, value) {
+            const fileInput = document.getElementById(`${keyType}-file-${userId}`);
+            const textInput = document.getElementById(`${keyType}-text-${userId}`);
+            
+            if (value === 'file') {
+                fileInput.style.display = 'block';
+                textInput.style.display = 'none';
+            } else if (value === 'text') {
+                fileInput.style.display = 'none';
+                textInput.style.display = 'block';
+            } else {
+                fileInput.style.display = 'none';
+                textInput.style.display = 'none';
+            }
+        }
+
+        function addUser() {
+            const usersContainer = document.getElementById('ssh-users');
+            
+            // Check if the SSH users container exists
+            if (!usersContainer) {
+                console.error('SSH users container not found. Make sure the SSH tab is loaded.');
+                alert('Error: SSH tab content not loaded properly. Please switch to SSH tab first.');
+                return;
+            }
+            
+            const userDiv = document.createElement('div');
+            const randomId = generateRandomId();
+            const userId = `user${userCounter}`;
+            const defaultUsername = `user-${randomId}`;
+            const defaultUid = 1000 + userCounter;  // Always use 1000+ for regular users
+            
+            userDiv.className = 'card user-config mb-6';
+            userDiv.innerHTML = `
+                <div class="card-header">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                            <span>👤</span>
+                            <span>SSH User: ${defaultUsername}</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="removeUser(this)">🗑️ Remove</button>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    <div class="grid grid-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-input" value="${defaultUsername}" required onchange="markConfigurationModified()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-input" value="" placeholder="Enter secure password" onchange="markConfigurationModified()">
+                            <div class="form-help">Password for SSH login (required)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional UID Configuration -->
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="uid-enabled-${userId}" onchange="toggleUidInput('${userId}', this.checked); markConfigurationModified()">
+                                <label class="form-label" for="uid-enabled-${userId}">Set custom User ID (UID)</label>
+                            </div>
+                            <div class="form-help mb-2">Advanced: Leave unchecked to use automatic UID assignment</div>
+                            
+                            <div id="uid-input-${userId}" style="display: none;">
+                                <input type="number" class="form-input" value="${defaultUid}" min="0" placeholder="${defaultUid}" onchange="markConfigurationModified()">
+                                <div class="form-help">Custom UID for file permissions mapping</div>
+                            </div>
+                        </div>
+                    </div>
+
+                <!-- Public Key Configuration -->
+                <div class="mb-4">
+                    <div class="form-group">
+                        <label class="form-label">Public Key (copy into container)</label>
+                        <div class="flex gap-2 mb-2">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="none" checked onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>None</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="file" onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>File path</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="text" onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>Direct text</span>
+                            </label>
+                        </div>
+                        
+                        <div class="pubkey-file-input" id="pubkey-file-${userId}" style="display: none;">
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input" placeholder="~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub" onchange="markConfigurationModified()">
+                                <button class="btn btn-secondary">📁</button>
+                            </div>
+                            <div class="form-help">Use ~ for auto-discovery or specify file path relative to project directory</div>
+                        </div>
+                        
+                        <div class="pubkey-text-input" id="pubkey-text-${userId}" style="display: none;">
+                            <textarea class="form-textarea" rows="3" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host" oninput="markConfigurationModified()"></textarea>
+                            <div class="form-help">Paste your public key content directly</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Private Key Configuration -->
+                <div class="mb-4">
+                    <div class="form-group">
+                        <label class="form-label">Private Key (copy into container)</label>
+                        <div class="flex gap-2 mb-2">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="none" checked onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>None</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="file" onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>File path</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="text" onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>Direct text</span>
+                            </label>
+                        </div>
+                        
+                        <div class="privkey-file-input" id="privkey-file-${userId}" style="display: none;">
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input" placeholder="~  or  /path/to/private.key  or  stage-1/keys/id_rsa" onchange="markConfigurationModified()">
+                                <button class="btn btn-secondary">📁</button>
+                            </div>
+                            <div class="form-help">Use ~ for auto-discovery or specify file path</div>
+                        </div>
+                        
+                        <div class="privkey-text-input" id="privkey-text-${userId}" style="display: none;">
+                            <textarea class="form-textarea" rows="8" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA...&#10;-----END OPENSSH PRIVATE KEY-----" oninput="markConfigurationModified()"></textarea>
+                            <div class="form-help">Paste your private key content directly</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // Simply append the new user to the ssh-users container
+            // The "Add User" button is outside this container, so we just append
+            usersContainer.appendChild(userDiv);
+            
+            userCounter++;
+            markConfigurationModified();
+            
+            // Show success message
+            console.log(`Added new SSH user: ${defaultUsername}`);
+        }
+
+        function removeUser(button) {
+            const userDiv = button.closest('.user-config');
+            if (userDiv) {
+                userDiv.remove();
+                markConfigurationModified();
+            }
+        }
+
+        function toggleUidInput(userId, enabled) {
+            const uidInput = document.getElementById(`uid-input-${userId}`);
+            if (uidInput) {
+                uidInput.style.display = enabled ? 'block' : 'none';
+            }
+        }
+
+        // Make SSH functions globally available
+        window.toggleSSH = toggleSSH;
+        window.toggleKeyInput = toggleKeyInput;
+        window.addUser = addUser;  
+        window.removeUser = removeUser;
+        window.toggleUidInput = toggleUidInput;
+
+        function markConfigurationModified() {
+            configState.modified = true;
+            updateStatusBar();
+        }
+        
+        // Make markConfigurationModified available globally
+        window.markConfigurationModified = markConfigurationModified;
+
+        function updateStatusBar() {
+            const statusSpan = document.querySelector('.status-left span');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (configState.modified) {
+                statusSpan.textContent = 'Configuration modified';
+                statusDot.className = 'status-dot modified';
+            } else {
+                statusSpan.textContent = 'All changes saved';
+                statusDot.className = 'status-dot saved';
+            }
+        }
+
+        // Show/hide project info bar based on project state
+        function updateProjectInfoBar(show, projectPath = '') {
+            const infoBar = document.getElementById('project-info-bar');
+            if (show) {
+                infoBar.style.display = 'block';
+                const pathSpan = document.querySelector('.project-path');
+                if (pathSpan && projectPath) {
+                    pathSpan.textContent = projectPath;
+                }
+            } else {
+                infoBar.style.display = 'none';
+            }
+        }
+
+        // Load initial tab content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load project tab by default
+            const projectTab = document.querySelector('[onclick="switchTab(\'project\')"]');
+            if (projectTab) {
+                projectTab.click();
+            }
+        });
+
+        // Override the activateProjectConfiguration from project tab to also update the header
+        window.activateProjectConfiguration = function(projectPath) {
+            // Show project info bar
+            updateProjectInfoBar(true, projectPath);
+            
+            // Call the original function if it exists in the loaded tab content
+            const event = new CustomEvent('projectActivated', { detail: { projectPath } });
+            document.dispatchEvent(event);
+        };
 
         function saveConfiguration() {
             if (confirm('Save current configuration to user_config.yml and create script files?')) {
-                alert('Demo: Configuration saved successfully! All changes written to project directory.');
-                // In real app, this would save config and update status
+                // In a real NiceGUI app, this would trigger server-side save operation
+                alert('Configuration saved successfully! All changes written to project directory.');
+                // Update status indicators
+                updateProjectStatus('saved');
             }
         }
 
         function configureProject() {
             if (confirm('Run pei-docker-cli configure to build project structure? This may take a few minutes.')) {
-                alert('Demo: Project configuration started. In the real app, you would see live command output here.');
-                // In real app, this would run configure command and show progress
+                // In a real NiceGUI app, this would trigger server-side configure process
+                alert('Project configuration started. The process is running in the background.');
+                // Update status to show configuration in progress
+                updateProjectStatus('configuring');
             }
         }
 
         function downloadProject() {
-            // Simulate the warning checks from the task requirements
-            const hasUnsavedChanges = true; // Demo state
-            const notConfigured = true; // Demo state
+            // Check project state for warnings
+            const hasUnsavedChanges = getProjectState().hasUnsavedChanges;
+            const notConfigured = getProjectState().notConfigured;
             
             let warnings = [];
             if (notConfigured) {
@@ -286,10 +479,14 @@
             if (warnings.length > 0) {
                 const warningMessage = 'Warning:\n' + warnings.join('\n') + '\n\nDo you want to continue with the download?';
                 if (confirm(warningMessage)) {
-                    alert('Demo: Project ZIP file would be downloaded. In the real app, the download would start now.');
+                    // In a real NiceGUI app, this would trigger server-side ZIP creation and download
+                    alert('Project ZIP file is being prepared for download...');
+                    // Trigger actual download
+                    triggerProjectDownload();
                 }
             } else {
-                alert('Demo: Project ZIP file would be downloaded.');
+                alert('Project ZIP file is being prepared for download...');
+                triggerProjectDownload();
             }
         }
 
@@ -297,6 +494,25 @@
             if (confirm('Create a new project? Any unsaved changes will be lost.')) {
                 window.location.href = 'index.html';
             }
+        }
+
+        // Helper functions for realistic behavior
+        function getProjectState() {
+            // In a real NiceGUI app, this would get actual project state from server
+            return {
+                hasUnsavedChanges: true,  // Based on current UI state
+                notConfigured: true       // Based on project configuration status
+            };
+        }
+
+        function updateProjectStatus(status) {
+            // In a real NiceGUI app, this would update server-side state and refresh UI
+            console.log(`Project status updated to: ${status}`);
+        }
+
+        function triggerProjectDownload() {
+            // In a real NiceGUI app, this would trigger server-side ZIP creation and download
+            console.log('Project download triggered');
         }
     </script>
 </body>

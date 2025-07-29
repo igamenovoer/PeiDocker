@@ -1,0 +1,207 @@
+<div class="tab-title">
+    🔐 SSH Configuration
+</div>
+<p class="tab-description">
+    Configure SSH service and user accounts for container access. SSH keys configured here will be copied into the container.
+</p>
+
+<!-- SSH Enable/Disable -->
+<div class="card mb-6">
+    <div class="card-header">
+        🔌 SSH Service
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <div class="flex items-center gap-4">
+                <label class="toggle-switch">
+                    <input type="checkbox" class="toggle-input" id="ssh-enabled" checked onchange="toggleSSH(); markConfigurationModified()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="form-label">Enable SSH Service</div>
+                    <div class="form-help">
+                        Install and start SSH daemon in the container
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="ssh-warning" style="display: none;" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+            <div class="flex items-center gap-2">
+                <span>⚠️</span>
+                <span class="text-sm">
+                    Disabling SSH means you'll need to use <code>docker exec</code> commands to access the container.
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ssh-config">
+    <!-- SSH Port Configuration -->
+    <div class="grid grid-2 mb-6">
+        <div class="form-group">
+            <label class="form-label" for="ssh-container-port">
+                SSH Container Port
+            </label>
+            <input 
+                type="number" 
+                id="ssh-container-port" 
+                class="form-input" 
+                value="22"
+                min="1"
+                max="65535"
+                onchange="markConfigurationModified()"
+            >
+            <div class="form-help">
+                Port number for SSH service inside the container
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="ssh-host-port">
+                SSH Host Port
+            </label>
+            <input 
+                type="number" 
+                id="ssh-host-port" 
+                class="form-input" 
+                value="2222"
+                min="1"
+                max="65535"
+                onchange="markConfigurationModified()"
+            >
+            <div class="form-help">
+                Port number on host machine to access SSH (avoid conflicts with host SSH on port 22)
+            </div>
+        </div>
+    </div>
+
+    <!-- SSH Users Configuration -->
+    <div class="card mb-6">
+        <div class="card-header">
+            👥 SSH Users
+        </div>
+        <div class="card-content">
+            <div id="ssh-users">
+                <!-- Default User: me -->
+                <div class="card user-config mb-6">
+                    <div class="card-header">
+                        <div class="flex items-center justify-between w-full">
+                            <div class="flex items-center gap-2">
+                                <span>👤</span>
+                                <span>SSH User: me</span>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="removeUser(this)">🗑️ Remove</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-content">
+                        <div class="grid grid-2 gap-4 mb-4">
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-input" value="me" required onchange="markConfigurationModified()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Password</label>
+                                <input type="text" class="form-input" value="" placeholder="Enter secure password" onchange="markConfigurationModified()">
+                                <div class="form-help">Password for SSH login (required)</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Optional UID Configuration -->
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <input type="checkbox" id="uid-enabled-me" onchange="toggleUidInput('me', this.checked); markConfigurationModified()">
+                                    <label class="form-label" for="uid-enabled-me">Set custom User ID (UID)</label>
+                                </div>
+                                <div class="form-help mb-2">Advanced: Leave unchecked to use automatic UID assignment</div>
+                                
+                                <div id="uid-input-me" style="display: none;">
+                                    <input type="number" class="form-input" value="1000" min="0" placeholder="1000" onchange="markConfigurationModified()">
+                                    <div class="form-help">Custom UID for file permissions mapping</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    <!-- Public Key Configuration -->
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <label class="form-label">Public Key (copy into container)</label>
+                            <div class="flex gap-2 mb-2">
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="pubkey-source-me" value="none" checked onchange="toggleKeyInput('me', 'pubkey', this.value); markConfigurationModified()">
+                                    <span>None</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="pubkey-source-me" value="file" onchange="toggleKeyInput('me', 'pubkey', this.value); markConfigurationModified()">
+                                    <span>File path</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="pubkey-source-me" value="text" onchange="toggleKeyInput('me', 'pubkey', this.value); markConfigurationModified()">
+                                    <span>Direct text</span>
+                                </label>
+                            </div>
+                            
+                            <div class="pubkey-file-input" id="pubkey-file-me" style="display: none;">
+                                <div class="flex gap-2">
+                                    <input type="text" class="form-input" placeholder="~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub" onchange="markConfigurationModified()">
+                                    <button class="btn btn-secondary">📁</button>
+                                </div>
+                                <div class="form-help">Use ~ for auto-discovery or specify file path relative to project directory</div>
+                            </div>
+                            
+                            <div class="pubkey-text-input" id="pubkey-text-me" style="display: none;">
+                                <textarea class="form-textarea" rows="3" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host" oninput="markConfigurationModified()"></textarea>
+                                <div class="form-help">Paste your public key content directly</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Private Key Configuration -->
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <label class="form-label">Private Key (copy into container)</label>
+                            <div class="flex gap-2 mb-2">
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="privkey-source-me" value="none" checked onchange="toggleKeyInput('me', 'privkey', this.value); markConfigurationModified()">
+                                    <span>None</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="privkey-source-me" value="file" onchange="toggleKeyInput('me', 'privkey', this.value); markConfigurationModified()">
+                                    <span>File path</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="radio" name="privkey-source-me" value="text" onchange="toggleKeyInput('me', 'privkey', this.value); markConfigurationModified()">
+                                    <span>Direct text</span>
+                                </label>
+                            </div>
+                            
+                            <div class="privkey-file-input" id="privkey-file-me" style="display: none;">
+                                <div class="flex gap-2">
+                                    <input type="text" class="form-input" placeholder="~  or  /path/to/private.key  or  stage-1/keys/id_rsa" onchange="markConfigurationModified()">
+                                    <button class="btn btn-secondary">📁</button>
+                                </div>
+                                <div class="form-help">Use ~ for auto-discovery or specify file path</div>
+                            </div>
+                            
+                            <div class="privkey-text-input" id="privkey-text-me" style="display: none;">
+                                <textarea class="form-textarea" rows="8" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA...&#10;-----END OPENSSH PRIVATE KEY-----" oninput="markConfigurationModified()"></textarea>
+                                <div class="form-help">Paste your private key content directly</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="addUser()">
+                ➕ Add SSH User
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- JavaScript functions are now defined in active-project.html to avoid conflicts with dynamic loading -->

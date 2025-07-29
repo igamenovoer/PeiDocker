@@ -1,0 +1,351 @@
+<div class="tab-title">
+    📜 Custom Scripts Configuration
+</div>
+<p class="tab-description">
+    Configure custom entry points and lifecycle hook scripts for both build and runtime stages.
+</p>
+
+<div class="grid grid-2">
+    <!-- Stage-1 Scripts -->
+    <div>
+        <div class="card mb-6">
+            <div class="card-header">
+                🏗️ Stage-1 Build Scripts
+            </div>
+            <div class="card-content">
+                <!-- Custom Entry Point -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Custom Entry Point
+                    </label>
+                    <div class="form-help mb-4">
+                        Override the default entry point for Stage-1
+                    </div>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage1-entry-mode" value="none" checked>
+                            <span>Use default</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage1-entry-mode" value="file">
+                            <span>File path</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage1-entry-mode" value="inline">
+                            <span>Inline script</span>
+                        </label>
+                    </div>
+                    
+                    <div id="stage1-entry-config" style="display: none;">
+                        <input type="text" class="form-input mb-2" placeholder="/path/to/script.sh or script name">
+                        <textarea class="form-textarea" rows="4" placeholder="#!/bin/bash&#10;echo 'Custom entry point'"></textarea>
+                    </div>
+                </div>
+
+                <!-- Lifecycle Scripts -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Lifecycle Scripts
+                    </label>
+                    <div class="form-help mb-4">
+                        Scripts that run at specific lifecycle events
+                    </div>
+                    
+                    <div id="stage1-lifecycle-scripts">
+                        <div class="mb-4">
+                            <div class="form-label text-sm">on_build - Runs during image build</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_build', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_build', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage1-on_build-scripts"></div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-label text-sm">on_first_run - Runs on first container start</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_first_run', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_first_run', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage1-on_first_run-scripts"></div>
+                        </div>
+                        
+                        <div>
+                            <div class="form-label text-sm">on_every_run - Runs on every container start</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_every_run', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage1', 'on_every_run', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage1-on_every_run-scripts">
+                                <!-- Demo script -->
+                                <div class="list-item">
+                                    <div class="list-item-content">
+                                        <div class="font-mono text-sm">
+                                            📝 setup-environment.sh (inline script)
+                                        </div>
+                                    </div>
+                                    <div class="list-item-actions">
+                                        <button class="btn btn-info btn-sm" onclick="viewInlineScript('setup-environment.sh')">
+                                            👁️ View
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="editInlineScript('setup-environment.sh')">
+                                            ✏️ Edit
+                                        </button>
+                                        <button class="btn btn-error btn-sm" onclick="removeScript(this)">
+                                            🗑️ Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage-2 Scripts -->
+    <div>
+        <div class="card mb-6">
+            <div class="card-header">
+                🚀 Stage-2 Runtime Scripts
+            </div>
+            <div class="card-content">
+                <!-- Custom Entry Point -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Custom Entry Point
+                    </label>
+                    <div class="form-help mb-4">
+                        Override the default entry point for Stage-2
+                    </div>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage2-entry-mode" value="none" checked>
+                            <span>Use default</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage2-entry-mode" value="file">
+                            <span>File path</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="stage2-entry-mode" value="inline">
+                            <span>Inline script</span>
+                        </label>
+                    </div>
+                    
+                    <div id="stage2-entry-config" style="display: none;">
+                        <input type="text" class="form-input mb-2" placeholder="/path/to/script.sh or script name">
+                        <textarea class="form-textarea" rows="4" placeholder="#!/bin/bash&#10;echo 'Custom entry point'"></textarea>
+                    </div>
+                </div>
+
+                <!-- Lifecycle Scripts -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Lifecycle Scripts
+                    </label>
+                    <div class="form-help mb-4">
+                        Scripts that run at specific lifecycle events
+                    </div>
+                    
+                    <div id="stage2-lifecycle-scripts">
+                        <div class="mb-4">
+                            <div class="form-label text-sm">on_user_login - Runs when user logs in via SSH</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_user_login', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_user_login', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage2-on_user_login-scripts">
+                                <!-- Demo script -->
+                                <div class="list-item">
+                                    <div class="list-item-content">
+                                        <div class="font-mono text-sm">
+                                            📁 /home/user/welcome.sh (file path)
+                                        </div>
+                                    </div>
+                                    <div class="list-item-actions">
+                                        <button class="btn btn-warning btn-sm" onclick="editFilePath(this)">
+                                            ✏️ Edit Path
+                                        </button>
+                                        <button class="btn btn-error btn-sm" onclick="removeScript(this)">
+                                            🗑️ Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-label text-sm">on_first_run - Runs on first container start</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_first_run', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_first_run', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage2-on_first_run-scripts"></div>
+                        </div>
+                        
+                        <div>
+                            <div class="form-label text-sm">on_every_run - Runs on every container start</div>
+                            <div class="flex gap-2 mb-2">
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_every_run', 'file')">
+                                    📁 Add File
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="addLifecycleScript('stage2', 'on_every_run', 'inline')">
+                                    📝 Add Inline
+                                </button>
+                            </div>
+                            <div id="stage2-on_every_run-scripts"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script Execution Preview -->
+<div class="card mt-6">
+    <div class="card-header">
+        ⚡ Script Execution Order Preview
+    </div>
+    <div class="card-content">
+        <div class="grid grid-2">
+            <div>
+                <h4 class="form-label mb-2">Stage-1 Execution</h4>
+                <div class="preview-panel">
+                    <div class="font-mono text-sm">
+                        <div>1. Image build starts</div>
+                        <div>2. on_build scripts execute</div>
+                        <div>3. Image build completes</div>
+                        <div>4. Container first start</div>
+                        <div>5. on_first_run scripts execute</div>
+                        <div>6. setup-environment.sh (on_every_run)</div>
+                        <div>7. Custom entry point (if configured)</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h4 class="form-label mb-2">Stage-2 Execution</h4>
+                <div class="preview-panel">
+                    <div class="font-mono text-sm">
+                        <div>1. Stage-2 image build</div>
+                        <div>2. Container start</div>
+                        <div>3. on_first_run scripts execute</div>
+                        <div>4. on_every_run scripts execute</div>
+                        <div>5. SSH service starts</div>
+                        <div>6. User login → welcome.sh (on_user_login)</div>
+                        <div>7. Custom entry point (if configured)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addLifecycleScript(stage, lifecycle, type) {
+        const container = document.getElementById(`${stage}-${lifecycle}-scripts`);
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        
+        if (type === 'file') {
+            div.innerHTML = `
+                <div class="list-item-content">
+                    <div>
+                        <input type="text" class="form-input mb-2" placeholder="/path/to/script.sh">
+                        <div class="font-mono text-sm">📁 File path script</div>
+                    </div>
+                </div>
+                <div class="list-item-actions">
+                    <button class="btn btn-warning btn-sm" onclick="editFilePath(this)">
+                        ✏️ Edit Path
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="removeScript(this)">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `;
+        } else {
+            div.innerHTML = `
+                <div class="list-item-content">
+                    <div>
+                        <input type="text" class="form-input mb-2" placeholder="script-name">
+                        <textarea class="form-textarea mb-2" rows="3" placeholder="#!/bin/bash&#10;echo 'Inline script content'"></textarea>
+                        <div class="font-mono text-sm">📝 Inline script</div>
+                    </div>
+                </div>
+                <div class="list-item-actions">
+                    <button class="btn btn-info btn-sm" onclick="viewInlineScript('new-script')">
+                        👁️ View
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="editInlineScript('new-script')">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="removeScript(this)">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `;
+        }
+        
+        container.appendChild(div);
+    }
+
+    function removeScript(button) {
+        button.closest('.list-item').remove();
+    }
+
+    function viewInlineScript(scriptName) {
+        alert(`Viewing inline script: ${scriptName}\n\n#!/bin/bash\necho "Setting up development environment"\nexport PATH=$PATH:/usr/local/bin\n# Add more setup commands here`);
+    }
+
+    function editInlineScript(scriptName) {
+        const newContent = prompt(`Edit inline script: ${scriptName}`, `#!/bin/bash\necho "Setting up development environment"\nexport PATH=$PATH:/usr/local/bin\n# Add more setup commands here`);
+        if (newContent !== null) {
+            alert(`Script ${scriptName} updated successfully!`);
+        }
+    }
+
+    function editFilePath(button) {
+        const input = button.closest('.list-item').querySelector('input');
+        const newPath = prompt('Edit file path:', input.value);
+        if (newPath !== null) {
+            input.value = newPath;
+        }
+    }
+
+    // Handle entry point mode changes
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'stage1-entry-mode') {
+            const config = document.getElementById('stage1-entry-config');
+            config.style.display = e.target.value !== 'none' ? 'block' : 'none';
+        }
+        if (e.target.name === 'stage2-entry-mode') {
+            const config = document.getElementById('stage2-entry-config');
+            config.style.display = e.target.value !== 'none' ? 'block' : 'none';
+        }
+    });
+</script>

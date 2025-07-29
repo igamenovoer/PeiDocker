@@ -978,4 +978,665 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1753781054147_zo14bko3r" time="2025/07/29 17:24">
+    <content>
+      # Tool Skill Memory
+    
+      ## Tracking Unsaved Changes in NiceGUI Applications
+    
+      This covers comprehensive techniques for implementing &quot;dirty state&quot; tracking in NiceGUI applications to prevent data loss and provide user feedback about unsaved modifications.
+    
+      ### Core Concepts
+    
+      **Dirty State Definition**: The condition where form data has been modified by the user but not yet saved to persistent storage. Essential for:
+      - Warning users before leaving page with unsaved changes
+      - Enabling/disabling save buttons based on modification status
+      - Providing visual feedback about unsaved changes
+      - Implementing auto-save functionality
+    
+      **Key Components**: State tracking, user warning, visual feedback, save management
+    
+      ### NiceGUI Reactive Variables Approach
+    
+      ```python
+      from nicegui import ui
+    
+      @ui.page(&#x27;/&#x27;)
+      def main_page():
+      # Create reactive state variables
+      form_data, set_form_data = ui.state({
+      &#x27;field1&#x27;: &#x27;&#x27;,
+      &#x27;field2&#x27;: &#x27;&#x27;,
+      &#x27;field3&#x27;: &#x27;&#x27;
+      })
+    
+      # Track if form is dirty
+      is_dirty, set_is_dirty = ui.state(False)
+      original_data, set_original_data = ui.state({})
+    
+      def check_dirty():
+      dirty = form_data != original_data
+      set_is_dirty(dirty)
+    
+      def save_form():
+      # Save logic here
+      set_original_data(form_data.copy())
+      set_is_dirty(False)
+      ui.notify(&#x27;Changes saved!&#x27;)
+    
+      # Form inputs with change tracking
+      ui.input(&#x27;Field 1&#x27;).bind_value(form_data, &#x27;field1&#x27;).on(&#x27;change&#x27;, check_dirty)
+      ui.input(&#x27;Field 2&#x27;).bind_value(form_data, &#x27;field2&#x27;).on(&#x27;change&#x27;, check_dirty)
+      ui.textarea(&#x27;Field 3&#x27;).bind_value(form_data, &#x27;field3&#x27;).on(&#x27;change&#x27;, check_dirty)
+    
+      # Save button enabled only when dirty
+      ui.button(&#x27;Save&#x27;, on_click=save_form).bind_enabled_from(is_dirty, &#x27;value&#x27;)
+    
+      # Status indicator
+      ui.label().bind_text_from(is_dirty, &#x27;value&#x27;,
+      lambda dirty: &#x27;● Unsaved changes&#x27; if dirty else &#x27;✓ All changes saved&#x27;)
+      ```
+    
+      ### Class-Based State Management
+    
+      ```python
+      class FormState:
+      def __init__(self):
+      self.field1 = &#x27;&#x27;
+      self.field2 = &#x27;&#x27;
+      self.is_dirty = False
+      self.original_state = {}
+    
+      def mark_dirty(self):
+      self.is_dirty = True
+    
+      def save(self):
+      # Save logic
+      self.original_state = self.get_current_state()
+      self.is_dirty = False
+    
+      def get_current_state(self):
+      return {
+      &#x27;field1&#x27;: self.field1,
+      &#x27;field2&#x27;: self.field2
+      }
+    
+      def check_changes(self):
+      current = self.get_current_state()
+      self.is_dirty = current != self.original_state
+    
+      @ui.page(&#x27;/&#x27;)
+      def form_page():
+      state = FormState()
+    
+      # Bind form fields to state object
+      ui.input(&#x27;Field 1&#x27;).bind_value(state, &#x27;field1&#x27;).on(&#x27;change&#x27;, state.check_changes)
+      ui.input(&#x27;Field 2&#x27;).bind_value(state, &#x27;field2&#x27;).on(&#x27;change&#x27;, state.check_changes)
+    
+      # UI elements that reflect dirty state
+      ui.button(&#x27;Save&#x27;, on_click=state.save).bind_enabled_from(state, &#x27;is_dirty&#x27;)
+      ui.label().bind_text_from(state, &#x27;is_dirty&#x27;,
+      lambda dirty: &#x27;Unsaved changes&#x27; if dirty else &#x27;Saved&#x27;)
+      ```
+    
+      ### Refreshable UI Pattern
+    
+      ```python
+      form_data = {&#x27;field1&#x27;: &#x27;&#x27;, &#x27;field2&#x27;: &#x27;&#x27;}
+      original_data = {}
+      is_dirty = False
+    
+      def check_dirty():
+      global is_dirty
+      is_dirty = form_data != original_data
+      status_display.refresh()
+    
+      @ui.refreshable
+      def status_display():
+      if is_dirty:
+      ui.label(&#x27;● Unsaved changes&#x27;).classes(&#x27;text-orange-600&#x27;)
+      else:
+      ui.label(&#x27;✓ All saved&#x27;).classes(&#x27;text-green-600&#x27;)
+    
+      @ui.refreshable
+      def save_button():
+      ui.button(&#x27;Save&#x27;, on_click=save_changes).props(&#x27;disable&#x27; if not is_dirty else &#x27;&#x27;)
+    
+      def save_changes():
+      global original_data, is_dirty
+      # Save logic here
+      original_data = form_data.copy()
+      is_dirty = False
+      save_button.refresh()
+      status_display.refresh()
+      ui.notify(&#x27;Changes saved!&#x27;)
+      ```
+    
+      ### Browser-Level Protection
+    
+      ```python
+      @ui.page(&#x27;/&#x27;)
+      def protected_form():
+      is_dirty, set_is_dirty = ui.state(False)
+    
+      # JavaScript to warn on page unload
+      ui.add_head_html(&quot;&quot;&quot;
+      &lt;script&gt;
+      let formDirty = false;
+    
+      function setFormDirty(dirty) {
+      formDirty = dirty;
+      }
+    
+      window.addEventListener(&#x27;beforeunload&#x27;, function(e) {
+      if (formDirty) {
+      e.preventDefault();
+      e.returnValue = &#x27;You have unsaved changes. Are you sure you want to leave?&#x27;;
+      return e.returnValue;
+      }
+      });
+    
+      document.addEventListener(&#x27;submit&#x27;, function() {
+      formDirty = false;
+      });
+      &lt;/script&gt;
+      &quot;&quot;&quot;)
+    
+      def mark_dirty():
+      set_is_dirty(True)
+      ui.run_javascript(&#x27;setFormDirty(true)&#x27;)
+    
+      def save_form():
+      set_is_dirty(False)
+      ui.run_javascript(&#x27;setFormDirty(false)&#x27;)
+      ui.notify(&#x27;Saved!&#x27;)
+    
+      # Form inputs
+      ui.input(&#x27;Field 1&#x27;).on(&#x27;change&#x27;, mark_dirty)
+      ui.input(&#x27;Field 2&#x27;).on(&#x27;change&#x27;, mark_dirty)
+      ui.button(&#x27;Save&#x27;, on_click=save_form)
+      ```
+    
+      ### Advanced Browser Protection with FormTracker
+    
+      ```python
+      ui.add_head_html(&quot;&quot;&quot;
+      &lt;script&gt;
+      class FormTracker {
+      constructor() {
+      this.originalData = {};
+      this.isDirty = false;
+      this.isSubmitting = false;
+      this.init();
+      }
+    
+      init() {
+      this.captureOriginalState();
+    
+      document.addEventListener(&#x27;input&#x27;, (e) =&gt; {
+      this.checkDirty();
+      });
+    
+      document.addEventListener(&#x27;submit&#x27;, (e) =&gt; {
+      this.isSubmitting = true;
+      });
+    
+      window.addEventListener(&#x27;beforeunload&#x27;, (e) =&gt; {
+      if (this.isDirty &amp;&amp; !this.isSubmitting) {
+      e.preventDefault();
+      e.returnValue = &#x27;Changes you made may not be saved.&#x27;;
+      return e.returnValue;
+      }
+      });
+      }
+    
+      captureOriginalState() {
+      const inputs = document.querySelectorAll(&#x27;input, textarea, select&#x27;);
+      inputs.forEach(input =&gt; {
+      this.originalData[input.name || input.id] = input.value;
+      });
+      }
+    
+      checkDirty() {
+      const inputs = document.querySelectorAll(&#x27;input, textarea, select&#x27;);
+      this.isDirty = false;
+    
+      inputs.forEach(input =&gt; {
+      const key = input.name || input.id;
+      if (this.originalData[key] !== input.value) {
+      this.isDirty = true;
+      }
+      });
+    
+      window.postMessage({
+      type: &#x27;form-dirty-state&#x27;,
+      isDirty: this.isDirty
+      }, &#x27;*&#x27;);
+      }
+    
+      markClean() {
+      this.captureOriginalState();
+      this.isDirty = false;
+      this.isSubmitting = false;
+      }
+      }
+    
+      const formTracker = new FormTracker();
+      window.formTracker = formTracker;
+      &lt;/script&gt;
+      &quot;&quot;&quot;)
+      ```
+    
+      ### Visual Status Indicators
+    
+      ```python
+      @ui.page(&#x27;/&#x27;)
+      def form_with_indicators():
+      is_dirty, set_is_dirty = ui.state(False)
+    
+      def update_status():
+      set_is_dirty(True)
+    
+      def save_changes():
+      set_is_dirty(False)
+      ui.notify(&#x27;Changes saved!&#x27;, type=&#x27;positive&#x27;)
+    
+      # Header with status
+      with ui.header():
+      ui.label(&#x27;Form Title&#x27;)
+      ui.space()
+      with ui.row():
+      ui.icon(&#x27;circle&#x27;, size=&#x27;sm&#x27;).bind_color_from(
+      is_dirty, &#x27;value&#x27;,
+      lambda dirty: &#x27;orange&#x27; if dirty else &#x27;green&#x27;
+      )
+      ui.label().bind_text_from(
+      is_dirty, &#x27;value&#x27;,
+      lambda dirty: &#x27;Unsaved changes&#x27; if dirty else &#x27;All saved&#x27;
+      )
+    
+      # Form inputs
+      ui.input(&#x27;Field 1&#x27;).on(&#x27;change&#x27;, update_status)
+      ui.textarea(&#x27;Field 2&#x27;).on(&#x27;change&#x27;, update_status)
+    
+      # Save button with visual state
+      ui.button(&#x27;Save Changes&#x27;, on_click=save_changes).bind_enabled_from(is_dirty, &#x27;value&#x27;)
+      ```
+    
+      ### Tab-Based Forms with Individual Status
+    
+      ```python
+      @ui.page(&#x27;/&#x27;)
+      def tabbed_form():
+      # Track dirty state for each tab
+      tab_states = {
+      &#x27;tab1&#x27;: ui.state(False),
+      &#x27;tab2&#x27;: ui.state(False),
+      &#x27;tab3&#x27;: ui.state(False)
+      }
+    
+      def mark_tab_dirty(tab_name):
+      tab_states[tab_name][1](True)
+    
+      def get_tab_label(tab_name, base_label):
+      is_dirty = tab_states[tab_name][0]
+      return f&quot;{base_label} {&#x27;●&#x27; if is_dirty else &#x27;&#x27;}&quot;
+    
+      with ui.tabs() as tabs:
+      tab1 = ui.tab(&#x27;tab1&#x27;)
+      tab2 = ui.tab(&#x27;tab2&#x27;)
+      tab3 = ui.tab(&#x27;tab3&#x27;)
+    
+      with ui.tab_panels(tabs, value=&#x27;tab1&#x27;):
+      with ui.tab_panel(&#x27;tab1&#x27;):
+      ui.input(&#x27;Field A&#x27;).on(&#x27;change&#x27;, lambda: mark_tab_dirty(&#x27;tab1&#x27;))
+      ui.input(&#x27;Field B&#x27;).on(&#x27;change&#x27;, lambda: mark_tab_dirty(&#x27;tab1&#x27;))
+    
+      with ui.tab_panel(&#x27;tab2&#x27;):
+      ui.input(&#x27;Field C&#x27;).on(&#x27;change&#x27;, lambda: mark_tab_dirty(&#x27;tab2&#x27;))
+      ui.number(&#x27;Field D&#x27;).on(&#x27;change&#x27;, lambda: mark_tab_dirty(&#x27;tab2&#x27;))
+    
+      with ui.tab_panel(&#x27;tab3&#x27;):
+      ui.textarea(&#x27;Field E&#x27;).on(&#x27;change&#x27;, lambda: mark_tab_dirty(&#x27;tab3&#x27;))
+    
+      # Update tab labels to show dirty state
+      @ui.refreshable
+      def update_tab_labels():
+      tab1.set_text(get_tab_label(&#x27;tab1&#x27;, &#x27;Tab 1&#x27;))
+      tab2.set_text(get_tab_label(&#x27;tab2&#x27;, &#x27;Tab 2&#x27;))
+      tab3.set_text(get_tab_label(&#x27;tab3&#x27;, &#x27;Tab 3&#x27;))
+      ```
+    
+      ### Performance Optimization with Debouncing
+    
+      ```python
+      import asyncio
+    
+      @ui.page(&#x27;/&#x27;)
+      def optimized_form():
+      debounce_timer = None
+    
+      async def debounced_check():
+      nonlocal debounce_timer
+      if debounce_timer:
+      debounce_timer.cancel()
+    
+      debounce_timer = asyncio.create_task(asyncio.sleep(0.5))
+      try:
+      await debounce_timer
+      # Perform expensive state check here
+      check_form_state()
+      except asyncio.CancelledError:
+      pass
+    
+      def check_form_state():
+      # State checking logic
+      pass
+    
+      ui.input(&#x27;Search&#x27;).on(&#x27;change&#x27;, lambda: asyncio.create_task(debounced_check()))
+      ```
+    
+      ### Error Handling Pattern
+    
+      ```python
+      @ui.page(&#x27;/&#x27;)
+      def robust_form():
+      def save_with_validation():
+      try:
+      if not validate_form():
+      ui.notify(&#x27;Please fix validation errors&#x27;, type=&#x27;negative&#x27;)
+      return
+    
+      save_data()
+      ui.notify(&#x27;Saved successfully!&#x27;, type=&#x27;positive&#x27;)
+    
+      except Exception as e:
+      ui.notify(f&#x27;Save failed: {str(e)}&#x27;, type=&#x27;negative&#x27;)
+    
+      def validate_form():
+      # Validation logic
+      return True
+    
+      def save_data():
+      # Save logic
+      pass
+      ```
+    
+      ### Memory Management
+    
+      ```python
+      from nicegui import ui, app
+    
+      @ui.page(&#x27;/&#x27;)
+      def memory_conscious_form():
+      # Use app.storage for persistent state
+      if &#x27;form_data&#x27; not in app.storage.user:
+      app.storage.user[&#x27;form_data&#x27;] = {}
+    
+      # Clean up on page exit
+      def cleanup():
+      # Clean up resources
+      pass
+    
+      # Register cleanup
+      ui.context.client.on_disconnect(cleanup)
+      ```
+    
+      ### Best Practices
+    
+      1. **Performance**: Use debounce for input events, leverage reactive variables, minimize DOM updates
+      2. **Error Handling**: Validate before save, provide clear error messages, handle exceptions gracefully
+      3. **Memory Management**: Clean up resources, use app.storage for persistence
+      4. **User Experience**: Provide visual feedback, warn before data loss, enable/disable actions appropriately
+      5. **Browser Compatibility**: Test beforeunload behavior across browsers
+    
+      ### Common Pitfalls
+    
+      - Not clearing dirty state on successful save
+      - Excessive event handlers without debouncing
+      - Memory leaks from unhandled event listeners
+      - Race conditions in async operations
+      - Not handling form submission states properly
+    
+      ### Implementation Checklist
+    
+      - [ ] Choose appropriate state tracking method
+      - [ ] Implement change detection for all form fields
+      - [ ] Add browser-level protection against data loss
+      - [ ] Provide visual feedback for unsaved changes
+      - [ ] Handle form submission and state reset
+      - [ ] Add validation and error handling
+      - [ ] Test edge cases (refresh, navigation, etc.)
+      - [ ] Optimize performance for large forms
+    
+      This comprehensive approach ensures robust unsaved change tracking in any NiceGUI application, preventing data loss and providing excellent user experience.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753783371936_khz73vql1" time="2025/07/29 18:02">
+    <content>
+      # Tool Skill Memory
+    
+      ## File Handling Best Practices in NiceGUI Applications
+    
+      ### Architectural Approach: Server-Side vs Client-Side
+    
+      **Recommended Approach: Server-Side Processing**
+      - Files are created and managed on server filesystem
+      - Python handles all file operations and zipping
+      - Files are served to browser for download
+      - Maintains security, follows NiceGUI&#x27;s backend-first philosophy
+    
+      **Why Server-Side is Preferred:**
+      - Security isolation and input validation
+      - Alignment with NiceGUI/FastAPI architecture
+      - Better error handling and resource management
+      - Cross-platform compatibility and scalability
+    
+      ### Core Implementation Patterns
+    
+      #### Basic Server-Side File Operations
+      ```python
+      import tempfile
+      import zipfile
+      from pathlib import Path
+      from nicegui import app, ui
+    
+      def create_workspace():
+      &quot;&quot;&quot;Create temporary directory for user modifications&quot;&quot;&quot;
+      temp_dir = Path(tempfile.mkdtemp())
+      app.storage.user[&#x27;workspace_dir&#x27;] = str(temp_dir)
+    
+      # Initialize structure
+      (temp_dir / &#x27;config&#x27;).mkdir()
+      (temp_dir / &#x27;data&#x27;).mkdir()
+    
+      ui.notify(&#x27;Workspace created&#x27;, type=&#x27;positive&#x27;)
+      return temp_dir
+    
+      def zip_and_download():
+      &quot;&quot;&quot;Create zip file and trigger download&quot;&quot;&quot;
+      workspace_dir = Path(app.storage.user.get(&#x27;workspace_dir&#x27;, &#x27;&#x27;))
+    
+      if not workspace_dir.exists():
+      ui.notify(&#x27;No workspace found&#x27;, type=&#x27;negative&#x27;)
+      return
+    
+      # Create zip file
+      zip_path = workspace_dir.parent / f&quot;{workspace_dir.name}.zip&quot;
+    
+      with zipfile.ZipFile(zip_path, &#x27;w&#x27;, zipfile.ZIP_DEFLATED) as zipf:
+      for file_path in workspace_dir.rglob(&#x27;*&#x27;):
+      if file_path.is_file():
+      arcname = file_path.relative_to(workspace_dir)
+      zipf.write(file_path, arcname)
+    
+      # Make available for download
+      app.add_static_file(&#x27;/download.zip&#x27;, str(zip_path))
+      ui.download(&#x27;/download.zip&#x27;, f&#x27;workspace-{workspace_dir.name}.zip&#x27;)
+      ```
+    
+      #### Advanced Workspace Management Pattern
+      ```python
+      import shutil
+      from datetime import datetime, timedelta
+    
+      class WorkspaceManager:
+      def __init__(self):
+      self.base_dir = Path(tempfile.gettempdir()) / &#x27;app_workspaces&#x27;
+      self.base_dir.mkdir(exist_ok=True)
+    
+      def create_workspace(self, user_id: str) -&gt; Path:
+      timestamp = datetime.now().strftime(&#x27;%Y%m%d_%H%M%S&#x27;)
+      workspace_dir = self.base_dir / f&quot;user_{user_id}_{timestamp}&quot;
+      workspace_dir.mkdir(parents=True)
+    
+      # Initialize structure
+      self._init_workspace_structure(workspace_dir)
+      return workspace_dir
+    
+      def cleanup_old_workspaces(self, max_age_hours: int = 24):
+      cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
+    
+      for workspace in self.base_dir.iterdir():
+      if workspace.is_dir() and workspace.stat().st_mtime &lt; cutoff_time.timestamp():
+      shutil.rmtree(workspace)
+    
+      # Usage pattern
+      workspace_manager = WorkspaceManager()
+      app.on_startup(lambda: workspace_manager.cleanup_old_workspaces())
+      ```
+    
+      ### NiceGUI Storage Options
+    
+      **Choose appropriate storage based on data lifetime:**
+      ```python
+      # User storage - persistent across sessions
+      app.storage.user[&#x27;workspace_dir&#x27;] = str(workspace_path)
+    
+      # Tab storage - session-specific, more secure
+      app.storage.tab[&#x27;temp_workspace&#x27;] = str(temp_path)
+    
+      # Client storage - per-connection
+      app.storage.client[&#x27;active_files&#x27;] = file_list
+    
+      # Browser storage - stored in browser localStorage
+      app.storage.browser[&#x27;user_settings&#x27;] = settings_dict
+      ```
+    
+      ### Error Handling Pattern
+      ```python
+      async def safe_file_operation():
+      try:
+      workspace_dir = Path(app.storage.user.get(&#x27;workspace_dir&#x27;))
+    
+      if not workspace_dir.exists():
+      raise FileNotFoundError(&quot;Workspace not found&quot;)
+    
+      # Perform file operations
+      result = await some_file_operation(workspace_dir)
+      ui.notify(&#x27;Operation completed successfully&#x27;, type=&#x27;positive&#x27;)
+      return result
+    
+      except FileNotFoundError as e:
+      ui.notify(f&#x27;File error: {e}&#x27;, type=&#x27;negative&#x27;)
+      except PermissionError as e:
+      ui.notify(&#x27;Permission denied&#x27;, type=&#x27;negative&#x27;)
+      except Exception as e:
+      ui.notify(f&#x27;Unexpected error: {e}&#x27;, type=&#x27;negative&#x27;)
+      ```
+    
+      ### Security Best Practices
+    
+      #### Path Validation
+      ```python
+      def validate_file_path(user_path: str, base_dir: Path) -&gt; bool:
+      &quot;&quot;&quot;Prevent directory traversal attacks&quot;&quot;&quot;
+      try:
+      resolved_path = (base_dir / user_path).resolve()
+      return base_dir.resolve() in resolved_path.parents
+      except:
+      return False
+      ```
+    
+      #### File Size and Type Restrictions
+      ```python
+      MAX_WORKSPACE_SIZE = 100 * 1024 * 1024  # 100MB
+      ALLOWED_EXTENSIONS = {&#x27;.txt&#x27;, &#x27;.md&#x27;, &#x27;.json&#x27;, &#x27;.yaml&#x27;, &#x27;.yml&#x27;, &#x27;.py&#x27;}
+    
+      def check_workspace_size(workspace_dir: Path) -&gt; bool:
+      total_size = sum(f.stat().st_size for f in workspace_dir.rglob(&#x27;*&#x27;) if f.is_file())
+      return total_size &lt;= MAX_WORKSPACE_SIZE
+    
+      def is_allowed_file(file_path: Path) -&gt; bool:
+      return file_path.suffix.lower() in ALLOWED_EXTENSIONS
+      ```
+    
+      ### Download Implementation Patterns
+    
+      #### Static File Serving
+      ```python
+      # Add file to static files and trigger download
+      app.add_static_file(&#x27;/download/file.zip&#x27;, str(zip_path))
+      ui.download(&#x27;/download/file.zip&#x27;, &#x27;filename.zip&#x27;)
+      ```
+    
+      #### Dynamic File Generation
+      ```python
+      def generate_and_download():
+      # Generate content dynamically
+      content = generate_file_content()
+    
+      # Write to temporary file
+      temp_file = Path(tempfile.mktemp(suffix=&#x27;.txt&#x27;))
+      temp_file.write_text(content)
+    
+      # Serve for download
+      app.add_static_file(&#x27;/generated.txt&#x27;, str(temp_file))
+      ui.download(&#x27;/generated.txt&#x27;, &#x27;generated_file.txt&#x27;)
+      ```
+    
+      ### Deployment Considerations
+    
+      #### Local Development
+      - Use temporary directories for file operations
+      - Implement cleanup routines for development
+      - Simple single-user file management
+    
+      #### Production Deployment
+      - Consider persistent storage solutions
+      - Implement proper user authentication
+      - Add rate limiting and resource quotas
+      - Use container-friendly storage patterns
+    
+      #### Docker Deployment
+      ```python
+      # Use environment variables for configuration
+      WORKSPACE_BASE = Path(os.environ.get(&#x27;WORKSPACE_DIR&#x27;, &#x27;/app/workspaces&#x27;))
+      WORKSPACE_BASE.mkdir(exist_ok=True)
+      ```
+    
+      ### Key Principles
+    
+      1. **Always use server-side file processing** for security and architecture alignment
+      2. **Choose appropriate NiceGUI storage** based on data lifetime requirements
+      3. **Implement proper error handling** with user-friendly feedback
+      4. **Validate file paths and types** to prevent security vulnerabilities
+      5. **Clean up temporary files** to prevent resource exhaustion
+      6. **Use Path objects** for cross-platform file system operations
+      7. **Provide clear user feedback** for all file operations
+    
+      ### Common Anti-Patterns to Avoid
+    
+      - Storing sensitive data in client-side storage
+      - Not validating file paths (directory traversal vulnerability)
+      - Missing cleanup routines for temporary files
+      - Using inappropriate storage types for data lifetime
+      - Poor error handling without user feedback
+      - Client-side file processing for complex operations
+    
+      This approach ensures secure, reliable, and maintainable file handling in any NiceGUI application while following framework best practices.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>
