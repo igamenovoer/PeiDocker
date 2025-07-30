@@ -25,70 +25,121 @@
             Stage-2's unique dynamic storage for predefined directories with smart linking: /soft/xxx → /hard/volume/xxx OR /hard/image/xxx
         </div>
         
-        <div class="grid grid-3 gap-4">
+        <div class="grid grid-1 gap-6">
             <!-- App Storage -->
-            <div class="form-group">
-                <label class="form-label">📱 App Storage (/soft/app)</label>
-                <select class="form-select">
-                    <option value="auto-volume">Auto Volume (recommended)</option>
-                    <option value="manual-volume">Manual Volume</option>
-                    <option value="host">Host Directory</option>
-                    <option value="image" selected>In-Image Storage</option>
-                </select>
-                <div class="form-help">Application files and dependencies</div>
-                
-                <!-- Show additional fields based on selection -->
-                <div class="mt-2" style="display: none;" id="app-host-path">
-                    <input type="text" class="form-input" placeholder="/host/path/to/app" />
-                    <div class="form-help">Host directory path</div>
-                </div>
-                <div class="mt-2" style="display: none;" id="app-volume-name">
-                    <input type="text" class="form-input" placeholder="my-app-volume" />
-                    <div class="form-help">Custom volume name</div>
+            <div class="card">
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">📱 App Storage (/soft/app)</label>
+                        <div class="form-help mb-2">Application files and dependencies - Fixed destination</div>
+                        
+                        <div class="grid grid-3 gap-4">
+                            <!-- Storage Type -->
+                            <div class="form-group">
+                                <label class="form-label">Storage type:</label>
+                                <select class="form-select storage-type" onchange="updateStorageFields(this, 'app'); markConfigurationModified()">
+                                    <option value="auto-volume">auto-volume</option>
+                                    <option value="manual-volume">manual-volume</option>
+                                    <option value="host">host</option>
+                                    <option value="image" selected>image (default)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Host Path -->
+                            <div class="form-group">
+                                <label class="form-label">Host path:</label>
+                                <input type="text" class="form-input storage-host-path" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="/host/path/to/app" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'host'</div>
+                            </div>
+                            
+                            <!-- Volume Name -->
+                            <div class="form-group">
+                                <label class="form-label">Volume name:</label>
+                                <input type="text" class="form-input storage-volume-name" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="my-app-volume" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'manual-volume'</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Data Storage -->
-            <div class="form-group">
-                <label class="form-label">📊 Data Storage (/soft/data)</label>
-                <select class="form-select">
-                    <option value="auto-volume" selected>Auto Volume (recommended)</option>
-                    <option value="manual-volume">Manual Volume</option>
-                    <option value="host">Host Directory</option>
-                    <option value="image">In-Image Storage</option>
-                </select>
-                <div class="form-help">User data and persistent files</div>
-                
-                <div class="mt-2" style="display: none;" id="data-host-path">
-                    <input type="text" class="form-input" placeholder="/host/path/to/data" />
-                    <div class="form-help">Host directory path</div>
-                </div>
-                <div class="mt-2" style="display: none;" id="data-volume-name">
-                    <input type="text" class="form-input" placeholder="my-data-volume" />
-                    <div class="form-help">Custom volume name</div>
+            <div class="card">
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">📊 Data Storage (/soft/data)</label>
+                        <div class="form-help mb-2">User data and persistent files - Fixed destination</div>
+                        
+                        <div class="grid grid-3 gap-4">
+                            <!-- Storage Type -->
+                            <div class="form-group">
+                                <label class="form-label">Storage type:</label>
+                                <select class="form-select storage-type" onchange="updateStorageFields(this, 'data'); markConfigurationModified()">
+                                    <option value="auto-volume">auto-volume</option>
+                                    <option value="manual-volume">manual-volume</option>
+                                    <option value="host">host</option>
+                                    <option value="image" selected>image (default)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Host Path -->
+                            <div class="form-group">
+                                <label class="form-label">Host path:</label>
+                                <input type="text" class="form-input storage-host-path" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="/host/path/to/data" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'host'</div>
+                            </div>
+                            
+                            <!-- Volume Name -->
+                            <div class="form-group">
+                                <label class="form-label">Volume name:</label>
+                                <input type="text" class="form-input storage-volume-name" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="my-data-volume" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'manual-volume'</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Workspace Storage -->
-            <div class="form-group">
-                <label class="form-label">💼 Workspace Storage (/soft/workspace)</label>
-                <select class="form-select">
-                    <option value="auto-volume">Auto Volume</option>
-                    <option value="manual-volume">Manual Volume</option>
-                    <option value="host" selected>Host Directory</option>
-                    <option value="image">In-Image Storage</option>
-                </select>
-                <div class="form-help">Development and workspace files</div>
-                
-                <div class="mt-2" id="workspace-host-path">
-                    <input type="text" class="form-input" placeholder="/host/path/to/workspace" value="/home/user/workspace" />
-                    <div class="form-help">Host directory path</div>
-                </div>
-                <div class="mt-2" style="display: none;" id="workspace-volume-name">
-                    <input type="text" class="form-input" placeholder="my-workspace-volume" />
-                    <div class="form-help">Custom volume name</div>
+            <div class="card">
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">💼 Workspace Storage (/soft/workspace)</label>
+                        <div class="form-help mb-2">Development and workspace files - Fixed destination</div>
+                        
+                        <div class="grid grid-3 gap-4">
+                            <!-- Storage Type -->
+                            <div class="form-group">
+                                <label class="form-label">Storage type:</label>
+                                <select class="form-select storage-type" onchange="updateStorageFields(this, 'workspace'); markConfigurationModified()">
+                                    <option value="auto-volume">auto-volume</option>
+                                    <option value="manual-volume">manual-volume</option>
+                                    <option value="host">host</option>
+                                    <option value="image" selected>image (default)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Host Path -->
+                            <div class="form-group">
+                                <label class="form-label">Host path:</label>
+                                <input type="text" class="form-input storage-host-path" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="/host/path/to/workspace" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'host'</div>
+                            </div>
+                            
+                            <!-- Volume Name -->
+                            <div class="form-group">
+                                <label class="form-label">Volume name:</label>
+                                <input type="text" class="form-input storage-volume-name" disabled style="background-color: #f9fafb; color: #6b7280;" placeholder="my-workspace-volume" onchange="markConfigurationModified()">
+                                <div class="form-help text-xs">Only editable when type is 'manual-volume'</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <strong>💡 Storage Note:</strong> These 3 storage entries are always present and default to 'image' type even when omitted from user_config.yml. They cannot be created or removed - only their storage type and related options can be configured.
         </div>
     </div>
 </div>
@@ -108,54 +159,11 @@
                     </div>
                     
                     <div id="stage1-mounts">
-                        <div class="list-item">
-                            <div class="list-item-content">
-                                <div class="grid grid-3 gap-2">
-                                    <input type="text" class="form-input" placeholder="Mount name" value="cache_mount">
-                                    <select class="form-select">
-                                        <option value="auto-volume" selected>Auto Volume</option>
-                                        <option value="manual-volume">Manual Volume</option>
-                                        <option value="host">Host Directory</option>
-                                    </select>
-                                    <input type="text" class="form-input" placeholder="Container path" value="/var/cache/apt">
-                                </div>
-                                <div class="form-help text-xs mt-1">
-                                    Mount: cache_mount → /var/cache/apt (Auto Volume)
-                                </div>
-                            </div>
-                            <div class="list-item-actions">
-                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage1')">
-                                    🗑️ Remove
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- This mount has errors -->
-                        <div class="list-item" style="border-color: #ef4444; background-color: #fef2f2;">
-                            <div class="list-item-content">
-                                <div class="grid grid-3 gap-2">
-                                    <input type="text" class="form-input" placeholder="Mount name" value="bad_mount" style="border-color: #ef4444;">
-                                    <select class="form-select" style="border-color: #ef4444;">
-                                        <option value="auto-volume">Auto Volume</option>
-                                        <option value="manual-volume">Manual Volume</option>
-                                        <option value="host" selected>Host Directory</option>
-                                    </select>
-                                    <input type="text" class="form-input" placeholder="Container path" value="/invalid/path" style="border-color: #ef4444;">
-                                </div>
-                                <div class="form-error mt-2">
-                                    Host directory /nonexistent does not exist • Container path contains invalid characters
-                                </div>
-                            </div>
-                            <div class="list-item-actions">
-                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage1')">
-                                    🗑️ Remove
-                                </button>
-                            </div>
-                        </div>
+                        <!-- Mount entries will be added dynamically -->
                     </div>
                     
                     <button class="btn btn-secondary" onclick="addMount('stage1')">
-                        ➕ Add Stage-1 Mount
+                        ➕ Add mount
                     </button>
                 </div>
             </div>
@@ -176,98 +184,16 @@
                     </div>
                     
                     <div id="stage2-mounts">
-                        <div class="list-item">
-                            <div class="list-item-content">
-                                <div class="grid grid-3 gap-2">
-                                    <input type="text" class="form-input" placeholder="Mount name" value="user_data">
-                                    <select class="form-select">
-                                        <option value="auto-volume">Auto Volume</option>
-                                        <option value="manual-volume">Manual Volume</option>
-                                        <option value="host" selected>Host Directory</option>
-                                    </select>
-                                    <input type="text" class="form-input" placeholder="Container path" value="/home/me">
-                                </div>
-                                <div class="form-help text-xs mt-1">
-                                    Mount: user_data → /home/me (Host Directory: /home/user/data)
-                                </div>
-                            </div>
-                            <div class="list-item-actions">
-                                <button class="btn btn-error btn-sm" onclick="removeMount(this, 'stage2')">
-                                    🗑️ Remove
-                                </button>
-                            </div>
-                        </div>
+                        <!-- Mount entries will be added dynamically -->
                     </div>
                     
                     <button class="btn btn-secondary" onclick="addMount('stage2')">
-                        ➕ Add Stage-2 Mount
+                        ➕ Add mount
                     </button>
                 </div>
             </div>
         </div>
 
-<!-- Configuration Preview -->
-<div class="card mt-6">
-    <div class="card-header">
-        📋 Storage & Mount Configuration Preview
-    </div>
-    <div class="card-content">
-        <div class="grid grid-3">
-            <div>
-                <h4 class="form-label mb-2">Stage-2 Dynamic Storage</h4>
-                <div class="preview-panel">
-                    <div class="font-mono text-sm">
-                        <div class="mb-2"><strong>Smart Linking System:</strong></div>
-                        <div>/soft/app → /hard/image/app</div>
-                        <div>/soft/data → /hard/volume/data</div>
-                        <div>/soft/workspace → /hard/volume/workspace</div>
-                        <div class="mt-2 text-xs" style="color: #666;">
-                            (Links automatically to volume or in-image)
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <h4 class="form-label mb-2">Stage-1 Mounts</h4>
-                <div class="preview-panel">
-                    <div class="font-mono text-sm">
-                        <div>-v cache_mount_vol:/var/cache/apt</div>
-                        <div style="color: #ef4444;">-v /nonexistent:/invalid/path</div>
-                        <div class="mt-2 text-xs" style="color: #666;">
-                            (General volume mounts)
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <h4 class="form-label mb-2">Stage-2 Mounts</h4>
-                <div class="preview-panel">
-                    <div class="font-mono text-sm">
-                        <div>-v /home/user/data:/home/me</div>
-                        <div class="mt-2 text-xs" style="color: #666;">
-                            (Don't inherit from Stage-1)
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mt-4">
-            <h4 class="form-label mb-2">YAML Configuration Preview</h4>
-            <div class="preview-panel">
-                <div class="font-mono text-sm">
-                    <div><strong>stage_2:</strong></div>
-                    <div>&nbsp;&nbsp;<strong>storage:</strong></div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>app:</strong> { type: image }</div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>data:</strong> { type: auto-volume }</div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>workspace:</strong> { type: host, host_path: "/home/user/workspace" }</div>
-                    <div>&nbsp;&nbsp;<strong>mount:</strong></div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>user_data:</strong> { type: host, dst_path: "/home/me", host_path: "/home/user/data" }</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- 
 IMPORTANT: Script functionality for dynamic tab content
@@ -275,9 +201,26 @@ This content is loaded dynamically via fetch() and innerHTML, so <script> tags d
 The parent HTML file (active-project.html) should handle script execution after loading this content.
 
 Required functions for proper functionality:
-- addMount(stage): Add new mount to stage1-mounts or stage2-mounts
-- removeMount(button, stage): Remove mount item from list
-- Storage type change handlers for app/data/workspace storage dropdowns
+
+STORAGE FUNCTIONS (Stage-2 Fixed Entries):
+- updateStorageFields(selectElement, storageType): Update storage field enabling based on type selection
+  * type=auto-volume: Both host_path and volume_name disabled (gray out)
+  * type=manual-volume: Enable volume_name field, disable host_path
+  * type=host: Enable host_path field, disable volume_name
+  * type=image: Both host_path and volume_name disabled (gray out)
+- Storage entries are always visible (app, data, workspace) and cannot be created or removed
+
+MOUNT FUNCTIONS (User-Defined Dynamic Entries):
+- addMount(stage): Add new mount to stage1-mounts or stage2-mounts with 5 GUI fields → 4 YAML fields
+- removeMount(button): Remove mount item from list
+- updateMountFields(selectElement): Update mount field enabling based on type selection:
+  * type=auto-volume: Both host_path and volume_name disabled (gray out)
+  * type=manual-volume: Enable volume_name field, disable host_path  
+  * type=host: Enable host_path field, disable volume_name
+- Mount sections start empty and can be dynamically created/removed
+
+CRITICAL: Due to script-tag bug in dynamic HTML loading, these event handlers must be attached 
+after the content is loaded via the parent HTML's JavaScript, not inline script tags.
 
 For implementation example, see the script section in active-project.html switchTab() function.
 -->

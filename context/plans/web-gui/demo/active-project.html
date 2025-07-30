@@ -182,6 +182,10 @@
                 setTimeout(() => {
                     initializeEnvironmentTab();
                 }, 10);
+            } else if (tabName === 'storage') {
+                setTimeout(() => {
+                    initializeStorageTab();
+                }, 10);
             }
             // Add other tab initializations as needed
         }
@@ -506,6 +510,188 @@
 
         // Make environment functions globally available
         window.initializeEnvironmentTab = initializeEnvironmentTab;
+
+        // Storage Tab Initialization and Functions
+        function initializeStorageTab() {
+            // Initialize storage tab specific functionality
+            console.log('Initializing Storage Tab...');
+            
+            // Check if we have the mount containers
+            const stage1Container = document.getElementById('stage1-mounts');
+            const stage2Container = document.getElementById('stage2-mounts');
+            
+            if (stage1Container && stage2Container) {
+                console.log('Storage mount containers found, initializing...');
+                
+                // Add any initial setup if needed
+                // The containers are now empty by default as per requirements
+                
+            } else {
+                console.warn('Storage mount containers not found in storage tab');
+            }
+        }
+
+        // Make storage functions globally available
+        window.initializeStorageTab = initializeStorageTab;
+
+        // Mount Management Functions
+        function generateUUID() {
+            // Generate a simple UUID-like string for mount names
+            return 'xxxxxxxx-xxxx'.replace(/[x]/g, function(c) {
+                var r = Math.random() * 16 | 0;
+                return r.toString(16);
+            });
+        }
+
+        function addMount(stage) {
+            const mountsContainer = document.getElementById(`${stage}-mounts`);
+            
+            if (!mountsContainer) {
+                console.error(`Mount container ${stage}-mounts not found`);
+                alert(`Error: ${stage} mounts container not found. Please switch to Storage tab first.`);
+                return;
+            }
+            
+            const uuid = generateUUID();
+            const mountName = `mount-${uuid}`;
+            const dstPath = `/mnt/mount-${uuid}`;
+            
+            const mountDiv = document.createElement('div');
+            mountDiv.className = 'card mb-4';
+            mountDiv.innerHTML = `
+                <div class="card-content">
+                    <div class="grid grid-2 gap-4">
+                        <!-- Mount Name -->
+                        <div class="form-group">
+                            <label class="form-label">Mount name:</label>
+                            <input type="text" class="form-input mount-name" value="${mountName}" onchange="markConfigurationModified()">
+                        </div>
+                        
+                        <!-- Mount Type -->
+                        <div class="form-group">
+                            <label class="form-label">Mount type:</label>
+                            <select class="form-select mount-type" onchange="updateMountFields(this); markConfigurationModified()">
+                                <option value="auto-volume" selected>auto-volume</option>
+                                <option value="manual-volume">manual-volume</option>
+                                <option value="host">host</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Destination Path -->
+                        <div class="form-group">
+                            <label class="form-label">Destination path:</label>
+                            <input type="text" class="form-input mount-dst-path" value="${dstPath}" onchange="markConfigurationModified()">
+                        </div>
+                        
+                        <!-- Host Path -->
+                        <div class="form-group">
+                            <label class="form-label">Host path:</label>
+                            <input type="text" class="form-input mount-host-path" disabled style="background-color: #f9fafb; color: #6b7280;" onchange="markConfigurationModified()">
+                            <div class="form-help text-xs">Only editable when type is 'host'</div>
+                        </div>
+                        
+                        <!-- Volume Name -->
+                        <div class="form-group">
+                            <label class="form-label">Volume name:</label>
+                            <input type="text" class="form-input mount-volume-name" disabled style="background-color: #f9fafb; color: #6b7280;" onchange="markConfigurationModified()">
+                            <div class="form-help text-xs">Only editable when type is 'manual-volume'</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-end">
+                        <button class="btn btn-error btn-sm" onclick="removeMount(this)">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            mountsContainer.appendChild(mountDiv);
+            markConfigurationModified();
+            
+            console.log(`Added new mount: ${mountName} to ${stage}`);
+        }
+
+        function removeMount(button) {
+            const mountDiv = button.closest('.card');
+            if (mountDiv) {
+                mountDiv.remove();
+                markConfigurationModified();
+            }
+        }
+
+        function updateMountFields(selectElement) {
+            const mountDiv = selectElement.closest('.card');
+            if (!mountDiv) return;
+            
+            const mountType = selectElement.value;
+            const hostPathInput = mountDiv.querySelector('.mount-host-path');
+            const volumeNameInput = mountDiv.querySelector('.mount-volume-name');
+            
+            // Reset all fields first
+            hostPathInput.disabled = true;
+            hostPathInput.style.backgroundColor = '#f9fafb';
+            hostPathInput.style.color = '#6b7280';
+            hostPathInput.value = '';
+            
+            volumeNameInput.disabled = true;
+            volumeNameInput.style.backgroundColor = '#f9fafb';
+            volumeNameInput.style.color = '#6b7280';
+            volumeNameInput.value = '';
+            
+            // Enable appropriate field based on type
+            if (mountType === 'host') {
+                hostPathInput.disabled = false;
+                hostPathInput.style.backgroundColor = '';
+                hostPathInput.style.color = '';
+            } else if (mountType === 'manual-volume') {
+                volumeNameInput.disabled = false;
+                volumeNameInput.style.backgroundColor = '';
+                volumeNameInput.style.color = '';
+            }
+            // For auto-volume, both fields remain disabled (null values)
+        }
+
+        // Make mount functions globally available
+        window.addMount = addMount;
+        window.removeMount = removeMount;
+        window.updateMountFields = updateMountFields;
+
+        // Storage Management Functions
+        function updateStorageFields(selectElement, storageType) {
+            const storageCard = selectElement.closest('.card');
+            if (!storageCard) return;
+            
+            const selectedType = selectElement.value;
+            const hostPathInput = storageCard.querySelector('.storage-host-path');
+            const volumeNameInput = storageCard.querySelector('.storage-volume-name');
+            
+            // Reset all fields first
+            hostPathInput.disabled = true;
+            hostPathInput.style.backgroundColor = '#f9fafb';
+            hostPathInput.style.color = '#6b7280';
+            hostPathInput.value = '';
+            
+            volumeNameInput.disabled = true;
+            volumeNameInput.style.backgroundColor = '#f9fafb';
+            volumeNameInput.style.color = '#6b7280';
+            volumeNameInput.value = '';
+            
+            // Enable appropriate field based on type
+            if (selectedType === 'host') {
+                hostPathInput.disabled = false;
+                hostPathInput.style.backgroundColor = '';
+                hostPathInput.style.color = '';
+            } else if (selectedType === 'manual-volume') {
+                volumeNameInput.disabled = false;
+                volumeNameInput.style.backgroundColor = '';
+                volumeNameInput.style.color = '';
+            }
+            // For auto-volume and image, both fields remain disabled (null values)
+        }
+
+        // Make storage functions globally available
+        window.updateStorageFields = updateStorageFields;
 
         function markConfigurationModified() {
             configState.modified = true;

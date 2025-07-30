@@ -541,14 +541,62 @@ The configuration is organized into 7 logical tabs that group related settings:
 - `host`: Direct mount of host directory
 - Path validation and conflict detection
 
+**Storage GUI Layout:**
+The storage section displays 3 fixed, always-visible entries for predefined directories:
+
+1. **App Storage (/soft/app)**: Fixed destination, cannot be removed or renamed
+2. **Data Storage (/soft/data)**: Fixed destination, cannot be removed or renamed  
+3. **Workspace Storage (/soft/workspace)**: Fixed destination, cannot be removed or renamed
+
+Each storage entry has 3 input fields with label-input pairing:
+1. **Storage type**: Dropdown selector (`auto-volume`, `manual-volume`, `host`, `image`)
+2. **Host path**: Text input, only editable when type=`host`, otherwise grayed out
+3. **Volume name**: Text input, only editable when type=`manual-volume`, otherwise grayed out
+
+**Storage Default Behavior:**
+- Storage entries are always visible (cannot be created or removed)
+- Default storage type is `image` (keeps data inside the image)
+- Destinations are predefined (/soft/app, /soft/data, /soft/workspace) and not editable
+- Conditional fields use disabled styling (gray background, muted text) when not applicable
+- Field enabling/disabling happens dynamically based on storage type selection
+
+**Mount GUI Layout:**
+Each mount entry displays 5 input fields with label-input pairing:
+
+1. **Mount name**: Text input with UUID-based default (`mount-{8-char-uuid}`)
+2. **Mount type**: Dropdown selector (`auto-volume`, `manual-volume`, `host`)
+3. **Destination path**: Text input with default `/mnt/mount-{uuid}` (not linked to name changes)
+4. **Host path**: Text input, only editable when type=`host`, otherwise grayed out
+5. **Volume name**: Text input, only editable when type=`manual-volume`, otherwise grayed out
+
+**Mount Default Behavior:**
+- Mount sections are empty by default (no pre-populated examples)
+- "Add mount" button creates new mount with auto-generated UUID-based defaults
+- Conditional fields use disabled styling (gray background, muted text) when not applicable
+- Field enabling/disabling happens dynamically based on mount type selection
+
 #### 6. Scripts Tab 📜
 - **Sequential Stage Scripts**: Both Stage-1 and Stage-2 have full lifecycle hook support during their respective image building processes
-- **Custom Entry Points**: Stage-1 and Stage-2 entry point scripts with dual input modes
-- **Custom Scripts**: Lifecycle hook scripts (on_build, on_first_run, on_every_run, on_user_login) for both image stages
+- **Custom Entry Points**: Stage-1 and Stage-2 entry point scripts with dual input modes and format options
+  - **String format**: `'stage-2/custom/my-entry.sh --mode=production'`
+  - **Array format**: `['stage-2/custom/my-entry.sh --mode=production --log-level=info']`
+- **Custom Scripts with Parameters**: Lifecycle hook scripts (on_build, on_first_run, on_every_run, on_user_login) for both image stages
+  - **Parameter Support**: Scripts support shell-like parameters using shlex parsing
+  - **Parameter Format**: `'script.sh --param1=value1 --param2="value with spaces"'`
+  - **Example**: `'stage-1/custom/setup.sh --initialize --create-dirs --config=/tmp/build.conf'`
 - **Script Creation Options**: 
-  - Use existing script files (file browser and validation)
-  - Create new scripts inline (name + content editor with syntax highlighting)
-- **Script Management**: View, edit, and manage both external and inline scripts for both stages
+  - Use existing script files (file browser and validation) with parameter input
+  - Create new scripts inline (name + content editor + parameters with syntax highlighting)
+  - Both modes support parameter specification and validation
+- **Script Management**: View, edit, and manage both external and inline scripts with parameters for both stages
+- **Container Path Mapping**: Scripts are mapped from host paths to container paths using `$PEI_STAGE_DIR_{stage_number}/` prefix
+- **Wrapper Script Generation**: PeiDocker generates wrapper scripts that handle proper path resolution and parameter passing
+
+**CRITICAL Path Access Constraints:**
+- **Stage-1 Scripts**: Can ONLY reference paths starting with `stage-1/` (cannot access `stage-2/` paths as stage-2 doesn't exist during stage-1 build)
+- **Stage-2 Scripts**: Can reference paths starting with BOTH `stage-1/` and `stage-2/` (inherits all stage-1 resources plus stage-2 resources)
+- **Architectural Reason**: Stage-1 builds first and becomes the foundation; Stage-2 builds on top of Stage-1 with access to both layers
+- **GUI Validation**: Path validation must enforce these constraints based on the selected stage context
 
 #### 7. Summary Tab 📋
 - **Configuration Review**: Complete configuration overview
@@ -598,20 +646,33 @@ Each GUI tab directly modifies specific sections of the `user_config.yml` file:
 **Storage Tab** modifies:
 
 *Storage (Stage-2 ONLY):*
-- `stage_2.storage.app` - Stage-2 dynamic storage for `/soft/app` directory
-  - `type`: `auto-volume` | `manual-volume` | `host` | `image`
-  - `host_path`: Host directory path (when `type=host`)
-  - `volume_name`: Custom volume name (when `type=manual-volume`)
-- `stage_2.storage.data` - Stage-2 dynamic storage for `/soft/data` directory (same fields)
-- `stage_2.storage.workspace` - Stage-2 dynamic storage for `/soft/workspace` directory (same fields)
+The storage section provides 3 fixed GUI entries that map to YAML fields:
+
+- **App Storage GUI** → `stage_2.storage.app` - Stage-2 dynamic storage for `/soft/app` directory
+  - **Storage type** (GUI field) → `type`: `auto-volume` | `manual-volume` | `host` | `image` (defaults to `image`)
+  - **Host path** (GUI field) → `host_path`: Host directory path (when `type=host`, otherwise `null`)
+  - **Volume name** (GUI field) → `volume_name`: Custom volume name (when `type=manual-volume`, otherwise `null`)
+
+- **Data Storage GUI** → `stage_2.storage.data` - Stage-2 dynamic storage for `/soft/data` directory
+  - Same GUI field mapping as App Storage
+
+- **Workspace Storage GUI** → `stage_2.storage.workspace` - Stage-2 dynamic storage for `/soft/workspace` directory
+  - Same GUI field mapping as App Storage
+
+*Storage GUI Behavior:*
+- 3 fixed, always-visible storage entries (cannot be created or removed)
+- Predefined destinations: `/soft/app`, `/soft/data`, `/soft/workspace` (not editable in GUI)
+- Default type is `image` even when omitted from `user_config.yml`
 
 *Mount (Both Stages):*
 - `stage_1.mount` - Stage-1 general volume mount configurations (user-defined mounts)
-  - `{mount_name}.type`: `auto-volume` | `manual-volume` | `host` (NOT `image`)
-  - `{mount_name}.dst_path`: Destination path in container
-  - `{mount_name}.host_path`: Host directory path (when `type=host`)
-  - `{mount_name}.volume_name`: Custom volume name (when `type=manual-volume`)
-- `stage_2.mount` - Stage-2 general volume mount configurations (same fields as Stage-1)
+  - **GUI Field Mapping (5 GUI fields → 4 YAML fields):**
+    - **Mount name** (GUI field) → `{mount_name}` (YAML key, e.g., `mount-a1b2c3d4`)
+    - **Mount type** (GUI field) → `{mount_name}.type`: `auto-volume` | `manual-volume` | `host` (NOT `image`)
+    - **Destination path** (GUI field) → `{mount_name}.dst_path`: Destination path in container
+    - **Host path** (GUI field) → `{mount_name}.host_path`: Host directory path (when `type=host`, otherwise `null`)
+    - **Volume name** (GUI field) → `{mount_name}.volume_name`: Custom volume name (when `type=manual-volume`, otherwise `null`)
+- `stage_2.mount` - Stage-2 general volume mount configurations (same GUI field mapping as Stage-1)
 
 *Key Differences:*
 - **Storage**: Fixed predefined directories (`app`, `data`, `workspace`) with smart linking system
@@ -621,17 +682,52 @@ Each GUI tab directly modifies specific sections of the `user_config.yml` file:
 
 **Scripts Tab** modifies:
 - `stage_1.custom.on_build` - Scripts executed during Stage-1 image building
+  - **Format**: Array of strings with optional parameters: `['stage-1/custom/script.sh --param=value']`
+  - **Path Constraint**: ONLY `stage-1/` paths allowed (stage-2 doesn't exist yet)
+  - **Parameter Support**: Shell-like parameters parsed using shlex: `'script.sh --verbose --config="/tmp/build.conf"'`
 - `stage_1.custom.on_first_run` - Scripts executed on first run of Stage-1 containers
+  - **Format**: Array of strings with parameters: `['stage-1/custom/setup.sh --initialize --create-dirs']`
+  - **Path Constraint**: ONLY `stage-1/` paths allowed
 - `stage_1.custom.on_every_run` - Scripts executed on every run of Stage-1 containers
+  - **Format**: Array of strings with parameters: `['stage-1/custom/health-check.sh --check-services']`
+  - **Path Constraint**: ONLY `stage-1/` paths allowed
 - `stage_1.custom.on_user_login` - Scripts executed on user login to Stage-1 containers
+  - **Format**: Array of strings with parameters: `['stage-1/custom/welcome.sh --show-motd --check-updates']`
+  - **Path Constraint**: ONLY `stage-1/` paths allowed
 - `stage_1.custom.on_entry` - Custom entry point script for Stage-1 containers
+  - **String Format**: `'stage-1/custom/my-entry.sh --mode=production'`
+  - **Array Format**: `['stage-1/custom/my-entry.sh --mode=production --log-level=info']`
+  - **Path Constraint**: ONLY `stage-1/` paths allowed
 - `stage_2.custom.on_build` - Scripts executed during Stage-2 image building (based on Stage-1)
+  - **Format**: Array of strings with parameters: `['stage-2/custom/install-gui.sh --enable-desktop --theme=dark']`
+  - **Path Access**: Can reference BOTH `stage-1/` and `stage-2/` paths
 - `stage_2.custom.on_first_run` - Scripts executed on first run of Stage-2 containers
+  - **Format**: Array of strings with parameters: `['stage-2/custom/setup-workspace.sh --clone-repos']`
+  - **Path Access**: Can reference BOTH `stage-1/` and `stage-2/` paths
 - `stage_2.custom.on_every_run` - Scripts executed on every run of Stage-2 containers
+  - **Format**: Array of strings with parameters: `['stage-2/custom/update-status.sh --log-startup']`
+  - **Path Access**: Can reference BOTH `stage-1/` and `stage-2/` paths
 - `stage_2.custom.on_user_login` - Scripts executed on user login to Stage-2 containers
+  - **Format**: Array of strings with parameters: `['stage-2/custom/dev-setup.sh --activate-venv --cd-to-project']`
+  - **Path Access**: Can reference BOTH `stage-1/` and `stage-2/` paths (e.g., `['stage-1/system/base-setup.sh', 'stage-2/custom/user-config.sh']`)
 - `stage_2.custom.on_entry` - Custom entry point script for Stage-2 containers
+  - **String Format**: `'stage-2/custom/my-entry.sh --mode=production'`
+  - **Array Format**: `['stage-2/custom/my-entry.sh --mode=production --log-level=info']`
+  - **Path Access**: Can reference BOTH `stage-1/` and `stage-2/` paths
 
-Note: Inline scripts created in the GUI are automatically saved to `stage-1/custom/` or `stage-2/custom/` directories and referenced by relative paths in the YAML configuration.
+**Script Processing Details:**
+- **Parameter Parsing**: All script parameters are parsed using Python's `shlex.split()` for safe shell-like argument handling
+- **Container Path Mapping**: Script paths are mapped from `{script_path}` to `$PEI_STAGE_DIR_{stage_number}/{script_path}` in containers
+- **Wrapper Generation**: PeiDocker generates wrapper scripts in `{project_dir}/installation/stage-{1,2}/generated/` that execute user scripts with proper argument handling
+- **Entry Point Storage**: For `on_entry` scripts, the script path and default arguments are stored in separate files in `{project_dir}/installation/stage-{1,2}/internals/`
+
+**Inline Script Creation Behavior:**
+- Inline scripts are automatically saved to `stage-1/custom/` or `stage-2/custom/` directories
+- **Fixed Path Labels**: GUI displays non-editable labels `stage-1/custom/` or `stage-2/custom/` before filename input
+- **Auto-generated Filenames**: Script filenames are auto-generated using UUID format: `script-{8-char-uuid}.bash`
+- **Combined Path Format**: Results in paths like `stage-1/custom/script-a1b2c3d4.bash --param=value`
+- Scripts are referenced by relative paths in YAML configuration
+- Parameters are preserved in the YAML as part of the script entry string
 
 **Summary Tab** provides read-only views and does not directly modify YAML fields.
 
@@ -656,66 +752,101 @@ Note: Inline scripts created in the GUI are automatically saved to `stage-1/cust
 
 ## Script Creation and Management
 
-The Scripts Tab provides dual-mode script creation capabilities that allow users to either reference existing script files or create new scripts directly within the GUI.
+The Scripts Tab provides dual-mode script creation capabilities that allow users to either reference existing script files or create new scripts directly within the GUI. **CRITICAL**: All script input modes must support shell-like parameter specification.
 
 ### Script Input Modes
 
-**File Mode (Default):**
-- Users provide a path to an existing script file
-- File browser integration for easy selection
-- Support for command-line arguments alongside file path
-- Validation ensures file exists and is executable
+**File Mode (Enhanced with Parameters and Stage-Constrained Path Freedom):**
+- Users provide a path to an existing script file within allowed project directories
+- **Full Path Input**: Users can specify complete paths within stage access constraints
+- **Stage-1 Paths**: Can ONLY reference `stage-1/` paths (e.g., `stage-1/system/scripts/setup.sh`, `stage-1/custom/my-script.sh`)
+- **Stage-2 Paths**: Can reference BOTH `stage-1/` and `stage-2/` paths (e.g., `stage-2/custom/app.sh`, `stage-1/system/base.sh`)
+- **Default Hint**: Input field defaults to `stage-{1,2}/custom/script-{uuid}.bash --param=value` as helpful guidance
+- **Parameter Support**: Combined format results in `'valid/stage/path/script.sh --param1=value1 --param2="value with spaces"'`
+- File browser integration for easy selection within allowed directories
+- **Stage-Aware Validation**: Ensures file exists, is executable, and path is accessible from the current stage context
+- Parameter syntax validation using shlex parsing
 
-**Inline Mode:**
+**Inline Mode (Enhanced with Parameters and Fixed Directory):**
 - Users create scripts directly in the GUI
+- **Fixed Directory Constraint**: All inline scripts MUST be saved to `stage-{1,2}/custom/` directory
+- **GUI Display**: Shows fixed, non-editable label `stage-{1,2}/custom/` before filename input
+- **Auto-generated Filenames**: System generates unique filenames using `script-{uuid}.bash` format
 - Text area with monospace font for script content
-- Script name input for generated filename
+- **Parameter Support**: Parameters combined with fixed path: `'stage-{n}/custom/script-{uuid}.bash --param=value'`
+- **Path Immutability**: Users cannot change the directory part, only script content and parameters
 - Basic syntax validation and hints
 - Content preview and editing capabilities
 
 ### Script Processing Behavior
 
-**File-Based Scripts:**
-- Users browse and select existing script files from filesystem
-- Selected files are validated for existence and executable permissions
+**File-Based Scripts (with Parameters and Stage-Constrained Path Access):**
+- Users can specify script paths within stage-appropriate directory structures
+- **Stage-1 Path Constraints**: Can ONLY reference `stage-1/` subdirectories like `stage-1/system/`, `stage-1/custom/`, `stage-1/contrib/`
+- **Stage-2 Path Flexibility**: Can reference BOTH `stage-1/` and `stage-2/` subdirectories across all available paths
+- **Default Guidance**: Input field suggests `stage-{1,2}/custom/script-{uuid}.bash --param=value` but is editable within constraints
+- **Parameter Integration**: Parameters combined with user-specified valid path
+- **Final Format**: `'stage-appropriate/path/script.sh --param1=value1 --param2="value with spaces"'`
+- **Stage-Aware Validation**: Files validated for existence, executable permissions, and stage accessibility
 - Scripts are copied to project directory for reproducibility
-- Command-line arguments can be specified alongside file path
+- Parameters preserved in YAML configuration as part of script entry
 
-**Inline Scripts:**
+**Inline Scripts (with Parameters and Auto-generation):**
 - Users create scripts directly within the GUI text editor
 - Monospace font and syntax highlighting for better editing experience
 - Real-time validation checks for basic script structure
+- **Path Display**: GUI shows fixed labels `stage-{1,2}/custom/` before auto-generated filename
+- **Auto-generated Filenames**: System generates unique filenames using format `script-{8-char-uuid}.bash`
+- **Parameter Integration**: Parameters from GUI input field are combined with generated script path
+- **Path Format**: Complete path displayed as `stage-1/custom/script-a1b2c3d4.bash --param=value`
 - Generated script files are saved to stage-specific directories:
-  - Stage-1 scripts: `{project_dir}/stage-1/custom/{script_name}.sh`
-  - Stage-2 scripts: `{project_dir}/stage-2/custom/{script_name}.sh`
+  - Stage-1 scripts: `{project_dir}/installation/stage-1/custom/script-{uuid}.bash`
+  - Stage-2 scripts: `{project_dir}/installation/stage-2/custom/script-{uuid}.bash`
+- **Final YAML Entry**: `'stage-1/custom/script-{uuid}.bash --param=value'`
+
+**Entry Point Handling:**
+- **Format Selection**: GUI provides radio buttons or dropdown for entry point format selection
+  - **String Format Option**: Single text input for `'script.sh --param=value'`
+  - **Array Format Option**: Single text input that gets converted to `['script.sh --param=value']`
+- **Default Arguments**: Entry point parameters are treated as default arguments
+- **Container Processing**: PeiDocker separates script path from arguments and stores them in different files for container access
 
 **Configuration Integration:**
-- All scripts (file and inline) are processed and stored in project directory
-- Final `user_config.yml` contains relative paths to processed scripts:
-  - Stage-1 inline scripts referenced as `stage-1/custom/{script_name}.sh`
-  - Stage-2 inline scripts referenced as `stage-2/custom/{script_name}.sh`
+- All scripts (file and inline) are processed and stored in project directory with parameters
+- Final `user_config.yml` contains relative paths with parameters:
+  - Stage-1 scripts: `'stage-1/custom/{script_name}.sh --param=value'`
+  - Stage-2 scripts: `'stage-2/custom/{script_name}.sh --param=value'`
 - File-based scripts are copied to appropriate stage directories for reproducibility
-- Metadata about script origin is preserved for debugging
+- Parameters are preserved exactly as entered in GUI
+- Metadata about script origin and parameter source is preserved for debugging
 
 ### User Experience Features
 
 **Script Visualization:**
-- List view showing all configured scripts with their types
+- List view showing all configured scripts with their types and parameters
 - "View" button for inline scripts to display content in a modal
+- **Parameter Display**: Clear indication of script parameters alongside script path
 - Clear indication of script source (file path vs. inline)
 - Script execution context (lifecycle event) clearly labeled
+- **Entry Point Format Indicator**: Visual indication of string vs array format for entry points
 
 **Script Management:**
-- Edit inline scripts directly in the interface
-- Replace file scripts with updated versions
-- Convert between file and inline modes
-- Preview generated script execution order in summary
+- Edit inline scripts directly in the interface with parameter modification
+- Replace file scripts with updated versions while preserving parameters
+- **Parameter Editing**: Dedicated interface for editing script parameters separately from script content
+- Convert between file and inline modes while preserving parameters
+- Preview generated script execution order with parameters in summary
+- **Format Conversion**: Convert entry points between string and array formats
 
 **Validation and Feedback:**
-- Real-time validation of script names and content
+- Real-time validation of script names, content, and parameters
+- **Parameter Syntax Validation**: Validate parameter syntax using shlex parsing
+- **Parameter Format Hints**: Provide examples and syntax help for parameter input
 - File existence checks for file-based scripts
 - Syntax highlighting hints for bash scripts
+- **Parameter Error Feedback**: Specific error messages for invalid parameter syntax
 - Clear error messages for configuration issues
+- **Format Validation**: Validate entry point format selection and syntax
 
 ## Error Handling and Validation
 
