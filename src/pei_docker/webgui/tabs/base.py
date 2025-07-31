@@ -6,7 +6,7 @@ providing common functionality for configuration management and validation.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from nicegui import ui
 
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 class BaseTab(ABC):
     """Base class for all configuration tabs."""
     
-    def __init__(self, app: 'PeiDockerWebGUI'):
+    def __init__(self, app: 'PeiDockerWebGUI') -> None:
         self.app = app
-        self.container = None
+        self.container: Optional[ui.element] = None
     
     @abstractmethod
     def render(self) -> ui.element:
@@ -31,23 +31,23 @@ class BaseTab(ABC):
         pass
     
     @abstractmethod
-    def get_config_data(self) -> dict:
+    def get_config_data(self) -> dict[str, Any]:
         """Get the configuration data for this tab."""
         pass
     
     @abstractmethod
-    def set_config_data(self, data: dict):
+    def set_config_data(self, data: dict[str, Any]) -> None:
         """Set the configuration data for this tab."""
         pass
     
-    def mark_modified(self):
+    def mark_modified(self) -> None:
         """Mark this tab as modified."""
         from ..models import TabName
         # This would need to be implemented based on which tab this is
         # For now, just mark the general configuration as modified
         self.app.data.mark_modified()
     
-    def create_section_header(self, title: str, description: str = None) -> ui.element:
+    def create_section_header(self, title: str, description: Optional[str] = None) -> ui.element:
         """Create a consistent section header."""
         with ui.column().classes('mb-6') as header:
             ui.label(title).classes('text-xl font-bold text-gray-800')
@@ -55,7 +55,7 @@ class BaseTab(ABC):
                 ui.label(description).classes('text-gray-600 mt-1')
         return header
     
-    def create_form_group(self, label: str, help_text: str = None) -> ui.element:
+    def create_form_group(self, label: str, help_text: Optional[str] = None) -> ui.element:
         """Create a form group with label and optional help text."""
         with ui.column().classes('mb-4') as group:
             ui.label(label).classes('font-medium text-gray-700 mb-1')
@@ -63,7 +63,7 @@ class BaseTab(ABC):
                 ui.label(help_text).classes('text-sm text-gray-500 mb-2')
         return group
     
-    def create_card(self, title: str = None) -> ui.element:
+    def create_card(self, title: Optional[str] = None) -> ui.element:
         """Create a card container for grouping related controls."""
         with ui.card().classes('w-full p-4 mb-4') as card:
             if title:

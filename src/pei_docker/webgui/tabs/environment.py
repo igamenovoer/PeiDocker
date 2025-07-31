@@ -31,7 +31,7 @@ class EnvironmentTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '⚙️ Environment Configuration',
+                '[Config] Environment Configuration',
                 'Configure environment variables and device access including GPU support for your container'
             )
             
@@ -39,7 +39,7 @@ class EnvironmentTab(BaseTab):
             with ui.row().classes('w-full gap-6'):
                 # Left column - Environment Variables
                 with ui.column().classes('flex-1'):
-                    with self.create_card('🌍 Environment Variables'):
+                    with self.create_card('[ICON] Environment Variables'):
                         with self.create_form_group('Environment Variables', 
                                                   'Set custom environment variables for your container'):
                             
@@ -48,12 +48,12 @@ class EnvironmentTab(BaseTab):
                                 self.env_variables_container = env_container
                             
                             # Add environment variable button
-                            ui.button('➕ Add Environment Variable', on_click=self._add_env_variable) \
+                            ui.button('[Add] Add Environment Variable', on_click=self._add_env_variable) \
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 # Right column - Device Configuration
                 with ui.column().classes('flex-1'):
-                    with self.create_card('🖥️ Device Configuration'):
+                    with self.create_card('[Device] Device Configuration'):
                         with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
                             self.device_type_select = ui.select(
                                 options={
@@ -119,7 +119,7 @@ class EnvironmentTab(BaseTab):
                     ).classes('flex-1')
                     
                     # Remove button
-                    ui.button('🗑️', on_click=lambda: self._remove_env_variable(variable_card, variable_id)) \
+                    ui.button('[Remove]', on_click=lambda: self._remove_env_variable(variable_card, variable_id)) \
                         .classes('bg-red-600 hover:bg-red-700 text-white w-10 h-10 rounded')
                 
                 # Store variable data

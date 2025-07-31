@@ -33,7 +33,7 @@ class StorageTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '💾 Storage Configuration',
+                '[Storage] Storage Configuration',
                 'Configure Storage (Stage-2\'s dynamic system) and Mounts (general volume mounts) for both stages'
             )
             
@@ -42,31 +42,31 @@ class StorageTab(BaseTab):
                 with ui.row().classes('items-start gap-2'):
                     ui.icon('info', color='blue').classes('mt-1')
                     with ui.column().classes('flex-1'):
-                        ui.label('📋 Key Concepts:').classes('font-semibold text-blue-800')
+                        ui.label('[Summary] Key Concepts:').classes('font-semibold text-blue-800')
                         ui.markdown("""**Storage** is Stage-2's unique dynamic system for predefined directories (/soft/app, /soft/data, /soft/workspace).
 **Mounts** are general volume mounts that can be defined for any container path.""").classes('text-blue-700 text-sm mt-1')
             
             # Stage-2 Dynamic Storage System
-            with self.create_card('🚀 Stage-2 Dynamic Storage System (Stage-2 ONLY)'):
+            with self.create_card('[Create] Stage-2 Dynamic Storage System (Stage-2 ONLY)'):
                 ui.label('Stage-2\'s unique dynamic storage for predefined directories with smart linking: /soft/xxx → /hard/volume/xxx OR /hard/image/xxx') \
                     .classes('text-gray-600 mb-4')
                 
                 # Create the three fixed storage entries
-                self._create_storage_entry('app', '📱 App Storage (/soft/app)', 'Application files and dependencies - Fixed destination')
-                self._create_storage_entry('data', '📊 Data Storage (/soft/data)', 'User data and persistent files - Fixed destination')
-                self._create_storage_entry('workspace', '💼 Workspace Storage (/soft/workspace)', 'Development and workspace files - Fixed destination')
+                self._create_storage_entry('app', '[ICON] App Storage (/soft/app)', 'Application files and dependencies - Fixed destination')
+                self._create_storage_entry('data', '[ICON] Data Storage (/soft/data)', 'User data and persistent files - Fixed destination')
+                self._create_storage_entry('workspace', '[ICON] Workspace Storage (/soft/workspace)', 'Development and workspace files - Fixed destination')
                 
                 # Storage note
                 with ui.card().classes('w-full p-3 mt-4 bg-blue-50 border-blue-200'):
                     with ui.row().classes('items-start gap-2'):
                         ui.icon('lightbulb', color='blue')
                         with ui.column():
-                            ui.label('💡 Storage Note:').classes('font-semibold text-blue-800')
+                            ui.label('[ICON] Storage Note:').classes('font-semibold text-blue-800')
                             ui.label('These 3 storage entries are always present and default to \'image\' type even when omitted from user_config.yml. They cannot be created or removed - only their storage type and related options can be configured.') \
                                 .classes('text-blue-700 text-sm')
             
             # Stage-1 Mounts
-            with self.create_card('🏗️ Stage-1 Mounts (General Volume Mounts)'):
+            with self.create_card('[Project] Stage-1 Mounts (General Volume Mounts)'):
                 with self.create_form_group('Stage-1 Volume Mounts', 'General volume mounts for Stage-1 image (any paths, user-defined)'):
                     
                     # Mounts container
@@ -74,11 +74,11 @@ class StorageTab(BaseTab):
                         self.stage1_mounts_container = stage1_container
                     
                     # Add mount button
-                    ui.button('➕ Add mount', on_click=lambda: self._add_mount('stage1')) \
+                    ui.button('[Add] Add mount', on_click=lambda: self._add_mount('stage1')) \
                         .classes('bg-blue-600 hover:bg-blue-700 text-white')
             
             # Stage-2 Mounts
-            with self.create_card('🚀 Stage-2 Mounts (General Volume Mounts)'):
+            with self.create_card('[Create] Stage-2 Mounts (General Volume Mounts)'):
                 with self.create_form_group('Stage-2 Volume Mounts', 'General volume mounts for Stage-2 image (any paths, user-defined). Stage-2 mounts don\'t inherit from Stage-1.'):
                     
                     # Mounts container
@@ -86,7 +86,7 @@ class StorageTab(BaseTab):
                         self.stage2_mounts_container = stage2_container
                     
                     # Add mount button
-                    ui.button('➕ Add mount', on_click=lambda: self._add_mount('stage2')) \
+                    ui.button('[Add] Add mount', on_click=lambda: self._add_mount('stage2')) \
                         .classes('bg-blue-600 hover:bg-blue-700 text-white')
         
         return container
@@ -184,8 +184,8 @@ class StorageTab(BaseTab):
             with ui.card().classes('w-full p-4 mb-4') as mount_card:
                 # Mount header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'🔗 {stage.upper()} Mount {self.mount_count + 1}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda: self._remove_mount(mount_card, mount_id, stage)) \
+                    ui.label(f'[ICON] {stage.upper()} Mount {self.mount_count + 1}').classes('text-lg font-semibold')
+                    ui.button('[Remove] Remove', on_click=lambda: self._remove_mount(mount_card, mount_id, stage)) \
                         .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                 
                 # Mount configuration - First row

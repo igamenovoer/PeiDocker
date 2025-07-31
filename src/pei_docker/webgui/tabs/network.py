@@ -31,12 +31,12 @@ class NetworkTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '🌐 Network Configuration',
+                '[Network] Network Configuration',
                 'Configure proxy settings (applied globally to both stages), APT repository mirrors, and port mappings for network connectivity'
             )
             
             # Proxy Configuration
-            with self.create_card('🔗 Proxy Configuration'):
+            with self.create_card('[ICON] Proxy Configuration'):
                 # Enable proxy toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
                     self.proxy_enabled_switch = ui.switch('Enable HTTP Proxy', value=False)
@@ -57,7 +57,7 @@ class NetworkTab(BaseTab):
                 proxy_config.bind_visibility_from(self.proxy_enabled_switch, 'value')
             
             # APT Configuration
-            with self.create_card('📦 APT Configuration'):
+            with self.create_card('[Download] APT Configuration'):
                 with self.create_form_group('APT Mirror', 'Choose APT repository mirror for faster package downloads'):
                     self.apt_mirror_select = ui.select(
                         options={
@@ -72,7 +72,7 @@ class NetworkTab(BaseTab):
                     self.apt_mirror_select.on('change', self._on_apt_mirror_change)
             
             # Port Mappings
-            with self.create_card('🔌 Port Mappings'):
+            with self.create_card('[ICON] Port Mappings'):
                 with self.create_form_group('Additional Port Mappings', 
                                          'Map container ports to host ports (SSH port is configured separately)'):
                     
@@ -81,7 +81,7 @@ class NetworkTab(BaseTab):
                         self.port_mappings_container = mappings_container
                     
                     # Add port mapping button
-                    ui.button('➕ Add Port Mapping', on_click=self._add_port_mapping) \
+                    ui.button('[Add] Add Port Mapping', on_click=self._add_port_mapping) \
                         .classes('bg-blue-600 hover:bg-blue-700 text-white')
                     
                     # Info note
@@ -137,8 +137,8 @@ class NetworkTab(BaseTab):
             with ui.card().classes('w-full p-4 mb-4') as mapping_card:
                 # Mapping header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'🔌 Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
+                    ui.label(f'[ICON] Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
+                    ui.button('[Remove] Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
                         .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                 
                 # Port configuration

@@ -2,268 +2,268 @@
 <memory>
   <item id="mem_1753763621909_ocbrx5ng5" time="2025/07/29 12:33">
     <content>
-      # Tool Skill Memory
+      # Tool Skill: NiceGUI Framework
     
-      ## NiceGUI Framework Overview
-      NiceGUI is a Python-based web UI framework built on FastAPI, Vue.js, and Quasar. It runs in browsers or as native desktop apps. Key characteristics:
-      - Browser-based GUI with automatic hot reloading
-      - Python-first approach with declarative syntax
-      - Built on FastAPI/Starlette with WebSocket communication
-      - Supports both web server mode and native desktop mode
+      ## Core Concepts
+      - Python-based web UI framework using FastAPI, Vue.js, and Quasar.
+      - Declarative syntax, browser-based with hot-reloading.
     
-      ## Core Usage Pattern
+      ## Key Patterns
       ```python
       from nicegui import ui
-    
-      # Basic structure: declare UI elements, then run
-      ui.label(&#x27;Hello World&#x27;)
-      ui.button(&#x27;Click me&#x27;, on_click=lambda: ui.notify(&#x27;Clicked!&#x27;))
-      ui.run()  # Starts the server
-      ```
-    
-      ## Essential UI Components
-      **Basic Elements**: label, button, input, textarea, checkbox, switch, radio, select, slider, range, knob, rating, image, video, audio, icon
-      **Layout Elements**: row, column, card, grid, header, footer, drawer, separator, space, splitter
-      **Advanced Elements**: table, aggrid, plotly, pyplot, echart, scene (3D), leaflet (maps), joystick, interactive_image, codemirror, json_editor, markdown, chat_message, timeline
-      **Input Elements**: All support value binding and event handling
-    
-      ## Layout Patterns
-      ```python
-      # Row/column layout with context managers
-      with ui.row().classes(&#x27;items-center gap-4&#x27;):
-      ui.button(&#x27;Button 1&#x27;)
-      ui.button(&#x27;Button 2&#x27;)
-    
-      with ui.column().classes(&#x27;w-full max-w-lg&#x27;):
-      ui.input(&#x27;Name&#x27;)
-      ui.textarea(&#x27;Description&#x27;)
-    
-      # Card containers
-      with ui.card().classes(&#x27;w-80&#x27;):
-      ui.label(&#x27;Card Title&#x27;).classes(&#x27;text-xl font-bold&#x27;)
-      ```
-    
-      ## Event Handling Patterns
-      ```python
-      # Click events
-      ui.button(&#x27;Click&#x27;, on_click=lambda: ui.notify(&#x27;Clicked&#x27;))
-    
-      # Input events
-      ui.input(&#x27;Type here&#x27;, on_change=lambda e: print(f&#x27;Value: {e.value}&#x27;))
-    
-      # Keyboard events
-      ui.input().on(&#x27;keydown.enter&#x27;, lambda: handle_enter())
-    
-      # Custom event handlers
-      element.on(&#x27;custom-event&#x27;, callback_function)
-      ```
-    
-      ## Data Binding System
-      ```python
-      # Two-way data binding
-      class Data:
-      name = &#x27;John&#x27;
-      data = Data()
-    
-      # Bind input to object attribute
+      
+      # Core Usage
+      ui.label(&#x27;Hello&#x27;)
+      ui.button(&#x27;Click&#x27;, on_click=lambda: ui.notify(&#x27;Clicked!&#x27;))
+      
+      # Layout
+      with ui.row():
+          ui.label(&#x27;A&#x27;)
+          ui.label(&#x27;B&#x27;)
+          
+      # Data Binding
+      data = {&#x27;name&#x27;: &#x27;John&#x27;}
       ui.input().bind_value(data, &#x27;name&#x27;)
-      ui.label().bind_text_from(data, &#x27;name&#x27;)
-    
-      # Manual value access
-      input_element = ui.input(&#x27;Default&#x27;)
-      print(input_element.value)  # Get current value
-      input_element.set_value(&#x27;New value&#x27;)  # Set value programmatically
-      ```
-    
-      ## Refreshable UI Pattern
-      ```python
-      # Refreshable decorator for dynamic content
+      
+      # Dynamic Content
       @ui.refreshable
       def dynamic_content():
-      ui.label(f&#x27;Current time: {datetime.now()}&#x27;)
-      for item in data_list:
-      ui.label(item.name)
-    
-      # Refresh the UI section
-      dynamic_content.refresh()
-    
-      # Use in event handlers
+          ui.label(f&#x27;Time: {datetime.now()}&#x27;)
       ui.button(&#x27;Update&#x27;, on_click=dynamic_content.refresh)
-      ```
-    
-      ## Page and Routing System
-      ```python
-      # Define pages with decorators
-      @ui.page(&#x27;/&#x27;)
-      def index():
-      ui.label(&#x27;Home Page&#x27;)
-    
+      
+      # Pages & Routing
       @ui.page(&#x27;/about&#x27;)
-      def about():
-      ui.label(&#x27;About Page&#x27;)
-    
-      # Navigation
-      ui.link(&#x27;Go to About&#x27;, &#x27;/about&#x27;)
-      ui.button(&#x27;Navigate&#x27;, on_click=lambda: ui.navigate.to(&#x27;/about&#x27;))
-    
-      # Route parameters
-      @ui.page(&#x27;/user/{user_id}&#x27;)
-      def user_page(user_id: str):
-      ui.label(f&#x27;User: {user_id}&#x27;)
+      def about_page():
+          ui.label(&#x27;About&#x27;)
+      
+      ui.run()
       ```
-    
-      ## App Configuration and Run Options
-      ```python
-      ui.run(
-      host=&#x27;0.0.0.0&#x27;,          # Server host
-      port=8080,               # Server port
-      title=&#x27;My App&#x27;,          # Browser title
-      dark=False,              # Dark mode (None for auto)
-      reload=True,             # Auto reload on code changes
-      native=False,            # Desktop window mode
-      window_size=(1024, 768), # Native window size
-      show=True,               # Auto-open browser
-      storage_secret=&#x27;key123&#x27;  # Required for user storage
-      )
-      ```
-    
-      ## Styling with Tailwind CSS
-      ```python
-      # Tailwind classes for styling
-      ui.label(&#x27;Title&#x27;).classes(&#x27;text-2xl font-bold text-blue-600&#x27;)
-      ui.button(&#x27;Primary&#x27;).classes(&#x27;bg-blue-500 hover:bg-blue-700&#x27;)
-      ui.card().classes(&#x27;w-full max-w-md shadow-lg&#x27;)
-    
-      # Responsive design
-      ui.row().classes(&#x27;flex-col md:flex-row gap-4&#x27;)
-    
-      # Custom CSS
-      ui.add_css(&#x27;body { background-color: #f0f0f0; }&#x27;)
-      ```
-    
-      ## State Management Patterns
-      ```python
-      # Global state with refreshable UI
-      app_state = {&#x27;counter&#x27;: 0}
-    
-      @ui.refreshable
-      def counter_ui():
-      ui.label(f&quot;Count: {app_state[&#x27;counter&#x27;]}&quot;)
-      ui.button(&#x27;+1&#x27;, on_click=lambda: increment_counter())
-    
-      def increment_counter():
-      app_state[&#x27;counter&#x27;] += 1
-      counter_ui.refresh()
-    
-      # User session storage
-      from nicegui import app
-      app.storage.user[&#x27;username&#x27;] = &#x27;john&#x27;
-      username = app.storage.user.get(&#x27;username&#x27;, &#x27;anonymous&#x27;)
-    
-      # Browser local storage
-      app.storage.browser[&#x27;preference&#x27;] = &#x27;dark_mode&#x27;
-      ```
-    
-      ## Component Properties and Methods
-      ```python
-      # Quasar component properties via props()
-      ui.input().props(&#x27;outlined dense&#x27;)
-      ui.button().props(&#x27;flat round icon=search&#x27;)
-    
-      # Method chaining pattern
-      ui.input(&#x27;Label&#x27;).classes(&#x27;w-full&#x27;).props(&#x27;outlined&#x27;).on(&#x27;keydown.enter&#x27;, handler)
-    
-      # Component styling
-      ui.element(&#x27;div&#x27;).style(&#x27;background: red; padding: 1rem;&#x27;)
-      ```
-    
-      ## Advanced Integration Patterns
-      ```python
-      # FastAPI integration
-      from nicegui import app
-      from fastapi import Request
-    
-      @app.get(&#x27;/api/data&#x27;)
-      def api_endpoint():
-      return {&#x27;status&#x27;: &#x27;ok&#x27;}
-    
-      # Middleware usage
-      from starlette.middleware.base import BaseHTTPMiddleware
-      app.add_middleware(CustomMiddleware)
-    
-      # JavaScript execution
-      ui.run_javascript(&#x27;window.alert(&quot;Hello from Python!&quot;)&#x27;)
-    
-      # Timer for periodic updates
-      ui.timer(1.0, lambda: update_data())  # Every 1 second
-      ```
-    
-      ## Testing and Development
-      ```python
-      # Component testing with marks
-      ui.button(&#x27;Test Button&#x27;).mark(&#x27;test-button&#x27;)
-    
-      # Pytest integration available via nicegui.testing module
-      # Development mode with auto-reload enabled by default
-      # Browser dev tools work for debugging rendered HTML/CSS
-      ```
-    
+      
       ## Best Practices
-      - Use `@ui.refreshable` for dynamic content that changes based on state
-      - Leverage context managers (`with ui.row():`) for clean layout code
-      - Use data binding instead of manual value updates when possible
-      - Structure larger apps with multiple pages and separate modules
-      - Use Tailwind classes for responsive, maintainable styling
-      - Implement proper error handling with `ui.notify()` for user feedback
-      - Use `app.storage.user` for session data, `app.storage.browser` for client-side persistence
+      - Use `@ui.refreshable` for dynamic UI.
+      - Use context managers (`with ui.row():`) for layout.
+      - Prefer data binding over manual value updates.
+      - Use `app.storage.user` for session data.
     </content>
-    <tags>#其他</tags>
+    <tags>#nicegui #python #web-ui</tags>
   </item>
   <item id="mem_1753763760284_vel8gqg9o" time="2025/07/29 12:36">
     <content>
-      # Tool Skill Memory
+      # Tool Skill: PlantUML for GUI Design
     
-      ## PlantUML for GUI Design Documentation
+      ## Core Idea
+      Use text to create UML diagrams for documenting GUI design, flows, and component states.
     
-      PlantUML provides text-based UML diagram creation that&#x27;s excellent for documenting GUI application design, user flows, and component interactions.
+      ## Key Diagram Types
+      - **State Diagrams**: Model component states (e.g., form validation, dialogs).
+      - **Activity Diagrams**: Model user workflows and multi-step processes.
+      - **Sequence Diagrams**: Model interactions between UI, services, and databases.
+      - **Use Case Diagrams**: Model user goals and system features.
     
-      ## Core UML Diagram Types for GUI Design
+      ## Common GUI Design Patterns in PlantUML
     
-      ### 1. State Diagrams (State Charts)
-      **Purpose**: Model UI component states and system state transitions triggered by user actions.
-    
-      **Best for**: Modal dialogs, form validation states, application workflow states, component lifecycle.
-    
-      **Basic Pattern**:
+      ### Modal Dialog State Machine
       ```plantuml
       @startuml
-      [*] --&gt; InitialState
-      InitialState --&gt; SecondState : user_action
-      SecondState --&gt; FinalState : completion_event
-      FinalState --&gt; [*]
-    
-      state InitialState {
-      [*] --&gt; SubState1
-      SubState1 --&gt; SubState2 : internal_event
-      }
+      [*] --> Closed
+      Closed --> Opening : open_modal()
+      Opening --> Opened
+      Opened --> Closing : close_modal()
+      Closing --> Closed
       @enduml
       ```
     
-      ### 2. Activity Diagrams
-      **Purpose**: Model user workflows, business processes, and complex interaction flows.
-    
-      **Best for**: Multi-step wizards, user onboarding flows, complex business processes, decision-based navigation.
-    
-      **Basic Pattern**:
+      ### Form Validation Pattern
       ```plantuml
       @startuml
-      start
-      :User action;
-      if (Condition?) then (yes)
-      :Success path;
-      else (no)
-      :Error path;
-      stop
+      [*] --> Pristine
+      Pristine --> Dirty : user_input
+      Dirty --> Validating : on_blur
+      Validating --> Valid : success
+      Validating --> Invalid : error
+      @enduml
+      ```
+    </content>
+    <tags>#plantuml #uml #gui-design #documentation</tags>
+  </item>
+  <item id="mem_1753764952813_lxfu86u5n" time="2025/07/29 12:55">
+    <content>
+      # Engineering Skill: Standard Dev Tools
+    
+      A standard development environment often includes:
+      - **Package Manager**: `poetry`, `pixi`, or `pip` for managing dependencies.
+      - **Diagramming**: `graphviz` (dot) for architecture charts and `plantuml` for UML diagrams.
+      - **Web Testing**: `playwright` for end-to-end browser automation.
+      - **Media**: `imagemagick` for image processing and `ffmpeg` for video.
+    </content>
+    <tags>#devtools #engineering-practices</tags>
+  </item>
+  <item id="mem_1753765440275_cgl6w23x0" time="2025/07/29 13:04">
+    <content>
+      # Tool Skill: Testing Web UIs with Playwright
+    
+      ## Core Idea
+      Use Playwright for end-to-end, cross-browser testing of web applications from Python.
+    
+      ## Basic Test Pattern
+      ```python
+      import pytest
+      from playwright.async_api import async_playwright
+      
+      @pytest.mark.asyncio
+      async def test_basic_interaction(web_app_url):
+          async with async_playwright() as p:
+              browser = await p.chromium.launch()
+              page = await browser.new_page()
+              
+              await page.goto(web_app_url)
+              assert await page.title() == "Expected Title"
+              
+              await page.click("button#submit")
+              await page.wait_for_selector("text=Success")
+              
+              await page.screenshot(path="result.png")
+              await browser.close()
+      ```
+      
+      ## Key Techniques
+      - **Setup**: `pip install playwright pytest-playwright` and `playwright install`.
+      - **Wait Strategies**: Use `page.wait_for_selector()` or `page.wait_for_load_state('networkidle')` to handle dynamic content.
+      - **Screenshots**: Use `page.screenshot()` for visual validation and debugging.
+      - **Debugging**: Run with `headless=False` and `slow_mo=500` to observe execution.
+    </content>
+    <tags>#playwright #testing #e2e #python</tags>
+  </item>
+  <item id="mem_1753781054147_zo14bko3r" time="2025/07/29 17:24">
+    <content>
+      # Engineering Skill: Tracking Unsaved Changes in Web UIs
+    
+      ## Core Concept: "Dirty State"
+      A "dirty state" occurs when form data is modified but not saved. This is crucial for warning users before they lose data.
+    
+      ## Implementation Pattern (NiceGUI Example)
+      ```python
+      from nicegui import ui
+      
+      # 1. Use reactive state for form data and dirty status
+      form_data, set_form_data = ui.state({&#x27;field&#x27;: &#x27;&#x27;})
+      is_dirty, set_is_dirty = ui.state(False)
+      original_data = form_data.copy()
+      
+      def check_dirty():
+          set_is_dirty(form_data != original_data)
+          
+      def save():
+          # ... save logic ...
+          original_data.clear()
+          original_data.update(form_data)
+          check_dirty()
+          ui.notify(&#x27;Saved!&#x27;)
+      
+      # 2. Bind inputs and trigger check on change
+      ui.input(&#x27;Field&#x27;).bind_value(form_data, &#x27;field&#x27;).on(&#x27;change&#x27;, check_dirty)
+      
+      # 3. Bind save button's enabled state to dirty status
+      ui.button(&#x27;Save&#x27;, on_click=save).bind_enabled_from(is_dirty, &#x27;value&#x27;)
+      ```
+      
+      ## Browser-Level Protection
+      Use JavaScript's `beforeunload` event to warn users if they try to navigate away with unsaved changes.
+      ```javascript
+      window.addEventListener('beforeunload', (e) => {
+        if (formIsDirty) {
+          e.preventDefault();
+          e.returnValue = 'You have unsaved changes!';
+        }
+      });
+      ```
+    </content>
+    <tags>#ui-patterns #state-management #nicegui #ux</tags>
+  </item>
+  <item id="mem_1753783371936_khz73vql1" time="2025/07/29 18:02">
+    <content>
+      # Engineering Skill: Secure File Handling in Web Apps
+    
+      ## Core Principle: Server-Side Processing
+      For security, all file operations (creation, modification, zipping) should be handled on the server. The server then provides a download link to the client.
+    
+      ## Key Implementation Pattern
+      1. **Create a temporary workspace** on the server for file operations.
+      2. **Perform all file modifications** within this secure server-side directory.
+      3. **Validate all user-provided paths** to prevent directory traversal attacks.
+      4. **Zip the results** into a single archive.
+      5. **Serve the zip file** for download using a static endpoint or a dynamic response.
+    
+      ```python
+      # Simplified Example
+      import tempfile, zipfile
+      from pathlib import Path
+      from nicegui import app, ui
+      
+      def generate_and_download_files():
+          with tempfile.TemporaryDirectory() as tmpdir:
+              workspace = Path(tmpdir)
+              # 1. Create files in secure temp workspace
+              (workspace / 'file1.txt').write_text('Hello')
+              
+              # 2. Create a zip archive
+              zip_path = workspace / "archive.zip"
+              with zipfile.ZipFile(zip_path, 'w') as zf:
+                  zf.write(workspace / 'file1.txt', 'file1.txt')
+              
+              # 3. Trigger download
+              ui.download(zip_path)
+      ```
+      
+      ## Security Best Practice
+      Always validate user-provided paths to ensure they are within the intended base directory.
+    </content>
+    <tags>#security #file-handling #web-development #nicegui</tags>
+  </item>
+  <item id="mem_1753801600938_mupucn97k" time="2025/07/29 23:06">
+    <content>
+      # Engineering Skill: Executing Scripts in Dynamically Loaded HTML
+    
+      ### The Problem
+      When using `fetch()` and `innerHTML` to load HTML content, any `<script>` tags within the loaded content **will not execute** due to browser security policies.
+    
+      ### The Solution
+      Manually extract, create, and append the scripts to the DOM to trigger their execution.
+    
+      ```javascript
+      async function loadContentWithScripts(targetElement, url) {
+        // 1. Fetch content as text
+        const response = await fetch(url);
+        const html = await response.text();
+        
+        // 2. Parse and find scripts
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        const scripts = tempDiv.querySelectorAll('script');
+        
+        // 3. Add HTML to the page (without scripts)
+        targetElement.innerHTML = tempDiv.innerHTML;
+        
+        // 4. Create and append new script elements to execute them
+        scripts.forEach(script => {
+          const newScript = document.createElement('script');
+          if (script.src) {
+            newScript.src = script.src;
+          } else {
+            newScript.textContent = script.textContent;
+          }
+          document.body.appendChild(newScript).remove(); // Append and immediately remove
+        });
+      }
+      ```
+      
+      ### 🚨 Red Flags
+      - Content loads, but buttons/forms are unresponsive.
+      - Console error: "function is not defined".
+      - Using `file://` protocol for testing (use a local HTTP server instead).
+    </content>
+    <tags>#javascript #web-development #dom #spa</tags>
+  </item>
       endif
       :Continue flow;
       stop
@@ -283,12 +283,12 @@
       participant &quot;Service&quot; as Service
       database &quot;Database&quot; as DB
     
-      User -&gt; UI : user_action
-      UI -&gt; Service : api_call()
-      Service -&gt; DB : query()
-      DB --&gt; Service : result
-      Service --&gt; UI : response
-      UI --&gt; User : updated_ui
+      User -> UI : user_action
+      UI -> Service : api_call()
+      Service -> DB : query()
+      DB --> Service : result
+      Service --> UI : response
+      UI --> User : updated_ui
       @enduml
       ```
     
@@ -306,8 +306,8 @@
       usecase &quot;Feature 1&quot; as UC1
       usecase &quot;Feature 2&quot; as UC2
       }
-      user --&gt; UC1
-      user --&gt; UC2
+      user --> UC1
+      user --> UC2
       @enduml
       ```
     
@@ -349,8 +349,8 @@
       ```plantuml
       @startuml
       state LoginForm {
-      [*] --&gt; Empty
-      Empty --&gt; Filled : user_input
+      [*] --> Empty
+      Empty --> Filled : user_input
     
       note right of Empty : Initial state when\nform loads
       note bottom of Filled : All validation\nrules active
@@ -386,11 +386,11 @@
       ```plantuml
       @startuml
       state Form {
-      Empty --&gt; Filled : user_types_valid_email
-      Filled --&gt; Submitting : submit_button_clicked [form_valid]
-      Submitting --&gt; Success : api_success
-      Submitting --&gt; Error : api_error / show_error_message
-      Error --&gt; Filled : user_dismisses_error
+      Empty --> Filled : user_types_valid_email
+      Filled --> Submitting : submit_button_clicked [form_valid]
+      Submitting --> Success : api_success
+      Submitting --> Error : api_error / show_error_message
+      Error --> Filled : user_dismisses_error
       }
       @enduml
       ```
@@ -425,38 +425,38 @@
       ### Modal Dialog State Machine
       ```plantuml
       @startuml
-      [*] --&gt; Closed
-      Closed --&gt; Opening : open_modal()
-      Opening --&gt; Opened : animation_complete
-      Opened --&gt; Closing : close_modal() / save_data()
-      Closing --&gt; Closed : animation_complete
-      Opened --&gt; Opened : user_interaction / update_content()
+      [*] --> Closed
+      Closed --> Opening : open_modal()
+      Opening --> Opened : animation_complete
+      Opened --> Closing : close_modal() / save_data()
+      Closing --> Closed : animation_complete
+      Opened --> Opened : user_interaction / update_content()
       @enduml
       ```
     
       ### Form Validation Pattern
       ```plantuml
       @startuml
-      [*] --&gt; Pristine
-      Pristine --&gt; Dirty : user_input
-      Dirty --&gt; Validating : on_blur / validate_field()
-      Validating --&gt; Valid : validation_success
-      Validating --&gt; Invalid : validation_error / show_error()
-      Valid --&gt; Dirty : user_input
-      Invalid --&gt; Dirty : user_input
+      [*] --> Pristine
+      Pristine --> Dirty : user_input
+      Dirty --> Validating : on_blur / validate_field()
+      Validating --> Valid : validation_success
+      Validating --> Invalid : validation_error / show_error()
+      Valid --> Dirty : user_input
+      Invalid --> Dirty : user_input
       @enduml
       ```
     
       ### Async Operation Pattern
       ```plantuml
       @startuml
-      [*] --&gt; Idle
-      Idle --&gt; Loading : start_operation()
-      Loading --&gt; Success : operation_complete
-      Loading --&gt; Error : operation_failed
-      Success --&gt; Idle : user_acknowledge
-      Error --&gt; Idle : user_retry
-      Error --&gt; Loading : auto_retry [retry_count &lt; 3]
+      [*] --> Idle
+      Idle --> Loading : start_operation()
+      Loading --> Success : operation_complete
+      Loading --> Error : operation_failed
+      Success --> Idle : user_acknowledge
+      Error --> Idle : user_retry
+      Error --> Loading : auto_retry [retry_count &lt; 3]
       @enduml
       ```
     
@@ -520,163 +520,53 @@
     </content>
     <tags>#其他</tags>
   </item>
-  <item id="mem_1753764074240_507yaq4m9" time="2025/07/29 12:41">
-    <content>
-      # Project-Specific Memory
-    
-      ## PeiDocker Project Overview
-    
-      PeiDocker is a sophisticated Docker automation framework that transforms YAML configurations into reproducible containerized environments. The core philosophy is: &quot;Don&#x27;t keep your docker images around, keep the build files!&quot;
-    
-      ### Design Philosophy
-      - **Configuration-driven**: Everything controlled through `user_config.yml` with extensive customization options
-      - **Two-stage architecture**: Separates system-level setup (stage-1) from application-level configuration (stage-2)
-      - **Flexible storage strategy**: Automatic switching between external volumes and in-image storage
-      - **Environment variable substitution**: Docker Compose-style `${VAR:-default}` syntax throughout all configurations
-      - **Cross-platform compatibility**: Works consistently across Windows (WSL), Linux, and macOS
-    
-      ### Development Environment
-      - Uses Pixi integrated with pyproject.toml for package management
-      - Command line tools: `pei-docker-cli create`, `pei-docker-cli configure`
-      - Main CLI entry point: `src/pei_docker/pei.py`
-    
-      ### Project Structure
-      - `src/pei_docker/` - Main package directory
-      - `src/pei_docker/gui/` - **EXISTING GUI MODULE** using Textual framework
-      - `docs/` - Comprehensive documentation with examples
-      - `examples/` - YAML configuration examples for various use cases
-    
-      ### Current GUI Implementation Status
-    
-      **IMPORTANT**: There is already a GUI implementation using Textual at `src/pei_docker/gui/` with:
-      - Main application: `app.py` with PeiDockerApp class
-      - Screen-based navigation (SC-0 to SC-13)
-      - CLI command: `pei-docker-gui start` and `pei-docker-gui dev`
-      - Project configuration models in `models/config.py`
-      - Docker utilities in `utils/docker_utils.py`
-      - Startup screen, project setup screen, simple wizard controller implemented
-    
-      ### Current GUI Architecture
-      ```
-      src/pei_docker/gui/
-      ├── app.py                    # Main application entry point (IMPLEMENTED)
-      ├── screens/
-      │   ├── startup.py            # System check and welcome screen (IMPLEMENTED)
-      │   ├── project_setup.py      # Project directory selection (IMPLEMENTED)
-      │   └── simple/
-      │       ├── wizard.py         # Wizard controller (IMPLEMENTED)
-      │       ├── project_info.py   # Project settings (IMPLEMENTED)
-      │       ├── ssh_config.py     # SSH configuration (IMPLEMENTED)
-      │       └── summary.py        # Final review and save (IMPLEMENTED)
-      ├── models/
-      │   └── config.py            # Configuration data models (IMPLEMENTED)
-      └── utils/
-      ├── docker_utils.py      # Docker integration utilities (IMPLEMENTED)
-      └── file_utils.py        # File system utilities (IMPLEMENTED)
-      ```
-    
-      ### GUI Task Requirements from context/tasks/task-gui.md
-    
-      The task specifies creating additional wizard steps for Simple Mode:
-      1. ✅ Project Information (DONE)
-      2. ✅ SSH Configuration (DONE)
-      3. ⏳ Proxy Configuration
-      4. ⏳ Apt Configuration
-      5. ⏳ Port Mapping
-      6. ⏳ Environment Variables
-      7. ⏳ Device (GPU) Configuration
-      8. ⏳ Additional Mounts (stage-1 and stage-2)
-      9. ⏳ Custom Entry Point
-      10. ⏳ Custom Scripts
-      11. ✅ Summary/Save (DONE)
-    
-      ### Configuration Template Reference
-      The full configuration template is at `src/pei_docker/templates/config-template-full.yml` with all possible options.
-    
-      ### Key Implementation Notes
-      - GUI only handles stage-1 configuration for most sections (proxy, apt, ssh, ports, env vars, device)
-      - Stage-2 configuration requires manual config file editing
-      - Uses in-memory configuration until user explicitly saves
-      - Supports environment variable substitution: `${VAR:-default}`
-      - Docker availability check on startup with graceful degradation
-      - Cross-platform file path handling (Windows/Linux/macOS)
-    
-      ### Development Commands
-      ```bash
-      # Install dependencies
-      pixi install
-    
-      # Run GUI
-      pei-docker-gui start
-      pei-docker-gui start --project-dir ./my-project
-      pei-docker-gui dev --project-dir ./test --screen sc-1
-    
-      # Run CLI
-      pei-docker-cli create -p ./build
-      pei-docker-cli configure -p ./build
-      ```
-    
-      This is critical project context for any GUI development work on PeiDocker.
-    </content>
-    <tags>#其他</tags>
-  </item>
   <item id="mem_1753764952813_lxfu86u5n" time="2025/07/29 12:55">
     <content>
-      # Project-Specific Memory
+      # Engineering Skill Memory
     
-      ## Available Development Tools for PeiDocker Project
+      ## Available Development Tools for Python Projects
     
-      The following tools are available in this development environment for the PeiDocker project:
+      The following tools are generally available in a well-equipped development environment for Python projects:
     
       ### Python Environment &amp; Testing
-      - **pixi**: Python environment management tool
-      - Testing command: `pixi run -e dev &lt;your test script&gt;`
-      - This is the primary package manager for the project
-      - Used for installing dependencies and running development tasks
+      - **Poetry/Pixi/Pip+Venv**: Python environment and package management tools.
+      - These are the primary package managers for projects.
+      - Used for installing dependencies and running development tasks.
     
       ### Documentation &amp; Diagramming Tools
-      - **dot (graphviz)**: Graph visualization and diagramming
-      - Useful for creating architecture diagrams, workflow charts
-      - Can generate various output formats (PNG, SVG, PDF)
+      - **dot (graphviz)**: Graph visualization and diagramming.
+      - Useful for creating architecture diagrams, workflow charts.
+      - Can generate various output formats (PNG, SVG, PDF).
     
-      - **plantuml**: UML diagram generation from text
-      - Excellent for documenting GUI design workflows
-      - Can create state diagrams, sequence diagrams, activity diagrams
-      - Particularly useful for documenting the wizard step flows in the GUI
-      - Can visualize the screen navigation architecture (SC-0 to SC-13)
+      - **plantuml**: UML diagram generation from text.
+      - Excellent for documenting GUI design workflows and system architecture.
+      - Can create state diagrams, sequence diagrams, activity diagrams.
+      - Particularly useful for documenting UI workflows.
     
       ### Testing &amp; Validation Tools
-      - **playwright**: Automated web testing framework
-      - **pytest-playwright**: Python bindings for Playwright
-      - Useful for testing the Textual GUI application
-      - Can automate GUI interaction testing
-      - May be helpful for testing the wizard workflows and screen transitions
+      - **playwright**: Automated web testing framework.
+      - **pytest-playwright**: Python bindings for Playwright.
+      - Useful for testing web-based UI applications.
+      - Can automate GUI interaction testing and is helpful for testing UI workflows.
     
       ### Media Processing Tools
-      - **imagemagick**: Image processing and manipulation
-      - Can be used for creating screenshots, icons, or processing GUI assets
-      - Useful for documentation with visual examples
+      - **imagemagick**: Image processing and manipulation.
+      - Can be used for creating screenshots, icons, or processing GUI assets.
+      - Useful for documentation with visual examples.
     
-      - **ffmpeg**: Video processing and conversion
-      - Could be used for creating demo videos of the GUI workflow
-      - Useful for documenting complex wizard interactions
+      - **ffmpeg**: Video processing and conversion.
+      - Could be used for creating demo videos of an application workflow.
+      - Useful for documenting complex user interactions.
     
       ### Development Workflow Integration
-      These tools complement the existing PeiDocker GUI development workflow:
-      1. Use **pixi** for running the GUI in development mode
-      2. Use **plantuml** to document the wizard step flows and screen architecture
-      3. Use **playwright** for automated testing of GUI interactions
-      4. Use **graphviz** for visualizing the project configuration relationships
-      5. Use **imagemagick** for processing any GUI assets or screenshots
+      These tools complement a modern development workflow:
+      1. Use **package managers** for running the application in development mode.
+      2. Use **plantuml** to document workflows and screen architecture.
+      3. Use **playwright** for automated testing of UI interactions.
+      4. Use **graphviz** for visualizing configuration or data model relationships.
+      5. Use **imagemagick** for processing any GUI assets or documentation screenshots.
     
-      ### Specific Use Cases for PeiDocker GUI Development
-      - **plantuml**: Document the wizard step state machine and user flows
-      - **playwright**: Test the complete wizard workflow from project creation to config save
-      - **pixi**: Run GUI in development mode with different screen starting points
-      - **graphviz**: Visualize the configuration dependencies between stage-1 and stage-2
-      - **imagemagick**: Process any GUI documentation screenshots
-    
-      This tool ecosystem supports comprehensive GUI development, testing, and documentation for the PeiDocker project.
+      This tool ecosystem supports comprehensive development, testing, and documentation for modern software projects.
     </content>
     <tags>#其他</tags>
   </item>
@@ -1639,622 +1529,47 @@
     </content>
     <tags>#其他</tags>
   </item>
-  <item id="mem_1753799420019_wl5zlgkqr" time="2025/07/29 22:30">
+  <item id="mem_1753963571071_j7dm1cnu0" time="2025/07/31 20:06">
     <content>
-      # PeiDocker Stage-1 and Stage-2 Architecture - CORRECTED UNDERSTANDING
-    
-      ## Key Architectural Concept
-      Stage-1 and Stage-2 are **sequential Docker image building stages**, NOT &quot;build time vs runtime&quot; differentiation.
-    
-      ## Two-Stage Build Process
-      1. **Stage-1**: Builds `pei-image:stage-1` Docker image
-      - Base system setup using APT packages
-      - System-level configuration (SSH, proxy, networking)
-      - Foundation image with core system components
-    
-      2. **Stage-2**: Builds `pei-image:stage-2` Docker image **based on Stage-1**
-      - Uses Stage-1 image as its base (`base: null` means inherit from Stage-1 output)
-      - Adds application-level customizations
-      - Adds custom packages (.deb, .whl files)
-      - **Includes dynamic storage feature** - the key differentiator
-    
-      ## Both Images Are Usable
-      - Both images can be run as containers: `docker compose up stage-1` or `docker compose up stage-2`
-      - Stage-2 is typically the target image due to enhanced features
-      - Stage-1 can be used independently for simpler use cases
-    
-      ## Stage-2 Enhanced Features
-      **Dynamic Storage System:**
-      - `/soft/app`, `/soft/data`, `/soft/workspace` directories
-      - Smart linking: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
-      - Allows switching between in-image and external storage after build
-      - Only available in Stage-2 images
-    
-      ## Configuration Relationship
-      - **Inheritance**: Stage-2 inherits Stage-1 settings when values are `null`
-      - **Override**: Stage-2 can override Stage-1 settings (device, proxy, etc.)
-      - **Append**: Stage-2 appends additional configurations (ports, environment vars)
-      - **Separate Scripts**: Each stage has its own custom scripts directory
-    
-      ## GUI Implications
-      - Proxy configuration affects BOTH stages when enabled (not build vs runtime)
-      - Storage configuration is primarily Stage-2 focused (dynamic storage)
-      - Both stages need their custom scripts managed separately
-      - Configuration must account for Stage-1 → Stage-2 inheritance patterns
-    
-      This layered architecture allows progressive enhancement from base system (Stage-1) to full-featured application environment (Stage-2).
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753799807929_jloem9lu0" time="2025/07/29 22:36">
-    <content>
-      # PeiDocker Documentation Update - Architecture Correction Complete
-    
-      ## Major Documentation Revision Completed
-      Successfully updated both the design documentation and demo files to reflect the correct PeiDocker two-stage architecture.
-    
-      ## Key Changes Made
-    
-      ### 1. Design Document (webgui-general-design.md)
-      - **Added comprehensive architecture section** explaining Stage-1 → Stage-2 sequential builds
-      - **Corrected Storage tab description** to emphasize Stage-2&#x27;s unique dynamic storage feature
-      - **Updated Scripts tab documentation** to clarify both stages have full lifecycle hooks
-      - **Fixed Environment tab** to show inheritance and override patterns
-      - **Removed all build/runtime temporal language** throughout
-    
-      ### 2. Demo Files Updated
-      **Storage Tab (storage_tab.html &amp; storage_tab_content.html):**
-      - Updated descriptions to &quot;Stage-1 and Stage-2 sequential image builds&quot;
-      - Emphasized Stage-2&#x27;s dynamic storage system (`/soft/app`, `/soft/data`, `/soft/workspace`)
-      - Changed &quot;Build Stage&quot; to &quot;Stage-1 Image&quot; and &quot;Runtime Stage&quot; to &quot;Stage-2 Image&quot;
-    
-      **Scripts Tab (scripts_tab.html &amp; scripts_tab_content.html):**
-      - Updated to &quot;Stage-1 and Stage-2 sequential image builds&quot;
-      - Clarified lifecycle hooks run during respective image building processes
-      - Updated all script descriptions to mention &quot;respective stage&quot;
-    
-      **Network Tab (already corrected):**
-      - Proxy configuration correctly shows &quot;applied globally to both stages&quot;
-    
-      ## Architectural Understanding Now Correct
-    
-      ### Before (Incorrect):
-      - Stage-1 = &quot;build time&quot;, Stage-2 = &quot;runtime&quot;
-      - Temporal distinction between phases
-    
-      ### After (Correct):
-      - **Stage-1**: Builds `pei-image:stage-1` (foundation image)
-      - **Stage-2**: Builds `pei-image:stage-2` based on Stage-1 (enhanced with dynamic storage)
-      - **Both images usable**: Can run either with `docker compose up`
-      - **Sequential builds**: Stage-1 → Stage-2 with inheritance patterns
-    
-      ## Key Differentiators Emphasized
-      - **Stage-2 Dynamic Storage**: `/soft/xxx` → `/hard/volume/xxx` OR `/hard/image/xxx`
-      - **Configuration Inheritance**: Stage-2 inherits Stage-1, can override/append
-      - **Both Stages Have Full Lifecycle**: on_build, on_first_run, on_every_run, on_user_login, on_entry
-    
-      This correction ensures GUI design properly reflects PeiDocker&#x27;s actual architecture of sequential Docker image builds rather than temporal build vs runtime phases.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753801600938_mupucn97k" time="2025/07/29 23:06">
-    <content>
-      # Project-Specific Memory
-    
-      ## Critical Web Development Pattern: Script Tags Not Executing in Dynamic HTML Loading
-    
-      ### The Problem
-      When loading HTML content dynamically using `fetch()` and setting it with `innerHTML`, `&lt;script&gt;` tags within that loaded HTML **DO NOT EXECUTE**. This is a fundamental browser security feature that affects all dynamic HTML loading scenarios.
-    
-      ### Common Manifestation in PeiDocker Web GUI
-      - Active-project.html loads tab content dynamically via `switchTab()` function
-      - Network tab content (network_tab_content.html) contains JavaScript for port mapping functionality
-      - After loading via `fetch()` and `innerHTML`, the JavaScript functions are undefined
-      - Symptoms: &quot;addPortMapping function not available&quot; errors, non-functional buttons
-    
-      ### Technical Root Cause
-      Browser security: Scripts are only executed when:
-      1. Initially parsed during document load
-      2. Explicitly added to DOM programmatically (createElement + appendChild)
-    
-      ### Solution Pattern (Proven Working)
-      ```javascript
-      // Load HTML content
-      const response = await fetch(&#x27;content.html&#x27;);
-      const content = await response.text();
-    
-      // Parse and extract scripts
-      const tempDiv = document.createElement(&#x27;div&#x27;);
-      tempDiv.innerHTML = content;
-      const scripts = tempDiv.querySelectorAll(&#x27;script&#x27;);
-    
-      // Set HTML content (without scripts)
-      document.getElementById(&#x27;target&#x27;).innerHTML = tempDiv.innerHTML;
-    
-      // Execute scripts manually
-      scripts.forEach(script =&gt; {
-      const newScript = document.createElement(&#x27;script&#x27;);
-      if (script.src) {
-      newScript.src = script.src;
-      } else {
-      newScript.textContent = script.textContent;
-      }
-      document.body.appendChild(newScript);
-      // Cleanup to avoid duplicates
-      setTimeout(() =&gt; {
-      if (newScript.parentNode) {
-      newScript.parentNode.removeChild(newScript);
-      }
-      }, 100);
-      });
-      ```
-    
-      ### Prevention Checklist - ALWAYS CHECK THESE:
-      1. **Dynamic HTML Loading**: Are we using fetch() + innerHTML?
-      2. **Script Dependencies**: Does the loaded HTML contain &lt;script&gt; tags?
-      3. **Function Availability**: Are JavaScript functions from loaded content accessible?
-      4. **Initialization Timing**: Do we need delayed initialization after script execution?
-      5. **CORS Issues**: Are we running from file:// protocol (blocks fetch)?
-    
-      ### Testing Strategy
-      - Use HTTP server for testing (not file:// protocol)
-      - Console.log to verify function availability after loading
-      - Check for &quot;function not available&quot; errors
-      - Test all interactive elements in dynamically loaded content
-    
-      ### PeiDocker-Specific Implementation
-      - File: /workspace/code/PeiDocker/context/plans/web-gui/demo/active-project.html
-      - Function: switchTab() - handles dynamic tab content loading
-      - Fix: Manual script extraction and execution (lines 125-151)
-      - Initialization: initializeTabContent() with proper timing
-    
-      ### Red Flags - Always Investigate:
-      - Tab content loads but buttons don&#x27;t work
-      - Console errors about undefined functions
-      - Scripts in loaded HTML files
-      - Dynamic content with interactive elements
-      - fetch() followed by innerHTML usage
-    
-      This pattern occurs frequently in single-page applications with dynamic content loading. Always consider this when implementing tab systems, modal content, or any dynamic HTML loading in web GUI applications.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753801618025_lb023hfyq" time="2025/07/29 23:06">
-    <content>
-      # Project-Specific Memory - Dynamic HTML Loading Checklist
-    
-      ## Quick Reference: Script Execution Issues in Dynamic Content
-    
-      ### 🚨 IMMEDIATE RED FLAGS - Check These First:
-      1. **Dynamic HTML loading with fetch() + innerHTML?** → Scripts won&#x27;t execute
-      2. **Interactive elements not working after content loads?** → Missing script execution
-      3. **&quot;Function not available&quot; console errors?** → Script execution problem
-      4. **Testing from file:// protocol?** → CORS will block fetch requests
-      5. **Buttons/forms work in standalone HTML but not in loaded content?** → Script issue
-    
-      ### 🔧 Quick Diagnostic Steps:
-      ```javascript
-      // After loading content, test if functions are available:
-      console.log(&#x27;Function available?&#x27;, typeof someFunction !== &#x27;undefined&#x27;);
-    
-      // Check if scripts exist in loaded content:
-      const scripts = loadedElement.querySelectorAll(&#x27;script&#x27;);
-      console.log(&#x27;Scripts found:&#x27;, scripts.length);
-      ```
-    
-      ### ⚡ Immediate Fix Pattern:
-      1. Extract scripts from loaded HTML
-      2. Set HTML content without scripts
-      3. Execute scripts manually via createElement + appendChild
-      4. Add proper initialization timing (setTimeout)
-      5. Test with HTTP server, not file://
-    
-      ### 📋 Prevention Strategy:
-      - **Design Phase**: Minimize dynamic HTML with scripts
-      - **Development**: Use HTTP server for testing
-      - **Testing**: Verify all interactive elements work
-      - **Code Review**: Flag any fetch() + innerHTML patterns
-    
-      ### 🎯 PeiDocker Context:
-      This issue specifically affected:
-      - Network tab port mapping functionality
-      - SSH tab user management
-      - Any dynamically loaded tab content with JavaScript
-    
-      Always check switchTab() function and tab initialization patterns for this issue.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753802659837_cdf0k0r9s" time="2025/07/29 23:24">
-    <content>
-      # PeiDocker Storage vs Mount - CORRECTED UNDERSTANDING
-    
-      ## Key Distinction: Storage vs Mount are DIFFERENT concepts
-    
-      ### **Storage (Stage-2 ONLY - Unique Feature)**
-      - **Purpose**: Stage-2&#x27;s dynamic storage system for predefined application directories
-      - **Predefined directories**: Only `/soft/app`, `/soft/data`, `/soft/workspace`
-      - **Smart linking mechanism**: `/soft/xxx` → `/hard/volume/xxx` (external) OR `/hard/image/xxx` (in-image)
-      - **Dynamic switching**: Can switch between in-image and external storage AFTER build
-      - **Four types**: `auto-volume`, `manual-volume`, `host`, `image`
-      - **Stage-2 exclusive**: This is what differentiates Stage-2 from Stage-1
-    
-      ### **Mount (Both Stage-1 and Stage-2)**
-      - **Purpose**: General volume mounting for any directory/path
-      - **User-defined**: Any volume name, any destination path in container
-      - **No inheritance**: Stage-1 mounts don&#x27;t transfer to Stage-2, must be redefined
-      - **Three types**: `auto-volume`, `manual-volume`, `host` (NOT `image`)
-      - **Flexible destinations**: Can mount external volumes to any container path
-    
-      ## The Four Types Explained
-    
-      ### 1. `auto-volume`
-      - Docker automatically creates and manages the volume
-      - Used when: `host_path: null`, `volume_name: null`
-      - Available for: Both storage and mount
-    
-      ### 2. `manual-volume`
-      - User specifies custom volume name
-      - Used when: `volume_name: &quot;my-custom-volume&quot;`, `host_path: null`
-      - Available for: Both storage and mount
-    
-      ### 3. `host`
-      - Direct mount of host directory into container
-      - Used when: `host_path: &quot;/path/on/host&quot;`, `volume_name: null`
-      - Available for: Both storage and mount
-    
-      ### 4. `image` (STORAGE ONLY)
-      - Keep data inside the image itself (no external storage)
-      - Used when: `host_path: null`, `volume_name: null`, `type: image`
-      - Available for: Storage ONLY (mount cannot use `image` type)
-    
-      ## YAML Configuration Structure
-    
-      ### Storage (stage_2.storage)
-      ```yaml
-      stage_2:
-      storage:  # Only these 3 predefined directories
-      app:
-      type: auto-volume|manual-volume|host|image
-      host_path: null  # when type=host
-      volume_name: null  # when type=manual-volume
-      data:
-      type: auto-volume|manual-volume|host|image
-      host_path: null
-      volume_name: null
-      workspace:
-      type: auto-volume|manual-volume|host|image
-      host_path: null
-      volume_name: null
-      ```
-    
-      ### Mount (stage_1.mount &amp; stage_2.mount)
-      ```yaml
-      stage_1:
-      mount:  # User-defined mount points
-      {mount_name}:  # Any name
-      type: auto-volume|manual-volume|host  # NO &#x27;image&#x27; type
-      dst_path: /any/container/path  # Any destination
-      host_path: null  # when type=host
-      volume_name: null  # when type=manual-volume
-    
-      stage_2:
-      mount:  # Must redefine, no inheritance from stage_1
-      {mount_name}:
-      type: auto-volume|manual-volume|host
-      dst_path: /any/container/path
-      host_path: null
-      volume_name: null
-      ```
-    
-      ## GUI Implementation Implications
-      - Storage section: Fixed 3 directories (app, data, workspace) with 4 type options
-      - Mount section: Dynamic list with add/remove, user defines mount name and destination
-      - Storage supports &#x27;image&#x27; type, Mount does not
-      - Mount requires destination path field, Storage uses predefined paths
-      - Stage-1 has only Mount, Stage-2 has both Storage and Mount
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753852852854_dw6pyoju6" time="2025/07/30 13:20">
-    <content>
-      # Project-Specific Memory
-    
-      ## PeiDocker Mount and Storage Type Options - Precise Definitions
-    
-      ### Mount Types (Both Stage-1 and Stage-2)
-      For general volume mounting, PeiDocker supports 3 mount types:
-    
-      1. **auto-volume**:
-      - Docker automatically creates and manages a named volume
-      - Volume name is auto-generated by Docker (e.g., `projectname_mountname_vol`)
-      - Data persists outside container but lifecycle is managed by Docker
-      - Both `host_path` and `volume_name` are `null`
-      - Best for: Persistent data that doesn&#x27;t need direct host access
-    
-      2. **manual-volume**:
-      - User specifies a custom volume name via `volume_name` field
-      - User has control over volume naming and can reference it elsewhere
-      - Still a Docker volume, but with user-defined name
-      - `host_path` is `null`, `volume_name` contains user-specified name
-      - Best for: Shared volumes between containers or explicit volume management
-    
-      3. **host**:
-      - Direct bind mount of host directory into container
-      - `host_path` specifies the exact host filesystem path to mount
-      - `volume_name` is `null`
-      - Direct host filesystem access, no Docker volume abstraction
-      - Best for: Development workflows, sharing files with host system
-    
-      ### Storage Types (Stage-2 Only - Dynamic Storage)
-      For Stage-2&#x27;s unique dynamic storage system, PeiDocker supports 4 storage types:
-    
-      1. **auto-volume**: Same as mount auto-volume
-      2. **manual-volume**: Same as mount manual-volume
-      3. **host**: Same as mount host
-      4. **image**:
-      - Keep data inside the Docker image itself (no external storage)
-      - All fields (`host_path`, `volume_name`) are `null`
-      - Data becomes part of the image layers
-      - Best for: Immutable data, faster container startup, no external dependencies
-    
-      ### Key Technical Distinctions:
-      - **Mounts**: General volume mounting for any container path, 3 types only
-      - **Storage**: Stage-2&#x27;s `/soft/*` dynamic linking system, supports 4 types including `image`
-      - **Inheritance**: Mounts don&#x27;t inherit between stages, Storage only exists in Stage-2
-      - **Smart Linking**: Storage uses `/soft/xxx` → `/hard/volume/xxx` OR `/hard/image/xxx` routing
-    
-      ### GUI Implementation Notes:
-      - Mount GUI shows 5 fields but maps to 4 YAML fields (mount name becomes YAML key)
-      - Conditional field enabling: `host_path` only for `host` type, `volume_name` only for `manual-volume` type
-      - Empty/disabled fields represent `null` values in YAML configuration
-      - UUID-based default naming: `mount-{8-char-uuid}` for new mounts
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753853402071_yappkxtyf" time="2025/07/30 13:30">
-    <content>
-      # PeiDocker Storage GUI Layout Update - Complete Implementation
-    
-      ## Storage Section GUI Behavior (Stage-2 Only)
-      Updated the storage section to have 3 fixed, always-visible entries that cannot be created or removed:
-    
-      ### Fixed Storage Entries:
-      1. **App Storage (/soft/app)** - Application files and dependencies
-      2. **Data Storage (/soft/data)** - User data and persistent files
-      3. **Workspace Storage (/soft/workspace)** - Development and workspace files
-    
-      ### GUI Layout per Storage Entry:
-      Each storage entry has 3 input fields with conditional enabling:
-      1. **Storage type**: Dropdown (`auto-volume`, `manual-volume`, `host`, `image`) - defaults to `image`
-      2. **Host path**: Text input, only enabled when type=`host`, otherwise grayed out
-      3. **Volume name**: Text input, only enabled when type=`manual-volume`, otherwise grayed out
-    
-      ### Key Differences from Mount Section:
-      - **Storage**: 3 fixed entries, always visible, cannot be created/removed, defaults to `image` type
-      - **Mount**: Dynamic entries, start empty, can be created/removed with UUID-based names, has name+dst_path fields
-    
-      ### JavaScript Implementation:
-      - `updateStorageFields(selectElement, storageType)`: Handles conditional field enabling
-      - Storage entries default to `image` type (data kept inside container)
-      - Predefined destinations (/soft/app, /soft/data, /soft/workspace) are not editable
-    
-      ### YAML Mapping:
-      ```yaml
-      stage_2:
-      storage:  # Always present, defaults to image type
-      app: { type: image }
-      data: { type: image }
-      workspace: { type: image }
-      ```
-    
-      This implementation correctly reflects that storage entries are always present and default to `image` type even when omitted from user_config.yml, unlike mounts which are user-defined and dynamically managed.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753853890437_z221z2iw9" time="2025/07/30 13:38">
-    <content>
-      # PeiDocker Custom Scripts and Entry Points - Complete Technical Details
-    
-      ## Script Parameter Support (CRITICAL for GUI Design)
-    
-      **PeiDocker scripts support shell-like parameters using shlex parsing:**
-      - Format: `&#x27;script.sh --param1=value1 --param2=&quot;value with spaces&quot;&#x27;`
-      - Supports both single and double quotes for complex parameters
-      - Parameters are safely parsed using Python&#x27;s `shlex.split()`
-      - Works across ALL script lifecycle events: on_build, on_first_run, on_every_run, on_user_login
-    
-      **Examples from documentation:**
-      ```yaml
-      on_build:
-      - &#x27;stage-1/custom/my-build-2.sh --verbose --config=/tmp/build.conf&#x27;
-      on_first_run:
-      - &#x27;stage-1/custom/setup.sh --initialize --create-dirs&#x27;
-      on_every_run:
-      - &#x27;stage-1/custom/health-check.sh --check-services --log-output&#x27;
-      on_user_login:
-      - &#x27;stage-2/custom/welcome.sh --show-motd --check-updates&#x27;
-      ```
-    
-      ## Entry Point Format Options
-    
-      **on_entry supports TWO formats:**
-      1. **String format**: `on_entry: &#x27;stage-2/custom/my-entry.sh --mode=production&#x27;`
-      2. **Array format**: `on_entry: [&#x27;stage-2/custom/my-entry.sh --mode=production --log-level=info&#x27;]`
-    
-      **Entry point processing:**
-      - Script path and default arguments are parsed separately using `shlex`
-      - Container path mapping: `$PEI_STAGE_DIR_1/{script_path}` or `$PEI_STAGE_DIR_2/{script_path}`
-      - Arguments are stored in separate files for container access
-    
-      ## Script Processing Architecture
-    
-      **Wrapper Script Generation:**
-      - PeiDocker generates wrapper scripts that execute user scripts
-      - Wrapper scripts handle proper path resolution and argument passing
-      - Generated in `{project_dir}/{host_dir}/{stage}/generated/_custom-{event}.sh`
-    
-      **Container Path Mapping:**
-      - Host scripts: `{project_dir}/{host_dir}/{script_path}`
-      - Container scripts: `$PEI_STAGE_DIR_{stage_number}/{script_path}`
-      - Example: `stage-1/custom/my-script.sh` → `$PEI_STAGE_DIR_1/stage-1/custom/my-script.sh`
-    
-      **File Organization:**
-      - User scripts: `{project_dir}/installation/stage-{1,2}/custom/`
-      - Generated wrappers: `{project_dir}/installation/stage-{1,2}/generated/`
-      - Entry point files: `{project_dir}/installation/stage-{1,2}/internals/`
-    
-      ## GUI Design Implications
-    
-      **CRITICAL: GUI must support script parameters**
-      - Script input fields need parameter support, not just file paths
-      - Need text input for script + parameters: `script.sh --param=value`
-      - Should validate parameter syntax and provide examples
-      - Entry points need format selection (string vs array)
-    
-      **Script Input Modes Enhanced:**
-      - File mode: Browse + parameters field
-      - Inline mode: Script name + content + parameters
-      - Both modes need parameter input capability
-    
-      **Validation Requirements:**
-      - Parameter syntax validation using shlex parsing
-      - File existence validation for script paths
-      - Parameter format hints and examples in GUI
-    
-      This is ESSENTIAL information for implementing the Scripts tab in the web GUI - the current design document is missing these critical technical details.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753855147132_7ftj81dmg" time="2025/07/30 13:59">
-    <content>
-      PeiDocker Scripts Tab Demo Revision - Complete Implementation
-    
-      ## Task: Scripts Tab Layout and Functionality Updates
-    
-      Successfully revised the PeiDocker Web GUI Scripts tab demo with comprehensive improvements:
-    
-      ### Layout Changes Implemented:
-      - Changed from horizontal grid-2 layout to vertical stacking of Stage-1 and Stage-2 sections
-      - All text inputs now use full width (w-full, flex: 1 styling)
-      - Buttons (View, Edit, Remove) placed on separate lines, not sharing space with inputs
-    
-      ### Lifecycle Scripts Section Updates:
-      - Updated path defaults to `stage-{1,2}/custom/script-(uuid).bash` format
-      - Added fixed non-editable path labels showing `stage-{1,2}/custom/` before inputs
-      - Implemented UUID-based filename generation using `script-{8-char-uuid}.bash` pattern
-      - Maintained parameter support in same input field as script path
-      - Enhanced JavaScript with generateUUID() function for unique naming
-    
-      ### Custom Entry Point Section:
-      - Configured to work like lifecycle scripts but limited to single entry
-      - Maintained &quot;Use default&quot; option for system default entry point
-      - Applied consistent fixed path labels and auto-generation for inline scripts
-      - Updated entry point mode handlers for proper file vs inline mode switching
-    
-      ### Design Document Updates:
-      - Added detailed documentation of inline script creation behavior
-      - Specified fixed path label display (`stage-{1,2}/custom/`)
-      - Documented auto-generated filename format and UUID pattern
-      - Updated file storage locations and YAML entry formats
-    
-      ### Technical Implementation:
-      - File: `/workspace/code/PeiDocker/context/plans/web-gui/demo/scripts_tab_content.html`
-      - Updated JavaScript functions for UUID generation and dynamic UI handling
-      - Maintained parameter support and validation throughout
-      - Ensured consistent full-width layout for all input elements
-    
-      This revision provides a more intuitive user experience with clear visual hierarchy, helpful path hints, and streamlined script creation workflows. The implementation maintains all existing functionality while improving usability and consistency.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753855758513_x3ercjcwd" time="2025/07/30 14:09">
-    <content>
-      PeiDocker Scripts Tab - Critical Path Access Constraints Implementation
-    
-      ## Key Architectural Constraint Discovered and Implemented:
-    
-      **Stage Path Access Rules:**
-      - **Stage-1 Scripts**: Can ONLY reference paths starting with `stage-1/` (cannot access `stage-2/` paths because stage-2 doesn&#x27;t exist during stage-1 build)
-      - **Stage-2 Scripts**: Can reference paths starting with BOTH `stage-1/` and `stage-2/` (inherits all stage-1 resources plus stage-2 resources)
-    
-      ## Implementation Details:
-    
-      ### Demo Page Updates:
-      - Added prominent blue note section explaining path access rules with clear examples
-      - Used visual hierarchy with icons and code formatting to make constraints obvious
-      - Added architectural explanation: &quot;Stage-1 builds first and becomes the foundation. Stage-2 builds on top of Stage-1, inheriting all its resources.&quot;
-    
-      ### Design Document Updates:
-      - Added &quot;CRITICAL Path Access Constraints&quot; section to Scripts Tab overview
-      - Updated all script mode descriptions to include stage-aware validation requirements
-      - Modified YAML field mapping to specify path constraints for each stage
-      - Enhanced file-based and inline script documentation with stage accessibility rules
-    
-      ### Key GUI Implications:
-      - Path validation must be stage-aware
-      - File browser integration should filter available directories based on current stage
-      - Default hints should respect stage constraints
-      - User feedback should explain why certain paths are invalid for specific stages
-    
-      ### Technical Validation Requirements:
-      - Stage-1 scripts: Validate paths start with `stage-1/`
-      - Stage-2 scripts: Allow paths starting with either `stage-1/` or `stage-2/`
-      - Error messages should explain stage accessibility constraints
-      - GUI should prevent users from entering invalid cross-stage references
-    
-      This constraint is fundamental to PeiDocker&#x27;s sequential build architecture and must be enforced in all script-related functionality.
-    </content>
-    <tags>#其他</tags>
-  </item>
-  <item id="mem_1753856364802_413513jz8" time="2025/07/30 14:19">
-    <content>
-      # PeiDocker Scripts Execution Order - CORRECTED UNDERSTANDING
-    
-      ## Actual Script Execution Timing (Based on Source Code Analysis)
-    
-      ### **Build Time (during docker build):**
-      - **Stage-1**: `custom-on-build.sh` executes `_custom-on-build.sh` (generated wrapper script)
-      - **Stage-2**: `custom-on-build.sh` executes `_custom-on-build.sh` (generated wrapper script)
-    
-      ### **Runtime (when container starts):**
-    
-      **Stage-1 Container:**
-      1. `entrypoint.sh` starts
-      2. Calls `on-entry.sh`
-      3. `on-entry.sh` checks first-run flag and runs `on-first-run.sh` (only first time)
-      4. `on-entry.sh` runs `on-every-run.sh` (every time)
-      5. SSH service starts
-      6. Custom entry point runs (if configured)
-      7. Default shell starts
-    
-      **Stage-2 Container:**
-      1. `entrypoint.sh` starts
-      2. Calls Stage-1 `on-entry.sh` (first-run + every-run scripts)
-      3. Calls Stage-2 `on-entry.sh`
-      4. Stage-2 `on-entry.sh` runs `create-links.sh` (dynamic storage setup)
-      5. Stage-2 `on-entry.sh` checks first-run flag and runs `on-first-run.sh` (only first time)
-      6. Stage-2 `on-entry.sh` runs `on-every-run.sh` (every time)
-      7. SSH service starts
-      8. Custom entry point runs (Stage-2 overrides Stage-1 if both exist)
-      9. Default shell starts
-    
-      ### **On SSH Login:**
-      - `on_user_login` scripts are sourced from each user&#x27;s `.bashrc` file
-      - Added during build process by `setup-users.sh`
-      - These run ONLY when user logs in via SSH, not during container startup
-    
-      ## Key Implementation Details
-      - First-run detection uses signature files: `/pei-init/stage-{1,2}-init-done`
-      - User custom scripts are executed via generated wrapper scripts in `generated/_custom-*.sh`
-      - Stage-2 runs BOTH Stage-1 and Stage-2 lifecycle scripts
-      - Custom entry points can be configured per stage, Stage-2 overrides Stage-1
-      - Dynamic storage linking (`create-links.sh`) happens only in Stage-2 runtime
-    
-      ## GUI Implications
-      - Script execution preview should show build vs runtime vs login distinction
-      - Default demo scripts should be removed to avoid confusion
-      - Need to clarify that on_user_login happens separately from container startup
+      # Comprehensive NiceGUI-Playwright Testing Methodology
+    
+      ## Core Testing Approaches
+      - **NiceGUI Built-in Testing**: Use `Screen` class for simple tests (`screen.open(&#x27;/&#x27;); screen.should_contain(&#x27;text&#x27;)`)
+      - **Playwright Direct Integration**: Advanced end-to-end testing with browser automation across Chromium, Firefox, WebKit
+    
+      ## Critical NiceGUI-Specific Patterns
+      - **WebSocket Connection Verification**: `await page.wait_for_function(&quot;window.socket &amp;&amp; window.socket.connected&quot;)`
+      - **Vue.js App Readiness**: `await page.wait_for_function(&quot;window.Vue &amp;&amp; window.app&quot;)`
+      - **Real-time Updates Testing**: Wait for dynamic content using specific selectors or network idle states
+      - **Notification Testing**: Target `.q-notification` class for NiceGUI notifications
+    
+      ## Advanced Screenshot Capabilities
+      - **Full Page Screenshots**: `await page.screenshot(path=&quot;screenshot.png&quot;, full_page=True)` with consistent viewport settings
+      - **Element-Specific Screenshots**: `await page.locator(&#x27;.nicegui-content&#x27;).screenshot(path=&quot;element.png&quot;)`
+      - **Visual Regression Testing**: Compare screenshots over time using file comparison or specialized image diff libraries
+      - **Progressive Screenshots**: Capture before/after states for dynamic interactions
+      - **Mobile Device Testing**: Use device context for responsive design validation
+    
+      ## Production Testing Infrastructure
+      - **Cross-Browser Testing**: Parametrized tests across browser engines
+      - **CI/CD Integration**: GitHub Actions with `playwright install --with-deps`
+      - **Performance Testing**: Use `performance.mark()` and `performance.measure()` for timing validation
+      - **Automatic Failure Screenshots**: Capture screenshots when tests fail for debugging
+    
+      ## Key Technical Implementation Details
+      - **Test App Fixture**: Start NiceGUI in separate thread with proper startup timing
+      - **Consistent Configuration**: Fixed viewport sizes, device scale factors, wait strategies
+      - **Resource Management**: Proper browser/page cleanup in async contexts
+      - **Error Handling**: Comprehensive exception handling with user-friendly test feedback
+    
+      ## Best Practices Framework
+      - Always wait for `networkidle` state before taking screenshots
+      - Use descriptive test names and organized screenshot storage
+      - Implement proper cleanup routines for temporary resources
+      - Configure headless vs headed modes appropriately for debugging vs CI
+      - Use appropriate wait strategies for different types of dynamic content
+    
+      This methodology enables robust, maintainable testing of any NiceGUI application with comprehensive coverage across browsers, devices, and interaction patterns.
     </content>
     <tags>#其他</tags>
   </item>

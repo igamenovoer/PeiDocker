@@ -3,7 +3,8 @@ you are tasked to write or modify source code, follow these guidelines
 # Guidelines for Writing or Modifying Source Code
 - ALWAYS use `context7` to find documentations if you encouter problems calling 3rd python library, or if you think needed or in doubt
 - use online search to find best practices or solutions if needed or in doubt
-- DO NOT use unicode emojis in your code or print statements
+- DO NOT use unicode emojis in your console output like print statements, as it may cause issues in some environments
+- you CAN use unicode emojis in GUI code, like web-based applications, as they are generally well supported in modern browsers
 - NEVER modify pyproject.toml directly due to missing packages, use pixi installation commands instead
 
 # How to run code

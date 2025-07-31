@@ -42,8 +42,14 @@ class ConfigurationState:
     validation_errors: Dict[str, List[str]] = field(default_factory=dict)
     
     # Configuration data
-    stage_1: Dict[str, Any] = field(default_factory=dict)
-    stage_2: Dict[str, Any] = field(default_factory=dict)
+    stage_1: Dict[str, Any] = field(default_factory=lambda: {
+        'image': {
+            'base': 'ubuntu:22.04'
+        }
+    })
+    stage_2: Dict[str, Any] = field(default_factory=lambda: {
+        'image': {}
+    })
 
 @dataclass
 class TabState:
@@ -60,41 +66,41 @@ class AppData:
     config: ConfigurationState = field(default_factory=ConfigurationState)
     tabs: TabState = field(default_factory=TabState)
     
-    def reset_project(self):
+    def reset_project(self) -> None:
         """Reset to initial state with no active project."""
         self.app_state = AppState.INITIAL
         self.project = ProjectState()
         self.config = ConfigurationState()
         self.tabs = TabState()
     
-    def set_active_project(self, directory: Path, name: str = None):
+    def set_active_project(self, directory: Path, name: Optional[str] = None) -> None:
         """Set active project and switch to active state."""
         self.app_state = AppState.ACTIVE
         self.project.directory = directory
         self.project.name = name or directory.name
         self.tabs.active_tab = TabName.PROJECT
 
-    def mark_modified(self, tab: TabName = None):
+    def mark_modified(self, tab: Optional[TabName] = None) -> None:
         """Mark configuration as modified."""
         self.config.modified = True
         if tab:
             self.tabs.tab_modified[tab] = True
     
-    def mark_saved(self):
+    def mark_saved(self) -> None:
         """Mark configuration as saved."""
         self.config.modified = False
         self.tabs.tab_modified.clear()
         from datetime import datetime
         self.config.last_saved = datetime.now().strftime("%I:%M %p")
     
-    def add_validation_error(self, tab: TabName, error: str):
+    def add_validation_error(self, tab: TabName, error: str) -> None:
         """Add validation error for a tab."""
         if tab.value not in self.config.validation_errors:
             self.config.validation_errors[tab.value] = []
         self.config.validation_errors[tab.value].append(error)
         self.tabs.tab_errors[tab] = True
     
-    def clear_validation_errors(self, tab: TabName = None):
+    def clear_validation_errors(self, tab: Optional[TabName] = None) -> None:
         """Clear validation errors for a tab or all tabs."""
         if tab:
             self.config.validation_errors.pop(tab.value, None)

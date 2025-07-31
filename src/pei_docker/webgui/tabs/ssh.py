@@ -34,16 +34,16 @@ class SSHTab(BaseTab):
             )
             
             # SSH Service Configuration
-            with self.create_card('SSH Service'):
+            with self.create_card('🔐 SSH Service'):
                 # Enable SSH toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
-                    self.ssh_enabled_switch = ui.switch('Enable SSH Server', value=False)
+                    self.ssh_enabled_switch = ui.switch('✅ Enable SSH Server', value=False)
                     self.ssh_enabled_switch.on('change', self._on_ssh_toggle)
                 
                 # Port configuration
                 with ui.row().classes('gap-4 mb-4') as port_config:
                     with ui.column():
-                        ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
+                        ui.label('📦 Container Port').classes('font-medium text-gray-700 mb-1')
                         self.ssh_port_input = ui.number('SSH Port', value=22, min=1, max=65535) \
                             .classes('w-32')
                     
@@ -63,7 +63,7 @@ class SSHTab(BaseTab):
                     self.users_container = users_container
                 
                 # Add user button
-                ui.button('👤 Add User', on_click=self._add_user) \
+                ui.button('[Add User] Add User', on_click=self._add_user) \
                     .classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 users_card.bind_visibility_from(self.ssh_enabled_switch, 'value')
@@ -98,8 +98,8 @@ class SSHTab(BaseTab):
             with ui.card().classes('w-full p-4 mb-4') as user_card:
                 # User header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'👤 SSH User {user_count}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda: user_card.delete()) \
+                    ui.label(f'[Add User] SSH User {user_count}').classes('text-lg font-semibold')
+                    ui.button('[Remove] Remove', on_click=lambda: user_card.delete()) \
                         .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                 
                 # User configuration

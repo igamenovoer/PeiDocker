@@ -53,24 +53,24 @@ class ScriptsTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '📜 Custom Scripts Configuration',
+                '[Scripts] Custom Scripts Configuration',
                 'Configure custom entry points and lifecycle hook scripts for Stage-1 and Stage-2 sequential image builds'
             )
             
             # Important Path Access Rules
             with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
-                ui.label('ℹ️ Important: Script Path Access Rules').classes('text-lg font-semibold text-blue-800 mb-3')
+                ui.label('[Info] Important: Script Path Access Rules').classes('text-lg font-semibold text-blue-800 mb-3')
                 
                 with ui.column().classes('text-sm'):
                     with ui.column().classes('mb-3'):
-                        ui.label('🏗️ Stage-1 Scripts:').classes('font-semibold')
+                        ui.label('[Project] Stage-1 Scripts:').classes('font-semibold')
                         with ui.column().classes('ml-4 mt-1'):
                             ui.markdown('• Can **ONLY** reference paths starting with `stage-1/`').classes('text-sm')
                             ui.markdown('• **Cannot access** any `stage-2/` paths (stage-2 doesn\'t exist yet)').classes('text-sm')
                             ui.markdown('• Examples: `stage-1/custom/script.sh`, `stage-1/system/setup.sh`').classes('text-sm')
                     
                     with ui.column():
-                        ui.label('🚀 Stage-2 Scripts:').classes('font-semibold')
+                        ui.label('[Create] Stage-2 Scripts:').classes('font-semibold')
                         with ui.column().classes('ml-4 mt-1'):
                             ui.markdown('• Can reference paths starting with **both** `stage-1/` and `stage-2/`').classes('text-sm')
                             ui.markdown('• Has access to all stage-1 resources plus stage-2 resources').classes('text-sm')
@@ -81,10 +81,10 @@ class ScriptsTab(BaseTab):
                             .classes('text-xs font-semibold')
             
             # Stage-1 Scripts
-            self._create_stage_scripts_section('stage1', '🏗️ Stage-1 Image Scripts', 'stage-1')
+            self._create_stage_scripts_section('stage1', '[Project] Stage-1 Image Scripts', 'stage-1')
             
             # Stage-2 Scripts
-            self._create_stage_scripts_section('stage2', '🚀 Stage-2 Image Scripts', 'stage-2')
+            self._create_stage_scripts_section('stage2', '[Create] Stage-2 Image Scripts', 'stage-2')
         
         return container
     
@@ -159,10 +159,10 @@ class ScriptsTab(BaseTab):
                         
                         # Add script buttons
                         with ui.row().classes('gap-2 mb-2'):
-                            ui.button('📁 Add File', 
+                            ui.button('[Browse] Add File', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix: self._add_lifecycle_script(s, lt, 'file', pp)) \
                                 .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
-                            ui.button('📝 Add Inline', 
+                            ui.button('[ICON] Add Inline', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix: self._add_lifecycle_script(s, lt, 'inline', pp)) \
                                 .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
                         
@@ -256,9 +256,9 @@ class ScriptsTab(BaseTab):
                         ).classes('w-full mb-2')
                         
                         with ui.row().classes('gap-2'):
-                            ui.button('✏️ Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
+                            ui.button('[Edit] Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
                                 .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
-                            ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                            ui.button('[Remove] Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
                                 .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                         
                         script_input.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
@@ -280,11 +280,11 @@ class ScriptsTab(BaseTab):
                         ).classes('w-full mb-2').props('rows=3')
                         
                         with ui.row().classes('gap-2'):
-                            ui.button('👁️ View', on_click=lambda name=script_name_input, content=script_content_textarea: self._view_inline_script(name.value, content.value)) \
+                            ui.button('[View] View', on_click=lambda name=script_name_input, content=script_content_textarea: self._view_inline_script(name.value, content.value)) \
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white text-sm')
-                            ui.button('✏️ Edit', on_click=lambda name=script_name_input, content=script_content_textarea: self._edit_inline_script(name.value, content)) \
+                            ui.button('[Edit] Edit', on_click=lambda name=script_name_input, content=script_content_textarea: self._edit_inline_script(name.value, content)) \
                                 .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
-                            ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                            ui.button('[Remove] Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
                                 .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                         
                         script_content_textarea.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
