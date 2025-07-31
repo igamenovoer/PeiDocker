@@ -2,7 +2,7 @@ you are tasked with creating a hint to deal with a given problem
 
 # Guidelines for creating a hint
 
-- for a hint file is to be created, the hint should be created in `context\hints` directory
+- for a hint file is to be created, the hint should be created in `context\hints` directory, unless specified otherwise
 - the name should be one of the following, design which is most appropriate, if not specified:
   - `howto-<do something>.md`, mainly for specific tasks with step-by-step instructions
   - `about-<some topic>.md`, mainly for general information about a topic
