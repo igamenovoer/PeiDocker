@@ -1,0 +1,1 @@
+this is demo of the GUI, entry point is `active-project.html`.

@@ -1,0 +1,404 @@
+"""
+Network tab for PeiDocker Web GUI.
+
+This tab handles network configuration including proxy settings,
+APT repository mirrors, and port mappings.
+"""
+
+from typing import TYPE_CHECKING, Optional
+from nicegui import ui
+from .base import BaseTab
+import re
+
+if TYPE_CHECKING:
+    from ..app import PeiDockerWebGUI
+
+class NetworkTab(BaseTab):
+    """Network configuration tab."""
+    
+    def __init__(self, app: 'PeiDockerWebGUI'):
+        super().__init__(app)
+        self.proxy_enabled_switch = None
+        self.proxy_url_input = None
+        self.apt_mirror_select = None
+        self.port_mappings_container = None
+        self.port_mapping_count = 0
+        self.port_mappings_data = []
+    
+    def render(self) -> ui.element:
+        """Render the network tab content."""
+        with ui.column().classes('w-full max-w-4xl') as container:
+            self.container = container
+            
+            self.create_section_header(
+                '🌐 Network Configuration',
+                'Configure proxy settings (applied globally to both stages), APT repository mirrors, and port mappings for network connectivity'
+            )
+            
+            # Proxy Configuration
+            with self.create_card('🔗 Proxy Configuration'):
+                # Enable proxy toggle
+                with ui.row().classes('items-center gap-4 mb-4'):
+                    self.proxy_enabled_switch = ui.switch('Enable HTTP Proxy', value=False)
+                    self.proxy_enabled_switch.on('change', self._on_proxy_toggle)
+                
+                with ui.column().classes('ml-2') as proxy_config:
+                    ui.label('Enable proxy globally for both stages').classes('text-sm text-gray-600 mb-4')
+                    
+                    # Proxy URL input
+                    with self.create_form_group('Proxy URL', 'HTTP proxy URL for network requests'):
+                        with ui.row().classes('gap-0'):
+                            ui.label('http://').classes('px-3 py-2 bg-gray-100 border border-r-0 rounded-l text-sm')
+                            self.proxy_url_input = ui.input(
+                                placeholder='host.docker.internal:7890'
+                            ).classes('flex-1 rounded-l-none')
+                            self.proxy_url_input.on('input', self._on_proxy_url_change)
+                
+                proxy_config.bind_visibility_from(self.proxy_enabled_switch, 'value')
+            
+            # APT Configuration
+            with self.create_card('📦 APT Configuration'):
+                with self.create_form_group('APT Mirror', 'Choose APT repository mirror for faster package downloads'):
+                    self.apt_mirror_select = ui.select(
+                        options={
+                            'default': 'Default Ubuntu Mirrors',
+                            'tuna': 'Tsinghua University (tuna)',
+                            'aliyun': 'Alibaba Cloud (aliyun)',
+                            '163': 'NetEase (163)',
+                            'ustc': 'USTC'
+                        },
+                        value='default'
+                    ).classes('max-w-md')
+                    self.apt_mirror_select.on('change', self._on_apt_mirror_change)
+            
+            # Port Mappings
+            with self.create_card('🔌 Port Mappings'):
+                with self.create_form_group('Additional Port Mappings', 
+                                         'Map container ports to host ports (SSH port is configured separately)'):
+                    
+                    # Port mappings container
+                    with ui.column().classes('w-full mb-4') as mappings_container:
+                        self.port_mappings_container = mappings_container
+                    
+                    # Add port mapping button
+                    ui.button('➕ Add Port Mapping', on_click=self._add_port_mapping) \
+                        .classes('bg-blue-600 hover:bg-blue-700 text-white')
+                    
+                    # Info note
+                    with ui.card().classes('w-full p-3 mt-4 bg-blue-50 border-blue-200'):
+                        with ui.row().classes('items-center gap-2'):
+                            ui.icon('info', color='blue')
+                            ui.label('SSH port mapping (2222:22) is configured in the SSH tab.') \
+                                .classes('text-blue-800 text-sm')
+            
+            # Add initial example port mapping
+            self._add_port_mapping('8080', '80')
+        
+        return container
+    
+    def _on_proxy_toggle(self, e):
+        """Handle proxy enable/disable toggle."""
+        enabled = e.value
+        
+        # Update configuration
+        if 'proxy' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['proxy'] = {}
+        
+        self.app.data.config.stage_1['proxy']['enabled'] = enabled
+        self.mark_modified()
+    
+    def _on_proxy_url_change(self, e):
+        """Handle proxy URL input changes."""
+        proxy_url = e.value.strip()
+        
+        # Update configuration
+        if 'proxy' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['proxy'] = {}
+        
+        self.app.data.config.stage_1['proxy']['url'] = f'http://{proxy_url}' if proxy_url else ''
+        self.mark_modified()
+    
+    def _on_apt_mirror_change(self, e):
+        """Handle APT mirror selection changes."""
+        mirror = e.value
+        
+        # Update configuration
+        if 'apt' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['apt'] = {}
+        
+        self.app.data.config.stage_1['apt']['mirror'] = mirror
+        self.mark_modified()
+    
+    def _add_port_mapping(self, host_port: str = '', container_port: str = ''):
+        """Add a new port mapping configuration."""
+        mapping_id = f'port-mapping-{self.port_mapping_count}'
+        
+        with self.port_mappings_container:
+            with ui.card().classes('w-full p-4 mb-4') as mapping_card:
+                # Mapping header
+                with ui.row().classes('items-center justify-between mb-4'):
+                    ui.label(f'🔌 Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
+                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
+                
+                # Port configuration
+                with ui.row().classes('gap-4 mb-4'):
+                    with ui.column().classes('flex-1'):
+                        ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
+                        host_input = ui.input(
+                            placeholder='Host port (e.g., 8080 or 9090-9099)',
+                            value=host_port
+                        ).classes('w-full')
+                        host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
+                    
+                    with ui.column().classes('flex-1'):
+                        ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
+                        container_input = ui.input(
+                            placeholder='Container port (e.g., 80 or 9090-9099)',
+                            value=container_port
+                        ).classes('w-full')
+                        container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
+                
+                # Port mapping preview
+                with ui.column().classes('mt-3 p-3 bg-gray-50 rounded'):
+                    ui.label('Docker Compose Format:').classes('font-medium text-sm text-gray-700')
+                    preview_label = ui.label('-').classes('font-mono text-sm text-gray-900 font-bold')
+                    info_label = ui.label('Supports single ports (8080:80) and ranges (9090-9099:9090-9099)') \
+                        .classes('text-xs text-gray-500 mt-1')
+                
+                # Store mapping data
+                mapping_data = {
+                    'id': mapping_id,
+                    'host_input': host_input,
+                    'container_input': container_input,
+                    'host_error': host_error,
+                    'container_error': container_error,
+                    'preview_label': preview_label,
+                    'info_label': info_label,
+                    'card': mapping_card
+                }
+                
+                # Add event handlers
+                host_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'host'))
+                container_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'container'))
+                
+                self.port_mappings_data.append(mapping_data)
+                
+                # Update preview if values provided
+                if host_port or container_port:
+                    self._update_port_mapping_preview(mapping_data)
+        
+        self.port_mapping_count += 1
+        self.mark_modified()
+    
+    def _remove_port_mapping(self, mapping_card, mapping_id):
+        """Remove a port mapping configuration."""
+        mapping_card.delete()
+        
+        # Remove from data list
+        self.port_mappings_data = [
+            data for data in self.port_mappings_data 
+            if data['id'] != mapping_id
+        ]
+        
+        self.mark_modified()
+    
+    def _on_port_input_change(self, e, mapping_data, port_type):
+        """Handle port input changes."""
+        self._validate_port_input(mapping_data, port_type)
+        self._update_port_mapping_preview(mapping_data)
+        self._update_port_mappings_config()
+    
+    def _validate_port_input(self, mapping_data, port_type):
+        """Validate port input and show errors."""
+        input_field = mapping_data[f'{port_type}_input']
+        error_field = mapping_data[f'{port_type}_error']
+        value = input_field.value.strip()
+        
+        if not value:
+            error_field.classes(replace='text-red-600 text-sm mt-1 hidden')
+            input_field.classes(remove='border-red-500')
+            return True
+        
+        # Validate port or port range
+        if '-' in value:
+            # Port range validation
+            parts = value.split('-')
+            if len(parts) != 2:
+                self._show_port_error(input_field, error_field, 'Invalid range format. Use: startPort-endPort (e.g., 9090-9099)')
+                return False
+            
+            try:
+                start_port = int(parts[0].strip())
+                end_port = int(parts[1].strip())
+                
+                if start_port < 1 or start_port > 65535 or end_port < 1 or end_port > 65535:
+                    self._show_port_error(input_field, error_field, 'Port numbers must be between 1 and 65535')
+                    return False
+                
+                if start_port >= end_port:
+                    self._show_port_error(input_field, error_field, 'Start port must be less than end port')
+                    return False
+                
+                if end_port - start_port > 1000:
+                    self._show_port_error(input_field, error_field, 'Port range too large (max 1000 ports)')
+                    return False
+                
+            except ValueError:
+                self._show_port_error(input_field, error_field, 'Range must contain only numbers')
+                return False
+        else:
+            # Single port validation
+            try:
+                port = int(value)
+                if port < 1 or port > 65535:
+                    self._show_port_error(input_field, error_field, 'Port must be between 1 and 65535')
+                    return False
+                
+                if port < 1024:
+                    self._show_port_warning(input_field, error_field, 'Warning: Port < 1024 requires root privileges')
+                    return True
+                
+            except ValueError:
+                self._show_port_error(input_field, error_field, 'Port must be a number or range (e.g., 8080 or 9090-9099)')
+                return False
+        
+        # Valid input
+        error_field.classes(replace='text-red-600 text-sm mt-1 hidden')
+        input_field.classes(remove='border-red-500')
+        return True
+    
+    def _show_port_error(self, input_field, error_field, message):
+        """Show port validation error."""
+        error_field.set_text(message)
+        error_field.classes(replace='text-red-600 text-sm mt-1')
+        input_field.classes(add='border-red-500')
+    
+    def _show_port_warning(self, input_field, error_field, message):
+        """Show port validation warning."""
+        error_field.set_text(message)
+        error_field.classes(replace='text-yellow-600 text-sm mt-1')
+        input_field.classes(remove='border-red-500')
+    
+    def _update_port_mapping_preview(self, mapping_data):
+        """Update the port mapping preview display."""
+        host_value = mapping_data['host_input'].value.strip()
+        container_value = mapping_data['container_input'].value.strip()
+        preview_label = mapping_data['preview_label']
+        info_label = mapping_data['info_label']
+        
+        if host_value and container_value:
+            # Check if both inputs are valid
+            host_valid = self._validate_port_input(mapping_data, 'host')
+            container_valid = self._validate_port_input(mapping_data, 'container')
+            
+            if host_valid and container_valid:
+                mapping_text = f'"{host_value}:{container_value}"'
+                preview_label.set_text(mapping_text)
+                preview_label.classes(replace='font-mono text-sm text-green-600 font-bold')
+                info_label.set_text('Will be added to stage_1.ports array in user_config.yml')
+                info_label.classes(replace='text-xs text-green-600 mt-1')
+            else:
+                preview_label.set_text('Invalid mapping - check errors above')
+                preview_label.classes(replace='font-mono text-sm text-red-600 font-bold')
+                info_label.classes(replace='text-xs text-gray-500 mt-1')
+        elif host_value or container_value:
+            preview_label.set_text('Incomplete mapping - both ports required')
+            preview_label.classes(replace='font-mono text-sm text-yellow-600')
+            info_label.classes(replace='text-xs text-gray-500 mt-1')
+        else:
+            preview_label.set_text('-')
+            preview_label.classes(replace='font-mono text-sm text-gray-900')
+            info_label.classes(replace='text-xs text-gray-500 mt-1')
+    
+    def _update_port_mappings_config(self):
+        """Update the port mappings configuration."""
+        valid_mappings = []
+        
+        for mapping_data in self.port_mappings_data:
+            host_value = mapping_data['host_input'].value.strip()
+            container_value = mapping_data['container_input'].value.strip()
+            
+            if host_value and container_value:
+                host_valid = self._validate_port_input(mapping_data, 'host')
+                container_valid = self._validate_port_input(mapping_data, 'container')
+                
+                if host_valid and container_valid:
+                    valid_mappings.append(f'{host_value}:{container_value}')
+        
+        # Update configuration
+        if 'ports' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['ports'] = []
+        
+        self.app.data.config.stage_1['ports'] = valid_mappings
+        self.mark_modified()
+    
+    def validate(self) -> tuple[bool, list[str]]:
+        """Validate network configuration."""
+        errors = []
+        
+        # Validate proxy configuration
+        if self.proxy_enabled_switch and self.proxy_enabled_switch.value:
+            if not self.proxy_url_input or not self.proxy_url_input.value.strip():
+                errors.append("Proxy URL is required when proxy is enabled")
+        
+        # Validate port mappings
+        for i, mapping_data in enumerate(self.port_mappings_data):
+            host_value = mapping_data['host_input'].value.strip()
+            container_value = mapping_data['container_input'].value.strip()
+            
+            if host_value or container_value:
+                if not host_value or not container_value:
+                    errors.append(f"Port mapping {i+1}: Both host and container ports are required")
+                else:
+                    if not self._validate_port_input(mapping_data, 'host'):
+                        errors.append(f"Port mapping {i+1}: Invalid host port")
+                    if not self._validate_port_input(mapping_data, 'container'):
+                        errors.append(f"Port mapping {i+1}: Invalid container port")
+        
+        return len(errors) == 0, errors
+    
+    def get_config_data(self) -> dict:
+        """Get network configuration data."""
+        return {
+            'stage_1': {
+                'proxy': self.app.data.config.stage_1.get('proxy', {}),
+                'apt': self.app.data.config.stage_1.get('apt', {}),
+                'ports': self.app.data.config.stage_1.get('ports', [])
+            }
+        }
+    
+    def set_config_data(self, data: dict):
+        """Set network configuration data."""
+        stage_1_config = data.get('stage_1', {})
+        
+        # Set proxy configuration
+        proxy_config = stage_1_config.get('proxy', {})
+        if self.proxy_enabled_switch:
+            self.proxy_enabled_switch.set_value(proxy_config.get('enabled', False))
+        
+        if self.proxy_url_input:
+            proxy_url = proxy_config.get('url', '')
+            # Remove http:// prefix for display
+            if proxy_url.startswith('http://'):
+                proxy_url = proxy_url[7:]
+            self.proxy_url_input.set_value(proxy_url)
+        
+        # Set APT configuration
+        apt_config = stage_1_config.get('apt', {})
+        if self.apt_mirror_select:
+            self.apt_mirror_select.set_value(apt_config.get('mirror', 'default'))
+        
+        # Set port mappings
+        ports = stage_1_config.get('ports', [])
+        # Clear existing mappings
+        if self.port_mappings_container:
+            self.port_mappings_container.clear()
+            self.port_mappings_data = []
+            self.port_mapping_count = 0
+        
+        # Add loaded port mappings
+        for port_mapping in ports:
+            if ':' in port_mapping:
+                host_port, container_port = port_mapping.split(':', 1)
+                self._add_port_mapping(host_port, container_port)
