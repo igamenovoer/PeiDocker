@@ -5,101 +5,96 @@
     Configure proxy settings (applied globally to both stages), APT repository mirrors, and port mappings for network connectivity.
 </p>
 
-<div class="grid grid-2">
-    <!-- Proxy Configuration -->
-    <div>
-        <div class="card mb-6">
-            <div class="card-header">
-                🔗 Proxy Configuration
-            </div>
-            <div class="card-content">
-                <div class="form-group">
-                    <div class="flex items-center gap-4">
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="toggle-input" id="proxy-enabled">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <div>
-                            <div class="form-label">Enable HTTP Proxy</div>
-                            <div class="form-help">
-                                Enable proxy globally for both stages
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="proxy-url">
-                        Proxy URL
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">http://</span>
-                        <input 
-                            type="text" 
-                            id="proxy-url" 
-                            class="form-input" 
-                            placeholder="host.docker.internal:7890"
-                        >
-                    </div>
+<!-- Proxy Configuration -->
+<div class="card mb-6">
+    <div class="card-header">
+        🔗 Proxy Configuration
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <div class="flex items-center gap-4">
+                <label class="toggle-switch">
+                    <input type="checkbox" class="toggle-input" id="proxy-enabled">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="form-label">Enable HTTP Proxy</div>
                     <div class="form-help">
-                        HTTP proxy URL for network requests
+                        Enable proxy globally for both stages
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="card">
-            <div class="card-header">
-                📦 APT Configuration
+        
+        <div class="form-group">
+            <label class="form-label" for="proxy-url">
+                Proxy URL
+            </label>
+            <div class="input-group">
+                <span class="input-group-text">http://</span>
+                <input 
+                    type="text" 
+                    id="proxy-url" 
+                    class="form-input" 
+                    placeholder="host.docker.internal:7890"
+                >
             </div>
-            <div class="card-content">
-                <div class="form-group">
-                    <label class="form-label" for="apt-mirror">
-                        APT Mirror
-                    </label>
-                    <select id="apt-mirror" class="form-select">
-                        <option value="default">Default Ubuntu Mirrors</option>
-                        <option value="tuna">Tsinghua University (tuna)</option>
-                        <option value="aliyun">Alibaba Cloud (aliyun)</option>
-                        <option value="163">NetEase (163)</option>
-                        <option value="ustc">USTC</option>
-                    </select>
-                    <div class="form-help">
-                        Choose APT repository mirror for faster package downloads
-                    </div>
-                </div>
+            <div class="form-help">
+                HTTP proxy URL for network requests
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Port Mappings -->
-    <div>
-        <div class="card">
-            <div class="card-header">
-                🔌 Port Mappings
+<!-- APT Configuration -->
+<div class="card mb-6">
+    <div class="card-header">
+        📦 APT Configuration
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <label class="form-label" for="apt-mirror">
+                APT Mirror
+            </label>
+            <select id="apt-mirror" class="form-select">
+                <option value="default">Default Ubuntu Mirrors</option>
+                <option value="tuna">Tsinghua University (tuna)</option>
+                <option value="aliyun">Alibaba Cloud (aliyun)</option>
+                <option value="163">NetEase (163)</option>
+                <option value="ustc">USTC</option>
+            </select>
+            <div class="form-help">
+                Choose APT repository mirror for faster package downloads
             </div>
-            <div class="card-content">
-                <div class="form-group">
-                    <label class="form-label">
-                        Additional Port Mappings
-                    </label>
-                    <div class="form-help mb-4">
-                        Map container ports to host ports (SSH port is configured separately)
-                    </div>
-                    
-                    <div id="port-mappings">
-                        <!-- Port mapping items will be added here -->
-                    </div>
-                    
-                    <button class="btn btn-secondary" onclick="addPortMapping()">
-                        ➕ Add Port Mapping
-                    </button>
-                </div>
-                
-                <div class="alert alert-info mt-4">
-                    <strong>Note:</strong> SSH port mapping (2222:22) is configured in the SSH tab.
-                </div>
+        </div>
+    </div>
+</div>
+
+<!-- Port Mappings -->
+<div class="card">
+    <div class="card-header">
+        🔌 Port Mappings
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <label class="form-label">
+                Additional Port Mappings
+            </label>
+            <div class="form-help mb-4">
+                Map container ports to host ports (SSH port is configured separately)
             </div>
+            
+            <div id="port-mappings">
+                <!-- Port mapping items will be added here -->
+            </div>
+            
+            <button class="btn btn-secondary" onclick="addPortMapping()">
+                ➕ Add Port Mapping
+            </button>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <strong>Note:</strong> SSH port mapping (2222:22) is configured in the SSH tab.
         </div>
     </div>
 </div>

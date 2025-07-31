@@ -259,50 +259,6 @@
     </div>
 </div>
 
-<!-- Script Execution Preview -->
-<div class="card mt-6">
-    <div class="card-header">
-        ⚡ Script Execution Order Preview
-    </div>
-    <div class="card-content">
-        <div class="grid grid-2">
-            <div>
-                <h4 class="form-label mb-2">Stage-1 Execution</h4>
-                <div class="preview-panel">
-                    <div class="font-mono text-sm">
-                        <div class="text-orange-600 font-semibold mb-1">🏗️ Build Time:</div>
-                        <div class="ml-2">• on_build scripts execute</div>
-                        <div class="text-blue-600 font-semibold mt-2 mb-1">🚀 Runtime (Container Start):</div>
-                        <div class="ml-2">• on_first_run scripts (first time only)</div>
-                        <div class="ml-2">• on_every_run scripts (every start)</div>
-                        <div class="ml-2">• SSH service starts</div>
-                        <div class="ml-2">• Custom entry point (if configured)</div>
-                        <div class="text-green-600 font-semibold mt-2 mb-1">👤 SSH Login:</div>
-                        <div class="ml-2">• on_user_login scripts execute</div>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <h4 class="form-label mb-2">Stage-2 Execution</h4>
-                <div class="preview-panel">
-                    <div class="font-mono text-sm">
-                        <div class="text-orange-600 font-semibold mb-1">🏗️ Build Time:</div>
-                        <div class="ml-2">• on_build scripts execute</div>
-                        <div class="text-blue-600 font-semibold mt-2 mb-1">🚀 Runtime (Container Start):</div>
-                        <div class="ml-2">• Stage-1 on_first_run + on_every_run</div>
-                        <div class="ml-2">• Dynamic storage links created</div>
-                        <div class="ml-2">• Stage-2 on_first_run (first time only)</div>
-                        <div class="ml-2">• Stage-2 on_every_run (every start)</div>
-                        <div class="ml-2">• SSH service starts</div>
-                        <div class="ml-2">• Custom entry point (Stage-2 > Stage-1)</div>
-                        <div class="text-green-600 font-semibold mt-2 mb-1">👤 SSH Login:</div>
-                        <div class="ml-2">• on_user_login scripts execute</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
     function generateUUID() {
