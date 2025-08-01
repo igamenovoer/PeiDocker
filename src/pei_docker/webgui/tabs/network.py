@@ -5,7 +5,7 @@ This tab handles network configuration including proxy settings,
 APT repository mirrors, and port mappings.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from nicegui import ui
 from .base import BaseTab
 import re
@@ -18,12 +18,12 @@ class NetworkTab(BaseTab):
     
     def __init__(self, app: 'PeiDockerWebGUI'):
         super().__init__(app)
-        self.proxy_enabled_switch = None
-        self.proxy_url_input = None
-        self.apt_mirror_select = None
-        self.port_mappings_container = None
-        self.port_mapping_count = 0
-        self.port_mappings_data = []
+        self.proxy_enabled_switch: Optional[ui.switch] = None
+        self.proxy_url_input: Optional[ui.input] = None
+        self.apt_mirror_select: Optional[ui.select] = None
+        self.port_mappings_container: Optional[ui.column] = None
+        self.port_mapping_count: int = 0
+        self.port_mappings_data: List[Dict[str, Any]] = []
     
     def render(self) -> ui.element:
         """Render the network tab content."""
@@ -31,12 +31,12 @@ class NetworkTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '[Network] Network Configuration',
+                '🌐 Network Configuration',
                 'Configure proxy settings (applied globally to both stages), APT repository mirrors, and port mappings for network connectivity'
             )
             
             # Proxy Configuration
-            with self.create_card('[ICON] Proxy Configuration'):
+            with self.create_card('🔗 Proxy Configuration'):
                 # Enable proxy toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
                     self.proxy_enabled_switch = ui.switch('Enable HTTP Proxy', value=False)
@@ -57,7 +57,7 @@ class NetworkTab(BaseTab):
                 proxy_config.bind_visibility_from(self.proxy_enabled_switch, 'value')
             
             # APT Configuration
-            with self.create_card('[Download] APT Configuration'):
+            with self.create_card('📥 APT Configuration'):
                 with self.create_form_group('APT Mirror', 'Choose APT repository mirror for faster package downloads'):
                     self.apt_mirror_select = ui.select(
                         options={
@@ -72,7 +72,7 @@ class NetworkTab(BaseTab):
                     self.apt_mirror_select.on('change', self._on_apt_mirror_change)
             
             # Port Mappings
-            with self.create_card('[ICON] Port Mappings'):
+            with self.create_card('🔌 Port Mappings'):
                 with self.create_form_group('Additional Port Mappings', 
                                          'Map container ports to host ports (SSH port is configured separately)'):
                     
@@ -81,7 +81,7 @@ class NetworkTab(BaseTab):
                         self.port_mappings_container = mappings_container
                     
                     # Add port mapping button
-                    ui.button('[Add] Add Port Mapping', on_click=self._add_port_mapping) \
+                    ui.button('➕ Add Port Mapping', on_click=self._add_port_mapping) \
                         .classes('bg-blue-600 hover:bg-blue-700 text-white')
                     
                     # Info note
@@ -91,8 +91,19 @@ class NetworkTab(BaseTab):
                             ui.label('SSH port mapping (2222:22) is configured in the SSH tab.') \
                                 .classes('text-blue-800 text-sm')
             
-            # Add initial example port mapping
-            self._add_port_mapping('8080', '80')
+            # Clear existing data since container was cleared
+            self.port_mappings_data = []
+            self.port_mapping_count = 0
+            
+            # Reload configuration from current state
+            # set_config_data will add example port mapping if none exist
+            current_ports = self.app.data.config.stage_1.get('ports', [])
+            if not current_ports:
+                # Add example port mapping only if no ports configured
+                self._add_port_mapping('8080', '80')
+            else:
+                # Load existing port mappings
+                self.set_config_data({'stage_1': self.app.data.config.stage_1})
         
         return container
     
@@ -137,8 +148,8 @@ class NetworkTab(BaseTab):
             with ui.card().classes('w-full p-4 mb-4') as mapping_card:
                 # Mapping header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'[ICON] Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
-                    ui.button('[Remove] Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
+                    ui.label(f'🔌 Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
                         .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                 
                 # Port configuration

@@ -89,9 +89,13 @@ class EnvironmentTab(BaseTab):
                         # Hide GPU config initially
                         gpu_config.bind_visibility_from(self.device_type_select, 'value', lambda v: v == 'gpu')
             
-            # Add initial example environment variables
-            self._add_env_variable('NODE_ENV', 'development')
-            self._add_env_variable('DEBUG', 'true')
+            # Clear existing data since container was cleared
+            self.env_variables_data = []
+            self.env_variable_count = 0
+            
+            # Reload configuration from current state
+            # This will add example variables if none exist
+            self.set_config_data({'stage_1': self.app.data.config.stage_1})
         
         return container
     
@@ -260,7 +264,7 @@ class EnvironmentTab(BaseTab):
         """Get environment configuration data."""
         return {
             'stage_1': {
-                'environment': self.app.data.config.stage_1.get('environment', {}),
+                'environment': self.app.data.config.stage_1.get('environment', []),
                 'device': self.app.data.config.stage_1.get('device', {})
             }
         }

@@ -5,7 +5,7 @@ This tab handles custom entry points and lifecycle hook scripts
 for Stage-1 and Stage-2 sequential image builds.
 """
 
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Optional, Any, Tuple
 from nicegui import ui
 from .base import BaseTab
 import uuid
@@ -20,27 +20,27 @@ class ScriptsTab(BaseTab):
         super().__init__(app)
         
         # Stage-1 Entry Point
-        self.stage1_entry_mode_radio = None
-        self.stage1_entry_config_container = None
-        self.stage1_entry_file_input = None
-        self.stage1_entry_inline_name_input = None
-        self.stage1_entry_inline_content_textarea = None
+        self.stage1_entry_mode_radio: Optional[ui.radio] = None
+        self.stage1_entry_config_container: Optional[ui.column] = None
+        self.stage1_entry_file_input: Optional[ui.input] = None
+        self.stage1_entry_inline_name_input: Optional[ui.input] = None
+        self.stage1_entry_inline_content_textarea: Optional[ui.textarea] = None
         
         # Stage-2 Entry Point
-        self.stage2_entry_mode_radio = None
-        self.stage2_entry_config_container = None
-        self.stage2_entry_file_input = None
-        self.stage2_entry_inline_name_input = None
-        self.stage2_entry_inline_content_textarea = None
+        self.stage2_entry_mode_radio: Optional[ui.radio] = None
+        self.stage2_entry_config_container: Optional[ui.column] = None
+        self.stage2_entry_file_input: Optional[ui.input] = None
+        self.stage2_entry_inline_name_input: Optional[ui.input] = None
+        self.stage2_entry_inline_content_textarea: Optional[ui.textarea] = None
         
         # Lifecycle Scripts
-        self.stage1_lifecycle_containers = {}
-        self.stage2_lifecycle_containers = {}
-        self.stage1_lifecycle_scripts = {}
-        self.stage2_lifecycle_scripts = {}
+        self.stage1_lifecycle_containers: Dict[str, ui.column] = {}
+        self.stage2_lifecycle_containers: Dict[str, ui.column] = {}
+        self.stage1_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = {}
+        self.stage2_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = {}
         
         # Lifecycle types
-        self.lifecycle_types = [
+        self.lifecycle_types: List[Tuple[str, str]] = [
             ('on_build', 'Runs during image building'),
             ('on_first_run', 'Runs on first container start (respective stage)'),
             ('on_every_run', 'Runs on every container start (respective stage)'),
@@ -53,24 +53,24 @@ class ScriptsTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '[Scripts] Custom Scripts Configuration',
+                '📜 Custom Scripts Configuration',
                 'Configure custom entry points and lifecycle hook scripts for Stage-1 and Stage-2 sequential image builds'
             )
             
             # Important Path Access Rules
             with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
-                ui.label('[Info] Important: Script Path Access Rules').classes('text-lg font-semibold text-blue-800 mb-3')
+                ui.label('ℹ️ Important: Script Path Access Rules').classes('text-lg font-semibold text-blue-800 mb-3')
                 
                 with ui.column().classes('text-sm'):
                     with ui.column().classes('mb-3'):
-                        ui.label('[Project] Stage-1 Scripts:').classes('font-semibold')
+                        ui.label('🏗️ Stage-1 Scripts:').classes('font-semibold')
                         with ui.column().classes('ml-4 mt-1'):
                             ui.markdown('• Can **ONLY** reference paths starting with `stage-1/`').classes('text-sm')
                             ui.markdown('• **Cannot access** any `stage-2/` paths (stage-2 doesn\'t exist yet)').classes('text-sm')
                             ui.markdown('• Examples: `stage-1/custom/script.sh`, `stage-1/system/setup.sh`').classes('text-sm')
                     
                     with ui.column():
-                        ui.label('[Create] Stage-2 Scripts:').classes('font-semibold')
+                        ui.label('🏗️ Stage-2 Scripts:').classes('font-semibold')
                         with ui.column().classes('ml-4 mt-1'):
                             ui.markdown('• Can reference paths starting with **both** `stage-1/` and `stage-2/`').classes('text-sm')
                             ui.markdown('• Has access to all stage-1 resources plus stage-2 resources').classes('text-sm')
@@ -81,14 +81,14 @@ class ScriptsTab(BaseTab):
                             .classes('text-xs font-semibold')
             
             # Stage-1 Scripts
-            self._create_stage_scripts_section('stage1', '[Project] Stage-1 Image Scripts', 'stage-1')
+            self._create_stage_scripts_section('stage1', '🏗️ Stage-1 Image Scripts', 'stage-1')
             
             # Stage-2 Scripts
-            self._create_stage_scripts_section('stage2', '[Create] Stage-2 Image Scripts', 'stage-2')
+            self._create_stage_scripts_section('stage2', '🏗️ Stage-2 Image Scripts', 'stage-2')
         
         return container
     
-    def _create_stage_scripts_section(self, stage: str, title: str, path_prefix: str):
+    def _create_stage_scripts_section(self, stage: str, title: str, path_prefix: str) -> None:
         """Create a stage scripts section."""
         with self.create_card(title):
             # Custom Entry Point
@@ -159,10 +159,10 @@ class ScriptsTab(BaseTab):
                         
                         # Add script buttons
                         with ui.row().classes('gap-2 mb-2'):
-                            ui.button('[Browse] Add File', 
+                            ui.button('📁 Add File', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix: self._add_lifecycle_script(s, lt, 'file', pp)) \
                                 .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
-                            ui.button('[ICON] Add Inline', 
+                            ui.button('📝 Add Inline', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix: self._add_lifecycle_script(s, lt, 'inline', pp)) \
                                 .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
                         
@@ -184,7 +184,7 @@ class ScriptsTab(BaseTab):
         """Generate a short UUID for script names."""
         return str(uuid.uuid4()).replace('-', '')[:8]
     
-    def _on_entry_mode_change(self, e, stage: str):
+    def _on_entry_mode_change(self, e: Any, stage: str) -> None:
         """Handle entry point mode changes."""
         mode = e.value
         
@@ -198,7 +198,7 @@ class ScriptsTab(BaseTab):
         
         self._on_entry_config_change(stage)
     
-    def _on_entry_config_change(self, stage: str):
+    def _on_entry_config_change(self, stage: str) -> None:
         """Handle entry point configuration changes."""
         # Update configuration
         stage_key = 'stage_1' if stage == 'stage1' else 'stage_2'
@@ -240,7 +240,7 @@ class ScriptsTab(BaseTab):
         
         self.mark_modified()
     
-    def _add_lifecycle_script(self, stage: str, lifecycle_type: str, script_type: str, path_prefix: str):
+    def _add_lifecycle_script(self, stage: str, lifecycle_type: str, script_type: str, path_prefix: str) -> None:
         """Add a lifecycle script."""
         script_id = f'{stage}-{lifecycle_type}-{script_type}-{self._generate_uuid()}'
         container = self.stage1_lifecycle_containers[lifecycle_type] if stage == 'stage1' else self.stage2_lifecycle_containers[lifecycle_type]
@@ -256,9 +256,9 @@ class ScriptsTab(BaseTab):
                         ).classes('w-full mb-2')
                         
                         with ui.row().classes('gap-2'):
-                            ui.button('[Edit] Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
+                            ui.button('✏️ Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
                                 .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
-                            ui.button('[Remove] Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                            ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
                                 .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                         
                         script_input.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
@@ -280,11 +280,11 @@ class ScriptsTab(BaseTab):
                         ).classes('w-full mb-2').props('rows=3')
                         
                         with ui.row().classes('gap-2'):
-                            ui.button('[View] View', on_click=lambda name=script_name_input, content=script_content_textarea: self._view_inline_script(name.value, content.value)) \
+                            ui.button('👁️ View', on_click=lambda name=script_name_input, content=script_content_textarea: self._view_inline_script(name.value, content.value)) \
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white text-sm')
-                            ui.button('[Edit] Edit', on_click=lambda name=script_name_input, content=script_content_textarea: self._edit_inline_script(name.value, content)) \
+                            ui.button('✏️ Edit', on_click=lambda name=script_name_input, content=script_content_textarea: self._edit_inline_script(name.value, content)) \
                                 .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
-                            ui.button('[Remove] Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                            ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
                                 .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                         
                         script_content_textarea.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
@@ -310,7 +310,7 @@ class ScriptsTab(BaseTab):
         
         self._on_lifecycle_script_change(stage, lifecycle_type)
     
-    def _remove_script(self, script_card, stage: str, lifecycle_type: str, script_id: str):
+    def _remove_script(self, script_card: Any, stage: str, lifecycle_type: str, script_id: str) -> None:
         """Remove a lifecycle script."""
         script_card.delete()
         
@@ -328,7 +328,7 @@ class ScriptsTab(BaseTab):
         
         self._on_lifecycle_script_change(stage, lifecycle_type)
     
-    def _on_lifecycle_script_change(self, stage: str, lifecycle_type: str):
+    def _on_lifecycle_script_change(self, stage: str, lifecycle_type: str) -> None:
         """Handle lifecycle script changes."""
         stage_key = 'stage_1' if stage == 'stage1' else 'stage_2'
         
@@ -364,13 +364,13 @@ class ScriptsTab(BaseTab):
         
         self.mark_modified()
     
-    def _edit_file_path(self, input_field):
+    def _edit_file_path(self, input_field: Any) -> None:
         """Edit file path (simulate dialog)."""
         # In a real implementation, this would open a proper dialog
         # For now, just focus the input field
         input_field.run_method('focus')
     
-    def _view_inline_script(self, name: str, content: str):
+    def _view_inline_script(self, name: str, content: str) -> None:
         """View inline script content."""
         with ui.dialog() as dialog, ui.card().classes('w-96'):
             ui.label(f'Viewing: {name}').classes('text-lg font-semibold mb-3')
@@ -378,7 +378,7 @@ class ScriptsTab(BaseTab):
             ui.button('Close', on_click=dialog.close).classes('mt-3')
         dialog.open()
     
-    def _edit_inline_script(self, name: str, content_textarea):
+    def _edit_inline_script(self, name: str, content_textarea: Any) -> None:
         """Edit inline script content."""
         # For now, just focus the textarea
         content_textarea.run_method('focus')
@@ -444,7 +444,7 @@ class ScriptsTab(BaseTab):
             }
         }
     
-    def set_config_data(self, data: dict):
+    def set_config_data(self, data: dict) -> None:
         """Set scripts configuration data."""
         stage_1_config = data.get('stage_1', {})
         stage_2_config = data.get('stage_2', {})

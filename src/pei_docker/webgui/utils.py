@@ -21,8 +21,8 @@ from .models import ConfigurationState
 class ProjectManager:
     """Manages PeiDocker project operations."""
     
-    def __init__(self):
-        self._cli_available = None
+    def __init__(self) -> None:
+        self._cli_available: Optional[bool] = None
     
     async def check_cli_availability(self) -> bool:
         """Check if pei-docker-cli is available."""
@@ -345,7 +345,7 @@ class FileOperations:
             print(f"Error loading configuration: {e}")
             return False
     
-    async def _save_inline_scripts(self, project_dir: Path, config_state: ConfigurationState):
+    async def _save_inline_scripts(self, project_dir: Path, config_state: ConfigurationState) -> None:
         """Save inline scripts to stage directories."""
         try:
             for stage_name, stage_config in [('stage_1', config_state.stage_1), ('stage_2', config_state.stage_2)]:
@@ -585,7 +585,7 @@ class ValidationManager:
 class RealTimeValidator:
     """Real-time validation system for the GUI."""
     
-    def __init__(self, app_data, validation_manager: ValidationManager):
+    def __init__(self, app_data: Any, validation_manager: ValidationManager) -> None:
         self.app_data = app_data
         self.validator = validation_manager
     
@@ -632,7 +632,7 @@ class RealTimeValidator:
         # Validate project name
         if self.app_data.project.name:
             is_valid, error = self.validator.validate_project_name(self.app_data.project.name)
-            if not is_valid:
+            if not is_valid and error is not None:
                 errors.append(error)
         
         return errors
@@ -707,8 +707,18 @@ class RealTimeValidator:
         errors = []
         
         # Validate environment variables
-        env_config = self.app_data.config.stage_1.get('environment', {})
-        variables = env_config.get('variables', {})
+        env_config = self.app_data.config.stage_1.get('environment', [])
+        
+        # Handle both list and dict formats
+        variables = {}
+        if isinstance(env_config, list):
+            # Parse list format ['KEY=VALUE', ...]
+            for env_str in env_config:
+                if '=' in env_str:
+                    key, value = env_str.split('=', 1)
+                    variables[key.strip()] = value.strip()
+        elif isinstance(env_config, dict):
+            variables = env_config.get('variables', {})
         
         for name, value in variables.items():
             is_valid, error = self.validator.validate_environment_var_name(name)

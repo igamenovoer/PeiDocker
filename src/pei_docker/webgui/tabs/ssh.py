@@ -78,8 +78,14 @@ class SSHTab(BaseTab):
                 
                 warning.bind_visibility_from(self.ssh_enabled_switch, 'value', lambda enabled: not enabled)
         
-        # Add default user like in demo
-        if self.ssh_enabled_switch and self.ssh_enabled_switch.value:
+        # Clear existing data since container was cleared
+        self.users_data = []
+        self.user_count = 0
+        
+        # Check if we should add default user
+        ssh_config = self.app.data.config.stage_1.get('ssh', {})
+        if ssh_config.get('enabled', False) and not ssh_config.get('users', []):
+            # Only add default user if SSH is enabled and no users exist
             self._add_default_user()
         
         return container
@@ -340,10 +346,13 @@ class SSHTab(BaseTab):
         ssh_config = data.get('stage_1', {}).get('ssh', {})
         
         if self.ssh_enabled_switch:
-            self.ssh_enabled_switch.set_value(ssh_config.get('enable', False))
+            self.ssh_enabled_switch.set_value(ssh_config.get('enabled', False))
         
         if self.ssh_port_input:
             self.ssh_port_input.set_value(ssh_config.get('port', 22))
         
         if self.host_port_input:
             self.host_port_input.set_value(ssh_config.get('host_port', 2222))
+        
+        # Note: User loading from config would need to be implemented
+        # For now, users need to be re-entered when switching tabs
