@@ -14,13 +14,13 @@ you need to create a screenshot report that looks like this, and save to
 (what you are going to do in this step)
 
 (before you do, here is a screenshot of the application)
-![Screenshot 1](path/to/screenshot1.svg)
+![Screenshot 1](path/to/screenshot1.png)
 
 (after you finished typing, here is a screenshot of the application)
-![Screenshot 2](path/to/screenshot2.svg)
+![Screenshot 2](path/to/screenshot2.png)
 
 (after you clicked the button and triggers the action, here is a screenshot of the application)
-![Final Screenshot](path/to/final-screenshot.svg)
+![Final Screenshot](path/to/final-screenshot.png)
 
 ## Step 2: <Short Description of Next Step>
 ...

@@ -55,7 +55,7 @@ Issues = "https://github.com/igamenovoer/PeiDocker/issues"
 
 [project.scripts]
 pei-docker-cli = "pei_docker.pei:cli"
-pei-docker-gui = "pei_docker.gui.app:main"
+pei-docker-gui = "pei_docker.webgui.cli_launcher:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pei_docker"]
@@ -116,6 +116,7 @@ platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 # Python and other conda dependencies can go here
 python = ">=3.11"
 nicegui = ">=2.21.1,<3"
+playwright = "*"
 
 [tool.pixi.pypi-dependencies]
 # Install the package itself in editable mode for development

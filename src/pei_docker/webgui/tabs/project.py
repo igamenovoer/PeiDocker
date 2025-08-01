@@ -24,10 +24,7 @@ class ProjectTab(BaseTab):
         self.stage1_image_label: Optional[ui.label] = None
         self.stage2_image_label: Optional[ui.label] = None
         
-        # Project directory UI components
-        self.project_dir_input: Optional[ui.input] = None
-        self.project_dir_section: Optional[ui.column] = None
-        self.active_project_section: Optional[ui.column] = None
+        # Project configuration UI components
         self.project_config_section: Optional[ui.column] = None
     
     def render(self) -> ui.element:
@@ -40,52 +37,6 @@ class ProjectTab(BaseTab):
                 '🏗️ Project Information',
                 'Configure basic project settings and Docker image information. This forms the foundation of your containerized development environment.'
             )
-            
-            # Project Directory Section (Always Visible)
-            with ui.column().classes('mb-6'):
-                ui.label('📁 Project Directory').classes('text-lg font-semibold mb-4')
-                
-                with self.create_form_group('Project Directory Path', 'Directory must be empty or non-existent. Leave empty to use a generated temporary directory.'):
-                    self.project_dir_input = ui.input(
-                        placeholder='/path/to/your/project or leave empty for temporary directory',
-                        value=''
-                    ).classes('w-full')
-                    
-                    with ui.row().classes('gap-2 mt-2'):
-                        ui.button('📁 Browse', on_click=self._browse_directory) \
-                            .classes('bg-gray-500 hover:bg-gray-600')
-                        ui.button('🎲 Generate', on_click=self._generate_temp_directory) \
-                            .classes('bg-blue-500 hover:bg-blue-600')
-                
-                # Action buttons
-                with ui.row().classes('gap-4 mt-6'):
-                    ui.button('🚀 Create Project', on_click=self._create_project) \
-                        .classes('bg-green-600 hover:bg-green-700 text-white py-2 px-6')
-                    ui.button('📂 Load Project', on_click=self._load_project) \
-                        .classes('bg-blue-600 hover:bg-blue-700 text-white py-2 px-6')
-            
-            # Active Project Directory Section (Only visible when project is active)
-            with ui.column().classes('mb-6') as active_project_section:
-                self.active_project_section = active_project_section
-                
-                ui.label('📁 Active Project Directory').classes('text-lg font-semibold mb-4')
-                
-                with ui.row().classes('items-center justify-between'):
-                    with ui.row().classes('items-center gap-3'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.icon('circle', size='sm').classes('text-green-500')
-                            ui.label().bind_text_from(self.app.data.project, 'directory', 
-                                                     lambda d: str(d) if d else '') \
-                                .classes('font-mono text-sm')
-                    
-                    ui.button('🔄 Change Project', on_click=self.app.change_project) \
-                        .classes('bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1')
-                
-                # Only show this section when project is active
-                active_project_section.bind_visibility_from(
-                    self.app.data, 'app_state', 
-                    lambda state: state == AppState.ACTIVE
-                )
             
             # Project Configuration (Always Available)
             with ui.column() as project_config_section:
@@ -202,122 +153,6 @@ class ProjectTab(BaseTab):
         
         self.app.data.config.stage_1['image']['output'] = f'{sanitized_name}:stage-1'
         self.app.data.config.stage_2['image']['output'] = f'{sanitized_name}:stage-2'
-    
-    def _browse_directory(self) -> None:
-        """Open directory browser (placeholder for now)."""
-        ui.notify('Directory browser feature coming soon. Please enter path manually.', type='info')
-    
-    def _generate_temp_directory(self) -> None:
-        """Generate a temporary directory path."""
-        import tempfile
-        from datetime import datetime
-        
-        temp_dir = Path(tempfile.gettempdir()) / f"peidocker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        if self.project_dir_input:
-            self.project_dir_input.set_value(str(temp_dir))
-        ui.notify('Generated temporary directory path', type='info', timeout=2000)
-    
-    async def _create_project(self) -> None:
-        """Create a new project using the specified directory."""
-        if not self.project_dir_input:
-            ui.notify('Project directory input not available', type='negative')
-            return
-            
-        directory_path = self.project_dir_input.value.strip()
-        
-        if not directory_path:
-            # Generate temporary directory if empty
-            self._generate_temp_directory()
-            directory_path = self.project_dir_input.value.strip()
-        
-        try:
-            project_dir = Path(directory_path).resolve()
-            
-            # Check if directory exists and is not empty
-            if project_dir.exists() and any(project_dir.iterdir()):
-                ui.notify(f'Directory {project_dir} is not empty. Please choose an empty directory or non-existent path.', type='negative')
-                return
-            
-            success = await self.app.project_manager.create_project(project_dir)
-            
-            if success:
-                # Set project data
-                self.app.data.project.directory = project_dir
-                self.app.data.project.name = project_dir.name
-                
-                # Update project name input with directory name
-                if self.project_name_input:
-                    self.project_name_input.set_value(project_dir.name)
-                
-                # Update app state to active
-                self.app.data.app_state = AppState.ACTIVE
-                
-                ui.notify(f'Project created successfully at {project_dir}', type='positive')
-                
-                # Load configuration into tabs
-                self.app._load_config_into_tabs()
-                
-            else:
-                ui.notify('Failed to create project. Check directory permissions and try again.', type='negative')
-                
-        except Exception as e:
-            ui.notify(f'Error creating project: {str(e)}', type='negative')
-    
-    async def _load_project(self) -> None:
-        """Load an existing project from the specified directory."""
-        if not self.project_dir_input:
-            ui.notify('Project directory input not available', type='negative')
-            return
-            
-        directory_path = self.project_dir_input.value.strip()
-        
-        if not directory_path:
-            ui.notify('Please enter a project directory path', type='negative')
-            return
-        
-        try:
-            project_dir = Path(directory_path).resolve()
-            
-            if not project_dir.exists():
-                ui.notify('Project directory does not exist', type='negative')
-                return
-            
-            # Check if this looks like a PeiDocker project
-            config_file = project_dir / 'user_config.yml'
-            if not config_file.exists():
-                ui.notify('No user_config.yml found in directory. Not a PeiDocker project?', type='warning')
-                return
-            
-            # Load configuration
-            success = await self.app.file_ops.load_configuration(project_dir, self.app.data.config)
-            
-            if success:
-                # Set project data
-                self.app.data.project.directory = project_dir
-                self.app.data.project.name = project_dir.name
-                
-                # Update project name input with loaded project name or directory name
-                project_name = self.app.data.config.stage_1.get('image', {}).get('output', project_dir.name)
-                if ':' in project_name:
-                    project_name = project_name.split(':')[0]  # Remove tag if present
-                
-                if self.project_name_input:
-                    self.project_name_input.set_value(project_name)
-                    self.app.data.project.name = project_name
-                
-                # Update app state to active
-                self.app.data.app_state = AppState.ACTIVE
-                
-                ui.notify(f'Project loaded successfully from {project_dir}', type='positive')
-                
-                # Load configuration into tabs
-                self.app._load_config_into_tabs()
-                
-            else:
-                ui.notify('Failed to load project configuration', type='negative')
-                
-        except Exception as e:
-            ui.notify(f'Error loading project: {str(e)}', type='negative')
     
     def validate(self) -> tuple[bool, list[str]]:
         """Validate project configuration."""

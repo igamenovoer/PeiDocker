@@ -9,7 +9,7 @@ with the existing PeiDocker CLI commands.
 import asyncio
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Literal
 from datetime import datetime
 
 from nicegui import ui, app
@@ -118,6 +118,10 @@ class PeiDockerWebGUI:
                 ui.label().bind_text_from(self.data.config, 'last_saved',
                                         lambda t: f'✅ Last saved: {t}' if t else '✅ All saved') \
                     .bind_visibility_from(self.data.config, 'modified', lambda m: not m)
+                
+                # Change Project button
+                ui.button('🔄 Change Project', on_click=self.change_project) \
+                    .classes('bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1 ml-2')
             
             # Bind visibility to active state
             info_bar.bind_visibility_from(self.data, 'app_state', 
@@ -165,13 +169,17 @@ class PeiDockerWebGUI:
                 with ui.column().classes('w-full gap-4'):
                     ui.label('📁 Project Directory:').classes('font-medium')
                     
-                    project_dir_input = ui.input(placeholder='Enter project directory path') \
-                        .classes('w-full')
+                    # Auto-generate default project directory
+                    default_project_dir = self._generate_default_project_dir()
+                    project_dir_input = ui.input(
+                        placeholder='Auto-generated project directory (click Generate for new path)', 
+                        value=default_project_dir
+                    ).classes('w-full')
                     
                     with ui.row().classes('gap-2 w-full'):
                         ui.button('📂 Browse', on_click=self.browse_directory) \
                             .classes('bg-gray-500 hover:bg-gray-600')
-                        ui.button('🎲 Generate', on_click=lambda: self.generate_temp_directory(project_dir_input)) \
+                        ui.button('🎲 Generate New', on_click=lambda: self.generate_temp_directory(project_dir_input)) \
                             .classes('bg-blue-500 hover:bg-blue-600')
                     
                     # Action buttons
@@ -216,6 +224,14 @@ class PeiDockerWebGUI:
         # This will be called reactively through NiceGUI's binding system
         pass
     
+    def _safe_notify(self, message: str, type: Literal['positive', 'negative', 'warning', 'info'] = 'info', timeout: int = 3000) -> None:
+        """Safely notify user, handling cases where UI context might not be available."""
+        try:
+            ui.notify(message, type=type, timeout=timeout)
+        except RuntimeError:
+            # No UI context available, just print to console
+            print(f"[{type.upper()}] {message}")
+    
     def _load_config_into_tabs(self) -> None:
         """Load configuration data into all tabs."""
         try:
@@ -230,11 +246,11 @@ class PeiDockerWebGUI:
                 try:
                     tab.set_config_data(config_data)
                 except Exception as e:
-                    ui.notify(f'⚠️ Warning: Failed to load config for {tab_name.value} tab: {str(e)}', 
-                             type='warning', timeout=3000)
+                    self._safe_notify(f'⚠️ Warning: Failed to load config for {tab_name.value} tab: {str(e)}', 
+                                     type='warning', timeout=3000)
                     
         except Exception as e:
-            ui.notify(f'❌ Error loading configuration into tabs: {str(e)}', type='negative')
+            self._safe_notify(f'❌ Error loading configuration into tabs: {str(e)}', type='negative')
     
     def run_real_time_validation(self) -> None:
         """Run real-time validation and update UI indicators."""
@@ -327,20 +343,20 @@ class PeiDockerWebGUI:
     async def load_project(self, directory_path: str) -> None:
         """Load an existing project."""
         if not directory_path.strip():
-            ui.notify('❌ Please enter a project directory path', type='negative')
+            self._safe_notify('❌ Please enter a project directory path', type='negative')
             return
         
         try:
             project_dir = Path(directory_path).resolve()
             
             if not project_dir.exists():
-                ui.notify('❌ Project directory does not exist', type='negative')
+                self._safe_notify('❌ Project directory does not exist', type='negative')
                 return
             
             # Check if this looks like a PeiDocker project
             config_file = project_dir / 'user_config.yml'
             if not config_file.exists():
-                ui.notify('⚠️ No user_config.yml found in directory. Not a PeiDocker project?', type='warning')
+                self._safe_notify('⚠️ No user_config.yml found in directory. Not a PeiDocker project?', type='warning')
                 return
             
             # Load configuration
@@ -359,22 +375,27 @@ class PeiDockerWebGUI:
                 self.data.tabs.active_tab = TabName.PROJECT
                 self.render_active_tab()
                 
-                ui.notify(f'✅ Project loaded successfully from {project_dir}', type='positive')
+                self._safe_notify(f'✅ Project loaded successfully from {project_dir}', type='positive')
             else:
-                ui.notify('❌ Failed to load project configuration', type='negative')
+                self._safe_notify('❌ Failed to load project configuration', type='negative')
                 
         except Exception as e:
-            ui.notify(f'❌ Error loading project: {str(e)}', type='negative')
+            self._safe_notify(f'❌ Error loading project: {str(e)}', type='negative')
     
     def browse_directory(self) -> None:
         """Open directory browser."""
         ui.notify('🔄 Directory browser coming soon', type='info')
     
+    def _generate_default_project_dir(self) -> str:
+        """Generate a default project directory path."""
+        temp_dir = Path(tempfile.gettempdir()) / f"peidocker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        return str(temp_dir)
+    
     def generate_temp_directory(self, input_field: ui.input) -> None:
         """Generate a temporary directory path."""
-        temp_dir = Path(tempfile.gettempdir()) / f"peidocker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        input_field.set_value(str(temp_dir))
-        ui.notify('🎲 Generated temporary directory path', type='info', timeout=2000)
+        temp_dir = self._generate_default_project_dir()
+        input_field.set_value(temp_dir)
+        ui.notify('🎲 Generated new temporary directory path', type='info', timeout=2000)
     
     def change_project(self) -> None:
         """Switch to a different project (return to initial state)."""

@@ -213,9 +213,10 @@ class EnvironmentTab(BaseTab):
         
         # Update configuration
         if 'environment' not in self.app.data.config.stage_1:
-            self.app.data.config.stage_1['environment'] = {}
+            self.app.data.config.stage_1['environment'] = []
         
-        self.app.data.config.stage_1['environment']['variables'] = env_vars
+        # Save as list format ['KEY=VALUE', ...]
+        self.app.data.config.stage_1['environment'] = [f"{k}={v}" for k, v in env_vars.items()]
     
     def validate(self) -> tuple[bool, list[str]]:
         """Validate environment configuration."""
@@ -281,8 +282,18 @@ class EnvironmentTab(BaseTab):
             self.gpu_memory_input.set_value(gpu_config.get('memory', ''))
         
         # Set environment variables
-        env_config = stage_1_config.get('environment', {})
-        variables = env_config.get('variables', {})
+        env_config = stage_1_config.get('environment', [])
+        
+        # Handle both list and dict formats
+        variables = {}
+        if isinstance(env_config, list):
+            # Parse list format ['KEY=VALUE', ...]
+            for env_str in env_config:
+                if '=' in env_str:
+                    key, value = env_str.split('=', 1)
+                    variables[key.strip()] = value.strip()
+        elif isinstance(env_config, dict):
+            variables = env_config.get('variables', {})
         
         # Clear existing variables
         if self.env_variables_container:
