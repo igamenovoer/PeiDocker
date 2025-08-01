@@ -1,8 +1,82 @@
 """
 PeiDocker Web GUI CLI Launcher
+==============================
 
 This module provides the command-line interface for launching the PeiDocker NiceGUI
-web application with various configuration options.
+web application with various configuration options and debugging capabilities.
+
+Command Line Usage
+------------------
+The `pei-docker-gui` command provides a NiceGUI-based web interface for PeiDocker
+with advanced project management and debugging features.
+
+Basic Usage::
+
+    pei-docker-gui start [OPTIONS]
+
+Available Commands
+------------------
+
+start
+    Start the NiceGUI web application server
+
+Options for 'start' Command
+---------------------------
+
+--port <port>
+    Port to run the web application (default: 8080)
+    If the port is already in use, the command will show an error and exit.
+
+--project-dir <path>
+    Project directory to load or create on startup.
+    
+    - If directory exists with user_config.yml: Load existing PeiDocker project
+    - If directory exists but empty: Create new project in that location  
+    - If directory doesn't exist: Create directory and new project
+    - If directory contains non-PeiDocker files: Show error and exit
+
+--jump-to-page <page_name>
+    Navigate to specific page after startup. Creates default project if no
+    --project-dir specified. Valid page names:
+    
+    - home: Main welcome page
+    - project: Project configuration page
+    - ssh: SSH configuration page  
+    - network: Network configuration page
+    - environment: Environment variables page
+    - storage: Volume and bind mount configuration
+    - scripts: Custom scripts configuration
+    - summary: Complete project configuration overview
+
+Usage Examples
+--------------
+
+Start web GUI on default port::
+
+    pei-docker-gui start
+
+Start on custom port::
+
+    pei-docker-gui start --port 9090
+
+Load existing project::
+
+    pei-docker-gui start --project-dir /path/to/my/project
+
+Create new project and jump to SSH config::
+
+    pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+
+Quick debugging - jump to network page with default project::
+
+    pei-docker-gui start --jump-to-page network
+
+Notes
+-----
+- The web interface will be available at http://localhost:<port>
+- Project validation occurs before server startup to prevent runtime errors
+- Jump-to-page functionality is ideal for development and debugging workflows
+- Default projects are created in system temp directory with timestamp
 """
 
 import argparse
@@ -24,12 +98,26 @@ from .models import TabName, AppState
 
 def check_port_available(port: int) -> bool:
     """Check if a port is available for use.
-    
-    Args:
-        port: Port number to check
-        
-    Returns:
-        True if port is available, False otherwise
+
+    Attempts to connect to the specified port on localhost to determine
+    if it's already in use by another process.
+
+    Parameters
+    ----------
+    port : int
+        Port number to check for availability.
+
+    Returns
+    -------
+    bool
+        True if port is available (connection failed), False if port is in use.
+
+    Examples
+    --------
+    >>> check_port_available(8080)
+    True
+    >>> check_port_available(80)  # Typically in use
+    False
     """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         result = sock.connect_ex(('localhost', port))
@@ -38,12 +126,32 @@ def check_port_available(port: int) -> bool:
 
 def create_project_with_cli(project_dir: Path) -> bool:
     """Create a new project using pei-docker-cli create command.
-    
-    Args:
-        project_dir: Directory path for the new project
-        
-    Returns:
-        True if project creation succeeded, False otherwise
+
+    Executes the `pei-docker-cli create` command to initialize a new PeiDocker
+    project in the specified directory. Captures output and returns success status.
+
+    Parameters
+    ----------
+    project_dir : Path
+        Directory path where the new project will be created. Must be a valid
+        filesystem path.
+
+    Returns
+    -------
+    bool
+        True if project creation succeeded (return code 0), False otherwise.
+
+    Notes
+    -----
+    This function calls the external `pei-docker-cli` command and requires it
+    to be available in the system PATH. Error messages are written to stderr
+    if the command fails or raises an exception.
+
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> create_project_with_cli(Path("/tmp/my-project"))
+    True
     """
     try:
         result = subprocess.run(
@@ -59,12 +167,38 @@ def create_project_with_cli(project_dir: Path) -> bool:
 
 def validate_project_directory(project_dir: Path) -> tuple[bool, str]:
     """Validate if a project directory is legitimate for PeiDocker.
-    
-    Args:
-        project_dir: Directory path to validate
-        
-    Returns:
-        Tuple of (is_valid, error_message)
+
+    Performs comprehensive validation of a project directory to ensure it can
+    be used for PeiDocker operations. Checks path validity, existing project
+    status, and write permissions.
+
+    Parameters
+    ----------
+    project_dir : Path
+        Directory path to validate. Must be an absolute path.
+
+    Returns
+    -------
+    tuple[bool, str]
+        A tuple containing:
+        - bool: True if directory is valid for use, False otherwise
+        - str: Error message if validation failed, empty string if valid
+
+    Notes
+    -----
+    Validation criteria:
+    - Path must be absolute
+    - If exists: must be empty or contain user_config.yml (PeiDocker project)
+    - If doesn't exist: parent directory must exist and be writable
+    - Non-empty directories without user_config.yml are rejected
+
+    Examples
+    --------
+    >>> from pathlib import Path
+    >>> validate_project_directory(Path("/tmp/new-project"))
+    (True, "")
+    >>> validate_project_directory(Path("relative/path"))
+    (False, "Project directory must be an absolute path")
     """
     if not project_dir.is_absolute():
         return False, "Project directory must be an absolute path"
@@ -93,13 +227,34 @@ def validate_project_directory(project_dir: Path) -> tuple[bool, str]:
 
 
 def validate_page_name(page_name: str) -> tuple[bool, str]:
-    """Validate if page name is valid.
-    
-    Args:
-        page_name: Page name to validate
-        
-    Returns:
-        Tuple of (is_valid, error_message)
+    """Validate if page name is valid for jump-to-page functionality.
+
+    Checks if the provided page name matches one of the available tab names
+    in the NiceGUI web application or the special "home" page.
+
+    Parameters
+    ----------
+    page_name : str
+        Page name to validate against available options.
+
+    Returns
+    -------
+    tuple[bool, str]
+        A tuple containing:
+        - bool: True if page name is valid, False otherwise
+        - str: Error message listing valid options if invalid, empty string if valid
+
+    Notes
+    -----
+    Valid page names are derived from the TabName enum plus "home" as a special case.
+    The validation is case-sensitive and must match exactly.
+
+    Examples
+    --------
+    >>> validate_page_name("project")
+    (True, "")
+    >>> validate_page_name("invalid")
+    (False, "Invalid page name. Valid options: environment, home, network, project, scripts, ssh, storage, summary")
     """
     valid_pages = {tab.value for tab in TabName}
     valid_pages.add("home")  # Add home as special case
@@ -112,11 +267,37 @@ def validate_page_name(page_name: str) -> tuple[bool, str]:
 async def setup_initial_state(gui_app: PeiDockerWebGUI, project_dir: Optional[Path], 
                             jump_to_page: Optional[str]) -> None:
     """Setup initial application state based on CLI arguments.
-    
-    Args:
-        gui_app: The PeiDockerWebGUI instance
-        project_dir: Optional project directory to load/create
-        jump_to_page: Optional page to navigate to
+
+    Configures the web application state by loading/creating projects and 
+    navigating to specified pages. Handles both existing and new project scenarios.
+
+    Parameters
+    ----------
+    gui_app : PeiDockerWebGUI
+        The initialized PeiDockerWebGUI application instance.
+    project_dir : Path, optional
+        Project directory to load or create. If None and jump_to_page is specified,
+        uses the GUI's default project directory.
+    jump_to_page : str, optional
+        Page name to navigate to after project setup. Must be a valid page name
+        from the TabName enum or "home".
+
+    Notes
+    -----
+    Project handling logic:
+    - Existing project (has user_config.yml): Load project directly
+    - New location: Create project using pei-docker-cli, then load
+    - Navigation only occurs if project loading succeeds
+    - Errors are printed to stdout with traceback for debugging
+
+    The function uses a 0.5 second timer delay to ensure proper GUI initialization
+    before applying state changes.
+
+    Raises
+    ------
+    Exception
+        Any exceptions during project loading or navigation are caught and logged
+        with full traceback for debugging purposes.
     """
     try:
         # If jump_to_page is specified but no project_dir, use the GUI's default
@@ -173,9 +354,35 @@ async def setup_initial_state(gui_app: PeiDockerWebGUI, project_dir: Optional[Pa
 
 def start_command(args: argparse.Namespace) -> None:
     """Start the NiceGUI web application with specified options.
-    
-    Args:
-        args: Parsed command line arguments
+
+    Main entry point for the 'start' subcommand. Validates all arguments,
+    configures the web application, and starts the server with proper error handling.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments containing:
+        - port: Server port number
+        - project_dir: Optional project directory path  
+        - jump_to_page: Optional page name for navigation
+
+    Notes
+    -----
+    Validation sequence:
+    1. Check port availability (exit on conflict)
+    2. Validate project directory path and permissions
+    3. Validate page name if jump-to-page specified
+    4. Configure NiceGUI application with timer-based state setup
+    5. Start server on 0.0.0.0 with specified port
+
+    The server runs with auto-detect dark mode, no reload, and 🐳 favicon.
+    State setup is delayed by 0.5 seconds to ensure proper GUI initialization.
+
+    Raises
+    ------
+    SystemExit
+        Exits with code 1 if port is in use, project directory is invalid,
+        or page name is invalid.
     """
     # Check port availability
     if not check_port_available(args.port):
@@ -225,7 +432,27 @@ def start_command(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    """Main entry point for pei-docker-gui CLI."""
+    """Main entry point for pei-docker-gui CLI.
+
+    Configures argument parser with all available commands and options,
+    parses command line arguments, and dispatches to appropriate handlers.
+
+    Notes
+    -----
+    Command structure:
+    - Main command: pei-docker-gui  
+    - Subcommands: start
+    - If no subcommand provided, shows help and exits with code 1
+
+    The argument parser includes comprehensive help text and validation
+    for all options. Port conflicts and invalid arguments result in
+    error messages and program termination.
+
+    Raises
+    ------
+    SystemExit
+        Exits with code 1 if no command specified or if any validation fails.
+    """
     parser = argparse.ArgumentParser(
         prog='pei-docker-gui',
         description='PeiDocker Web GUI - Launch the NiceGUI web application'

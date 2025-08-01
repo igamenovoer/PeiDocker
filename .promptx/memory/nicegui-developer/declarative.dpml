@@ -357,4 +357,52 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754059415267_qceusdf7o" time="2025/08/01 22:43">
+    <content>
+      PeiDocker Web GUI CLI Usage - `pei-docker-gui` Command (from /workspace/code/PeiDocker/src/pei_docker/webgui/cli_launcher.py):
+    
+      **Basic Syntax:**
+      ```bash
+      pei-docker-gui start [OPTIONS]
+      ```
+    
+      **Key Options:**
+      - `--port &lt;port&gt;`: Server port (default: 8080), validates availability
+      - `--project-dir &lt;path&gt;`: Load/create project in specific directory
+      - `--jump-to-page &lt;page&gt;`: Navigate to specific page after startup
+    
+      **Valid Page Names for --jump-to-page:**
+      home, project, ssh, network, environment, storage, scripts, summary
+    
+      **Essential Usage Patterns:**
+    
+      Quick debugging - jump to specific page:
+      ```bash
+      pei-docker-gui start --jump-to-page network
+      ```
+    
+      Load existing project:
+      ```bash
+      pei-docker-gui start --project-dir /path/to/project
+      ```
+    
+      Create new project and navigate:
+      ```bash
+      pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+      ```
+    
+      **Key Behaviors:**
+      - Auto-creates default project in temp dir if --jump-to-page used without --project-dir
+      - Validates port availability before startup (exits on conflict)
+      - Validates project directory and page names with detailed error messages
+      - Uses 0.5s timer delay for proper GUI state initialization
+      - Project detection via user_config.yml file presence
+    
+      **Development Benefits:**
+      - Rapid navigation to specific configuration pages
+      - Automatic project creation for quick testing
+      - Ideal for debugging specific GUI components without manual clicking
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

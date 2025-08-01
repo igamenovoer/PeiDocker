@@ -5,7 +5,7 @@ This tab handles SSH server configuration, user management,
 and SSH key setup for container access.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Dict, List, Any
 from nicegui import ui
 from .base import BaseTab
 
@@ -15,12 +15,13 @@ if TYPE_CHECKING:
 class SSHTab(BaseTab):
     """SSH configuration tab."""
     
-    def __init__(self, app: 'PeiDockerWebGUI'):
+    def __init__(self, app: 'PeiDockerWebGUI') -> None:
         super().__init__(app)
-        self.ssh_enabled_switch = None
-        self.ssh_port_input = None
-        self.host_port_input = None
-        self.users_container = None
+        self.ssh_enabled_switch: Optional[ui.switch] = None
+        self.ssh_port_input: Optional[ui.number] = None
+        self.host_port_input: Optional[ui.number] = None
+        self.users_container: Optional[ui.column] = None
+        self.users_data: List[Dict[str, Any]] = []  # Track user configurations
     
     def render(self) -> ui.element:
         """Render the SSH tab content."""
@@ -63,7 +64,7 @@ class SSHTab(BaseTab):
                     self.users_container = users_container
                 
                 # Add user button
-                ui.button('[Add User] Add User', on_click=self._add_user) \
+                ui.button('➕ Add SSH User', on_click=self._add_user) \
                     .classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 users_card.bind_visibility_from(self.ssh_enabled_switch, 'value')
@@ -77,9 +78,117 @@ class SSHTab(BaseTab):
                 
                 warning.bind_visibility_from(self.ssh_enabled_switch, 'value', lambda enabled: not enabled)
         
+        # Add default user like in demo
+        if self.ssh_enabled_switch and self.ssh_enabled_switch.value:
+            self._add_default_user()
+        
         return container
     
-    def _on_ssh_toggle(self, e):
+    def _add_default_user(self) -> None:
+        """Add the default 'me' user like in the demo."""
+        with self.users_container:
+            with ui.card().classes('w-full p-4 mb-4') as user_card:
+                user_id = 'default-user-me'
+                
+                # User header
+                with ui.row().classes('items-center justify-between mb-4'):
+                    ui.label('👤 SSH User: me').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', on_click=lambda: self._remove_user(user_card, user_id)) \
+                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1')
+                
+                # User configuration
+                with ui.row().classes('gap-4 mb-4'):
+                    username_input = ui.input('Username', placeholder='username', value='me').classes('flex-1')
+                    password_input = ui.input('Password', placeholder='Enter secure password', password=True, value='').classes('flex-1')
+                
+                # Optional UID Configuration
+                with ui.column().classes('mb-4'):
+                    uid_enabled = ui.checkbox('Set custom User ID (UID)', value=False)
+                    uid_container = ui.column().classes('ml-6')
+                    with uid_container:
+                        ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
+                        uid_input = ui.input('UID', placeholder='1000', value='1000').props('type=number min=0').classes('max-w-xs')
+                        ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
+                    
+                    # Bind UID input visibility to checkbox
+                    uid_input.bind_visibility_from(uid_enabled, 'value')
+                
+                # SSH Key configuration (simplified for default user)
+                with ui.column().classes('mb-4'):
+                    # Public key configuration
+                    with ui.column().classes('mb-4'):
+                        ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        pubkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
+                        
+                        # File path input
+                        pubkey_file_container = ui.column().classes('mt-2')
+                        with pubkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                pubkey_file_input = ui.input(placeholder='~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub').classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path relative to project directory').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        pubkey_text_container = ui.column().classes('mt-2')
+                        with pubkey_text_container:
+                            pubkey_text_input = ui.textarea(placeholder='ssh-ed25519 AAAAC3... user@host').props('rows=3').classes('w-full')
+                            ui.label('Paste your public key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        pubkey_file_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'File path')
+                        pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
+                    
+                    # Private key configuration
+                    with ui.column():
+                        ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        privkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
+                        
+                        # File path input
+                        privkey_file_container = ui.column().classes('mt-2')
+                        with privkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                privkey_file_input = ui.input(placeholder='~  or  /path/to/private.key  or  stage-1/keys/id_rsa').classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        privkey_text_container = ui.column().classes('mt-2')
+                        with privkey_text_container:
+                            privkey_text_input = ui.textarea(placeholder='-----BEGIN OPENSSH PRIVATE KEY-----\n...').props('rows=8').classes('w-full')
+                            ui.label('Paste your private key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        privkey_file_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'File path')
+                        privkey_text_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'Direct text')
+                
+                # Store user data for later access
+                user_data = {
+                    'id': user_id,
+                    'card': user_card,
+                    'username': username_input,
+                    'password': password_input,
+                    'uid_enabled': uid_enabled,
+                    'uid': uid_input,
+                    'pubkey_source': pubkey_source,
+                    'pubkey_file': pubkey_file_input,
+                    'pubkey_text': pubkey_text_input,
+                    'privkey_source': privkey_source,
+                    'privkey_file': privkey_file_input,
+                    'privkey_text': privkey_text_input
+                }
+                
+                # Add change handlers
+                for component in [username_input, password_input, uid_enabled, uid_input, 
+                                pubkey_source, pubkey_file_input, pubkey_text_input,
+                                privkey_source, privkey_file_input, privkey_text_input]:
+                    component.on('change', lambda e: self.mark_modified())
+                
+                # Add to users data list
+                self.users_data.append(user_data)
+    
+    def _on_ssh_toggle(self, e: Any) -> None:
         """Handle SSH enable/disable toggle."""
         enabled = e.value
         
@@ -90,39 +199,118 @@ class SSHTab(BaseTab):
         self.app.data.config.stage_1['ssh']['enable'] = enabled
         self.mark_modified()
     
-    def _add_user(self):
+    def _add_user(self) -> None:
         """Add a new SSH user configuration."""
         user_count = len(self.users_container.default_slot.children) + 1
+        user_id = f'user-{user_count}'
         
         with self.users_container:
             with ui.card().classes('w-full p-4 mb-4') as user_card:
                 # User header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'[Add User] SSH User {user_count}').classes('text-lg font-semibold')
-                    ui.button('[Remove] Remove', on_click=lambda: user_card.delete()) \
-                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
+                    ui.label(f'👤 SSH User: user{user_count}').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', on_click=lambda: self._remove_user(user_card, user_id)) \
+                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1')
                 
                 # User configuration
                 with ui.row().classes('gap-4 mb-4'):
-                    ui.input('Username', placeholder='user1').classes('flex-1')
-                    ui.input('Password', placeholder='secure-password', password=True).classes('flex-1')
+                    username_input = ui.input('Username', placeholder='username', value=f'user{user_count}').classes('flex-1')
+                    password_input = ui.input('Password', placeholder='Enter secure password', password=True).classes('flex-1')
+                
+                # Optional UID Configuration
+                with ui.column().classes('mb-4'):
+                    uid_enabled = ui.checkbox(f'Set custom User ID (UID)', value=False)
+                    uid_container = ui.column().classes('ml-6')
+                    with uid_container:
+                        ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
+                        uid_input = ui.input('UID', placeholder='1000', value='').props('type=number min=0').classes('max-w-xs')
+                        ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
+                    
+                    # Bind UID input visibility to checkbox
+                    uid_input.bind_visibility_from(uid_enabled, 'value')
                 
                 # SSH Key configuration
                 with ui.column().classes('mb-4'):
-                    ui.label('SSH Key Configuration').classes('font-medium text-gray-700 mb-2')
+                    # Public key configuration
+                    with ui.column().classes('mb-4'):
+                        ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        pubkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
+                        
+                        # File path input
+                        pubkey_file_container = ui.column().classes('mt-2')
+                        with pubkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                pubkey_file_input = ui.input(placeholder='~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub').classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path relative to project directory').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        pubkey_text_container = ui.column().classes('mt-2')
+                        with pubkey_text_container:
+                            pubkey_text_input = ui.textarea(placeholder='ssh-ed25519 AAAAC3... user@host').props('rows=3').classes('w-full')
+                            ui.label('Paste your public key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        pubkey_file_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'File path')
+                        pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
                     
-                    # Public key
-                    with ui.expansion('Public Key (optional)', icon='key').classes('mb-2'):
-                        ui.radio(['None', 'File path', 'Inline text'], value='None') \
-                            .classes('mb-2').props('inline')
-                        ui.input('Key file path or content').classes('w-full')
-                    
-                    # Private key  
-                    with ui.expansion('Private Key (optional)', icon='key'):
-                        ui.radio(['None', 'File path', 'Inline text'], value='None') \
-                            .classes('mb-2').props('inline')
-                        ui.textarea('Key file path or content').classes('w-full')
+                    # Private key configuration
+                    with ui.column():
+                        ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        privkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
+                        
+                        # File path input
+                        privkey_file_container = ui.column().classes('mt-2')
+                        with privkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                privkey_file_input = ui.input(placeholder='~  or  /path/to/private.key  or  stage-1/keys/id_rsa').classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        privkey_text_container = ui.column().classes('mt-2')
+                        with privkey_text_container:
+                            privkey_text_input = ui.textarea(placeholder='-----BEGIN OPENSSH PRIVATE KEY-----\n...').props('rows=8').classes('w-full')
+                            ui.label('Paste your private key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        privkey_file_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'File path')
+                        privkey_text_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'Direct text')
+                
+                # Store user data for later access
+                user_data = {
+                    'id': user_id,
+                    'card': user_card,
+                    'username': username_input,
+                    'password': password_input,
+                    'uid_enabled': uid_enabled,
+                    'uid': uid_input,
+                    'pubkey_source': pubkey_source,
+                    'pubkey_file': pubkey_file_input,
+                    'pubkey_text': pubkey_text_input,
+                    'privkey_source': privkey_source,
+                    'privkey_file': privkey_file_input,
+                    'privkey_text': privkey_text_input
+                }
+                
+                # Add change handlers
+                for component in [username_input, password_input, uid_enabled, uid_input, 
+                                pubkey_source, pubkey_file_input, pubkey_text_input,
+                                privkey_source, privkey_file_input, privkey_text_input]:
+                    component.on('change', lambda e: self.mark_modified())
+                
+                # Add to users data list
+                self.users_data.append(user_data)
         
+        self.mark_modified()
+    
+    def _remove_user(self, user_card: ui.card, user_id: str) -> None:
+        """Remove a user configuration."""
+        user_card.delete()
+        # Remove from tracking list
+        self.users_data = [u for u in self.users_data if u['id'] != user_id]
         self.mark_modified()
     
     def validate(self) -> tuple[bool, list[str]]:

@@ -5,7 +5,7 @@ This tab handles environment variables and device configuration
 including GPU support for container access.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Any, Dict, List
 from nicegui import ui
 from .base import BaseTab
 
@@ -15,15 +15,15 @@ if TYPE_CHECKING:
 class EnvironmentTab(BaseTab):
     """Environment configuration tab."""
     
-    def __init__(self, app: 'PeiDockerWebGUI'):
+    def __init__(self, app: 'PeiDockerWebGUI') -> None:
         super().__init__(app)
-        self.env_variables_container = None
-        self.device_type_select = None
-        self.gpu_config_container = None
-        self.gpu_all_switch = None
-        self.gpu_memory_input = None
-        self.env_variable_count = 0
-        self.env_variables_data = []
+        self.env_variables_container: Optional[ui.column] = None
+        self.device_type_select: Optional[ui.select] = None
+        self.gpu_config_container: Optional[ui.column] = None
+        self.gpu_all_switch: Optional[ui.switch] = None
+        self.gpu_memory_input: Optional[ui.input] = None
+        self.env_variable_count: int = 0
+        self.env_variables_data: List[Dict[str, Any]] = []
     
     def render(self) -> ui.element:
         """Render the environment tab content."""
@@ -31,7 +31,7 @@ class EnvironmentTab(BaseTab):
             self.container = container
             
             self.create_section_header(
-                '[Config] Environment Configuration',
+                '⚙️ Environment Configuration',
                 'Configure environment variables and device access including GPU support for your container'
             )
             
@@ -39,7 +39,7 @@ class EnvironmentTab(BaseTab):
             with ui.row().classes('w-full gap-6'):
                 # Left column - Environment Variables
                 with ui.column().classes('flex-1'):
-                    with self.create_card('[ICON] Environment Variables'):
+                    with self.create_card('🌍 Environment Variables'):
                         with self.create_form_group('Environment Variables', 
                                                   'Set custom environment variables for your container'):
                             
@@ -48,12 +48,12 @@ class EnvironmentTab(BaseTab):
                                 self.env_variables_container = env_container
                             
                             # Add environment variable button
-                            ui.button('[Add] Add Environment Variable', on_click=self._add_env_variable) \
+                            ui.button('➕ Add Environment Variable', on_click=self._add_env_variable) \
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 # Right column - Device Configuration
                 with ui.column().classes('flex-1'):
-                    with self.create_card('[Device] Device Configuration'):
+                    with self.create_card('🖥️ Device Configuration'):
                         with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
                             self.device_type_select = ui.select(
                                 options={
@@ -95,51 +95,52 @@ class EnvironmentTab(BaseTab):
         
         return container
     
-    def _add_env_variable(self, name: str = '', value: str = ''):
+    def _add_env_variable(self, name: str = '', value: str = '') -> None:
         """Add a new environment variable configuration."""
         variable_id = f'env-variable-{self.env_variable_count}'
         
-        with self.env_variables_container:
-            with ui.card().classes('w-full p-3 mb-3') as variable_card:
-                # Variable configuration
-                with ui.row().classes('items-center gap-3'):
-                    # Variable name input
-                    name_input = ui.input(
-                        placeholder='VARIABLE_NAME',
-                        value=name
-                    ).classes('flex-1')
+        if self.env_variables_container:
+            with self.env_variables_container:
+                with ui.card().classes('w-full p-3 mb-3') as variable_card:
+                    # Variable configuration
+                    with ui.row().classes('items-center gap-3'):
+                        # Variable name input
+                        name_input = ui.input(
+                            placeholder='VARIABLE_NAME',
+                            value=name
+                        ).classes('flex-1')
+                        
+                        # Equals sign
+                        ui.label('=').classes('font-bold text-lg text-gray-700')
+                        
+                        # Variable value input
+                        value_input = ui.input(
+                            placeholder='value',
+                            value=value
+                        ).classes('flex-1')
+                        
+                        # Remove button
+                        ui.button('🗑️ Remove', on_click=lambda: self._remove_env_variable(variable_card, variable_id)) \
+                            .classes('bg-red-600 hover:bg-red-700 text-white px-3 py-1')
                     
-                    # Equals sign
-                    ui.label('=').classes('font-bold text-lg text-gray-700')
+                    # Store variable data
+                    variable_data = {
+                        'id': variable_id,
+                        'name_input': name_input,
+                        'value_input': value_input,
+                        'card': variable_card
+                    }
                     
-                    # Variable value input
-                    value_input = ui.input(
-                        placeholder='value',
-                        value=value
-                    ).classes('flex-1')
+                    # Add event handlers
+                    name_input.on('input', lambda e, data=variable_data: self._on_env_variable_change(data))
+                    value_input.on('input', lambda e, data=variable_data: self._on_env_variable_change(data))
                     
-                    # Remove button
-                    ui.button('[Remove]', on_click=lambda: self._remove_env_variable(variable_card, variable_id)) \
-                        .classes('bg-red-600 hover:bg-red-700 text-white w-10 h-10 rounded')
-                
-                # Store variable data
-                variable_data = {
-                    'id': variable_id,
-                    'name_input': name_input,
-                    'value_input': value_input,
-                    'card': variable_card
-                }
-                
-                # Add event handlers
-                name_input.on('input', lambda e, data=variable_data: self._on_env_variable_change(data))
-                value_input.on('input', lambda e, data=variable_data: self._on_env_variable_change(data))
-                
-                self.env_variables_data.append(variable_data)
+                    self.env_variables_data.append(variable_data)
         
         self.env_variable_count += 1
         self._update_env_variables_config()
     
-    def _remove_env_variable(self, variable_card, variable_id):
+    def _remove_env_variable(self, variable_card: ui.card, variable_id: str) -> None:
         """Remove an environment variable configuration."""
         variable_card.delete()
         
@@ -152,12 +153,12 @@ class EnvironmentTab(BaseTab):
         self._update_env_variables_config()
         self.mark_modified()
     
-    def _on_env_variable_change(self, variable_data):
+    def _on_env_variable_change(self, variable_data: Dict[str, Any]) -> None:
         """Handle environment variable input changes."""
         self._update_env_variables_config()
         self.mark_modified()
     
-    def _on_device_type_change(self, e):
+    def _on_device_type_change(self, e: Any) -> None:
         """Handle device type selection changes."""
         device_type = e.value
         
@@ -173,9 +174,9 @@ class EnvironmentTab(BaseTab):
         
         self.mark_modified()
     
-    def _on_gpu_config_change(self, e=None):
+    def _on_gpu_config_change(self, e: Optional[Any] = None) -> None:
         """Handle GPU configuration changes."""
-        if self.device_type_select.value != 'gpu':
+        if not self.device_type_select or self.device_type_select.value != 'gpu':
             return
         
         # Update configuration
@@ -200,7 +201,7 @@ class EnvironmentTab(BaseTab):
         
         self.mark_modified()
     
-    def _update_env_variables_config(self):
+    def _update_env_variables_config(self) -> None:
         """Update the environment variables configuration."""
         env_vars = {}
         
