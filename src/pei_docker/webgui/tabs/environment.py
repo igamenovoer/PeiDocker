@@ -89,13 +89,15 @@ class EnvironmentTab(BaseTab):
                         # Hide GPU config initially
                         gpu_config.bind_visibility_from(self.device_type_select, 'value', lambda v: v == 'gpu')
             
-            # Clear existing data since container was cleared
+            # Clear and initialize data when rendering
             self.env_variables_data = []
             self.env_variable_count = 0
             
             # Reload configuration from current state
-            # This will add example variables if none exist
-            self.set_config_data({'stage_1': self.app.data.config.stage_1})
+            self.set_config_data({
+                'stage_1': dict(self.app.data.config.stage_1),
+                'stage_2': dict(self.app.data.config.stage_2)
+            })
         
         return container
     
@@ -206,7 +208,7 @@ class EnvironmentTab(BaseTab):
         self.mark_modified()
     
     def _update_env_variables_config(self) -> None:
-        """Update the environment variables configuration."""
+        """Update the environment variables configuration for both stages."""
         env_vars = {}
         
         for variable_data in self.env_variables_data:
@@ -216,12 +218,16 @@ class EnvironmentTab(BaseTab):
             if name and value:
                 env_vars[name] = value
         
-        # Update configuration
+        # Update configuration for both stages
         if 'environment' not in self.app.data.config.stage_1:
             self.app.data.config.stage_1['environment'] = []
+        if 'environment' not in self.app.data.config.stage_2:
+            self.app.data.config.stage_2['environment'] = []
         
-        # Save as list format ['KEY=VALUE', ...]
-        self.app.data.config.stage_1['environment'] = [f"{k}={v}" for k, v in env_vars.items()]
+        # Save as list format ['KEY=VALUE', ...] to both stages
+        env_list = [f"{k}={v}" for k, v in env_vars.items()]
+        self.app.data.config.stage_1['environment'] = env_list
+        self.app.data.config.stage_2['environment'] = env_list
     
     def validate(self) -> tuple[bool, list[str]]:
         """Validate environment configuration."""
@@ -260,20 +266,47 @@ class EnvironmentTab(BaseTab):
         
         return len(errors) == 0, errors
     
-    def get_config_data(self) -> dict:
-        """Get environment configuration data."""
+    def get_config_data(self) -> Dict[str, Any]:
+        """Get environment configuration data from UI components."""
+        # Extract environment variables from UI
+        env_vars = []
+        for variable_data in self.env_variables_data:
+            name = variable_data['name_input'].value.strip()
+            value = variable_data['value_input'].value.strip()
+            if name and value:
+                env_vars.append(f"{name}={value}")
+        
+        # Extract device configuration from UI
+        device_config: Dict[str, Any] = {
+            'type': self.device_type_select.value if self.device_type_select else 'cpu'
+        }
+        
+        # Add GPU configuration if GPU is selected
+        if self.device_type_select and self.device_type_select.value == 'gpu':
+            gpu_config: Dict[str, Any] = {
+                'all': self.gpu_all_switch.value if self.gpu_all_switch else True
+            }
+            if self.gpu_memory_input and self.gpu_memory_input.value.strip():
+                gpu_config['memory'] = self.gpu_memory_input.value.strip()
+            device_config['gpu'] = gpu_config
+        
+        # Return configuration for both stages with same environment variables
         return {
             'stage_1': {
-                'environment': self.app.data.config.stage_1.get('environment', []),
-                'device': self.app.data.config.stage_1.get('device', {})
+                'environment': env_vars,
+                'device': device_config
+            },
+            'stage_2': {
+                'environment': env_vars
             }
         }
     
-    def set_config_data(self, data: dict):
-        """Set environment configuration data."""
+    def set_config_data(self, data: Dict[str, Any]) -> None:
+        """Set environment configuration data from both stages."""
         stage_1_config = data.get('stage_1', {})
+        stage_2_config = data.get('stage_2', {})
         
-        # Set device configuration
+        # Set device configuration (only in stage-1)
         device_config = stage_1_config.get('device', {})
         if self.device_type_select:
             self.device_type_select.set_value(device_config.get('type', 'cpu'))
@@ -286,19 +319,31 @@ class EnvironmentTab(BaseTab):
         if self.gpu_memory_input:
             self.gpu_memory_input.set_value(gpu_config.get('memory', ''))
         
-        # Set environment variables
-        env_config = stage_1_config.get('environment', [])
+        # Combine environment variables from both stages
+        # Stage-2 overrides stage-1 for duplicate keys
+        combined_vars = {}
         
-        # Handle both list and dict formats
-        variables = {}
-        if isinstance(env_config, list):
-            # Parse list format ['KEY=VALUE', ...]
-            for env_str in env_config:
+        # First, add stage-1 environment variables
+        stage_1_env = stage_1_config.get('environment', [])
+        if isinstance(stage_1_env, list):
+            for env_str in stage_1_env:
                 if '=' in env_str:
                     key, value = env_str.split('=', 1)
-                    variables[key.strip()] = value.strip()
-        elif isinstance(env_config, dict):
-            variables = env_config.get('variables', {})
+                    combined_vars[key.strip()] = value.strip()
+        elif isinstance(stage_1_env, dict):
+            for key, value in stage_1_env.get('variables', {}).items():
+                combined_vars[key] = str(value)
+        
+        # Then, add/override with stage-2 environment variables
+        stage_2_env = stage_2_config.get('environment', [])
+        if isinstance(stage_2_env, list):
+            for env_str in stage_2_env:
+                if '=' in env_str:
+                    key, value = env_str.split('=', 1)
+                    combined_vars[key.strip()] = value.strip()
+        elif isinstance(stage_2_env, dict):
+            for key, value in stage_2_env.get('variables', {}).items():
+                combined_vars[key] = str(value)
         
         # Clear existing variables
         if self.env_variables_container:
@@ -306,11 +351,6 @@ class EnvironmentTab(BaseTab):
             self.env_variables_data = []
             self.env_variable_count = 0
         
-        # Add loaded environment variables
-        for name, value in variables.items():
+        # Add combined environment variables
+        for name, value in combined_vars.items():
             self._add_env_variable(name, str(value))
-        
-        # If no variables were loaded, add the default examples
-        if not variables:
-            self._add_env_variable('NODE_ENV', 'development')
-            self._add_env_variable('DEBUG', 'true')

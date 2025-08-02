@@ -285,6 +285,32 @@ class PeiDockerWebGUI:
         # The actual implementation depends on the UI binding system
         pass
     
+    def _collect_config_from_tabs(self) -> None:
+        """Collect configuration data from all tabs and update self.data.config."""
+        try:
+            # Collect data from each tab and merge into config
+            for tab_name, tab in self.tabs.items():
+                try:
+                    tab_config = tab.get_config_data()
+                    
+                    # Merge stage_1 data
+                    if 'stage_1' in tab_config:
+                        for key, value in tab_config['stage_1'].items():
+                            if value is not None:  # Only update if value is not None
+                                self.data.config.stage_1[key] = value
+                    
+                    # Merge stage_2 data
+                    if 'stage_2' in tab_config:
+                        for key, value in tab_config['stage_2'].items():
+                            if value is not None:  # Only update if value is not None
+                                self.data.config.stage_2[key] = value
+                                
+                except Exception as e:
+                    print(f"Error collecting config from {tab_name.value} tab: {e}")
+                    
+        except Exception as e:
+            print(f"Error in _collect_config_from_tabs: {e}")
+    
     # Event handlers
     def switch_tab(self, tab: TabName) -> None:
         """Switch to a different tab."""
@@ -446,6 +472,9 @@ class PeiDockerWebGUI:
             if self.data.project.directory is None:
                 ui.notify('❌ No active project directory', type='negative')
                 return
+            
+            # Collect configuration data from all tabs before saving
+            self._collect_config_from_tabs()
             
             success = await self.file_ops.save_configuration(
                 self.data.project.directory, 

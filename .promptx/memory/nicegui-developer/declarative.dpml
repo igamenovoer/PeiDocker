@@ -405,4 +405,76 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754117376262_wxjcd2den" time="2025/08/02 14:49">
+    <content>
+      PeiDocker Core Working Principles and Usage (from /README.md, /docs/index.md, /src/pei_docker/templates/config-template-full.yml):
+    
+      ## Core Philosophy
+      **&quot;Don&#x27;t keep your docker images around, keep the build files!&quot;** - Configuration-driven Docker automation framework that transforms YAML configurations into reproducible containerized environments without deep Dockerfile knowledge.
+    
+      ## Two-Stage Architecture
+      **Stage-1**: System-level setup (users, SSH, system packages via apt)
+      **Stage-2**: Application-level setup (custom apps, external storage, GUI tools)
+      - Base images: ubuntu:24.04 → pei-image:stage-1 → pei-image:stage-2
+      - External storage only available in stage-2
+    
+      ## CLI Workflow
+      ```bash
+      # 1. Create project
+      pei-docker-cli create -p ./build
+    
+      # 2. Configure (generates docker-compose.yml)
+      pei-docker-cli configure -p ./build
+    
+      # 3. Build images
+      docker compose build stage-1 --progress=plain
+      docker compose build stage-2 --progress=plain
+    
+      # 4. Run container
+      docker compose up stage-2
+      ```
+    
+      ## Key Configuration Fields (user_config.yml)
+      **Image Settings**: `base` (ubuntu:24.04), `output` (pei-image:stage-1/2)
+      **SSH Configuration**: `enable`, `port` (22), `host_port` (2222), `users` with passwords/keys
+      **Storage Types**: `auto-volume`, `manual-volume`, `host`, `image` for /soft/{app,data,workspace}
+      **Proxy Settings**: `address` (host.docker.internal), `port` (7890), `enable_globally`
+      **Device Types**: `cpu` or `gpu`
+      **Mount Volumes**: Custom volume mounting with `type`, `dst_path`, `host_path`
+    
+      ## SSH Key Management
+      - 4 methods: `pubkey_file`, `pubkey_text`, `privkey_file`, `privkey_text`
+      - Supports `~` auto-discovery (id_rsa, id_dsa, id_ecdsa, id_ed25519)
+      - Default users: `me` (uid:1000, pass:123456), `you` (uid:1001), `root`
+    
+      ## Custom Script Execution Points
+      **on_build**: During image building
+      **on_first_run**: Container&#x27;s first startup
+      **on_every_run**: Every container startup
+      **on_user_login**: When user SSH logins
+      **on_entry**: Custom entrypoint with arguments
+      - Supports shell parameters: `&#x27;script.sh --param=value --flag&#x27;`
+    
+      ## Storage Strategy (/soft → /hard linking)
+      - `/soft/{app,data,workspace}` → `/hard/volume/xxx` (if mounted) OR `/hard/image/xxx`
+      - Automatic switching between external volumes and in-image storage
+      - Flexible post-build storage reconfiguration
+    
+      ## Environment Variable Support
+      Docker Compose-style `${VAR:-default}` substitution throughout configurations
+    
+      ## Project Structure
+      ```
+      user_config.yml          # Main configuration
+      stage-1.Dockerfile       # System setup Dockerfile
+      stage-2.Dockerfile       # Application setup Dockerfile
+      compose-template.yml     # Docker Compose template
+      installation/
+      stage-1/custom/        # Custom system scripts
+      stage-2/custom/        # Custom application scripts
+      stage-*/system/        # System configuration files
+      ```
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

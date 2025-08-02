@@ -82,16 +82,21 @@ class SSHTab(BaseTab):
         self.users_data = []
         self.user_count = 0
         
-        # Check if we should add default user
-        ssh_config = self.app.data.config.stage_1.get('ssh', {})
-        if ssh_config.get('enabled', False) and not ssh_config.get('users', []):
-            # Only add default user if SSH is enabled and no users exist
-            self._add_default_user()
+        # Load configuration data after rendering
+        # This will populate SSH settings and users from the loaded config
+        config_data = {
+            'stage_1': dict(self.app.data.config.stage_1),
+            'stage_2': dict(self.app.data.config.stage_2)
+        }
+        self.set_config_data(config_data)
         
         return container
     
     def _add_default_user(self) -> None:
         """Add the default 'me' user like in the demo."""
+        if not self.users_container:
+            return
+            
         with self.users_container:
             with ui.card().classes('w-full p-4 mb-4') as user_card:
                 user_id = 'default-user-me'
@@ -207,6 +212,9 @@ class SSHTab(BaseTab):
     
     def _add_user(self) -> None:
         """Add a new SSH user configuration."""
+        if not self.users_container:
+            return
+            
         user_count = len(self.users_container.default_slot.children) + 1
         user_id = f'user-{user_count}'
         
@@ -319,6 +327,136 @@ class SSHTab(BaseTab):
         self.users_data = [u for u in self.users_data if u['id'] != user_id]
         self.mark_modified()
     
+    def _add_user_from_config(self, username: str, user_config: Dict[str, Any]) -> None:
+        """Add a user from configuration data."""
+        if not self.users_container:
+            return
+            
+        user_id = f'user-{username}'
+        
+        with self.users_container:
+            with ui.card().classes('w-full p-4 mb-4') as user_card:
+                # User header
+                with ui.row().classes('items-center justify-between mb-4'):
+                    ui.label(f'👤 SSH User: {username}').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', on_click=lambda: self._remove_user(user_card, user_id)) \
+                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1')
+                
+                # User configuration
+                with ui.row().classes('gap-4 mb-4'):
+                    username_input = ui.input('Username', placeholder='username', value=username).classes('flex-1')
+                    password_input = ui.input('Password', placeholder='Enter secure password', password=True, 
+                                            value=user_config.get('password', '')).classes('flex-1')
+                
+                # Optional UID Configuration
+                uid_value = user_config.get('uid')
+                has_uid = uid_value is not None
+                
+                with ui.column().classes('mb-4'):
+                    uid_enabled = ui.checkbox('Set custom User ID (UID)', value=has_uid)
+                    uid_container = ui.column().classes('ml-6')
+                    with uid_container:
+                        ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
+                        uid_input = ui.input('UID', placeholder='1000', 
+                                           value=str(uid_value) if uid_value is not None else '').props('type=number min=0').classes('max-w-xs')
+                        ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
+                    
+                    # Bind UID input visibility to checkbox
+                    uid_input.bind_visibility_from(uid_enabled, 'value')
+                
+                # SSH Key configuration
+                with ui.column().classes('mb-4'):
+                    # Public key configuration
+                    with ui.column().classes('mb-4'):
+                        ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        # Determine initial source selection
+                        pubkey_source_value = 'None'
+                        if user_config.get('pubkey_file'):
+                            pubkey_source_value = 'File path'
+                        elif user_config.get('pubkey_text'):
+                            pubkey_source_value = 'Direct text'
+                        
+                        pubkey_source = ui.radio(['None', 'File path', 'Direct text'], value=pubkey_source_value).props('inline')
+                        
+                        # File path input
+                        pubkey_file_container = ui.column().classes('mt-2')
+                        with pubkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                pubkey_file_input = ui.input(placeholder='~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub',
+                                                           value=user_config.get('pubkey_file', '')).classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path relative to project directory').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        pubkey_text_container = ui.column().classes('mt-2')
+                        with pubkey_text_container:
+                            pubkey_text_input = ui.textarea(placeholder='ssh-ed25519 AAAAC3... user@host',
+                                                           value=user_config.get('pubkey_text', '')).props('rows=3').classes('w-full')
+                            ui.label('Paste your public key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        pubkey_file_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'File path')
+                        pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
+                    
+                    # Private key configuration
+                    with ui.column():
+                        ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
+                        
+                        # Determine initial source selection
+                        privkey_source_value = 'None'
+                        if user_config.get('privkey_file'):
+                            privkey_source_value = 'File path'
+                        elif user_config.get('privkey_text'):
+                            privkey_source_value = 'Direct text'
+                        
+                        privkey_source = ui.radio(['None', 'File path', 'Direct text'], value=privkey_source_value).props('inline')
+                        
+                        # File path input
+                        privkey_file_container = ui.column().classes('mt-2')
+                        with privkey_file_container:
+                            with ui.row().classes('gap-2'):
+                                privkey_file_input = ui.input(placeholder='~  or  /path/to/private.key  or  stage-1/keys/id_rsa',
+                                                            value=user_config.get('privkey_file', '')).classes('flex-1')
+                                ui.button('📁', on_click=lambda: ui.notify('File browser not implemented')).classes('bg-gray-500 hover:bg-gray-600 text-white')
+                            ui.label('Use ~ for auto-discovery or specify file path').classes('text-sm text-gray-600')
+                        
+                        # Text input
+                        privkey_text_container = ui.column().classes('mt-2')
+                        with privkey_text_container:
+                            privkey_text_input = ui.textarea(placeholder='-----BEGIN OPENSSH PRIVATE KEY-----\n...',
+                                                            value=user_config.get('privkey_text', '')).props('rows=8').classes('w-full')
+                            ui.label('Paste your private key content directly').classes('text-sm text-gray-600')
+                        
+                        # Bind visibility based on selection
+                        privkey_file_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'File path')
+                        privkey_text_container.bind_visibility_from(privkey_source, 'value', lambda v: v == 'Direct text')
+                
+                # Store user data for later access
+                user_data = {
+                    'id': user_id,
+                    'card': user_card,
+                    'username': username_input,
+                    'password': password_input,
+                    'uid_enabled': uid_enabled,
+                    'uid': uid_input,
+                    'pubkey_source': pubkey_source,
+                    'pubkey_file': pubkey_file_input,
+                    'pubkey_text': pubkey_text_input,
+                    'privkey_source': privkey_source,
+                    'privkey_file': privkey_file_input,
+                    'privkey_text': privkey_text_input
+                }
+                
+                # Add change handlers
+                for component in [username_input, password_input, uid_enabled, uid_input, 
+                                pubkey_source, pubkey_file_input, pubkey_text_input,
+                                privkey_source, privkey_file_input, privkey_text_input]:
+                    component.on('change', lambda e: self.mark_modified())
+                
+                # Add to users data list
+                self.users_data.append(user_data)
+    
     def validate(self) -> tuple[bool, list[str]]:
         """Validate SSH configuration."""
         errors = []
@@ -333,26 +471,77 @@ class SSHTab(BaseTab):
         
         return len(errors) == 0, errors
     
-    def get_config_data(self) -> dict:
-        """Get SSH configuration data."""
+    def get_config_data(self) -> Dict[str, Any]:
+        """Get SSH configuration data from UI components."""
+        ssh_config: Dict[str, Any] = {
+            'enable': self.ssh_enabled_switch.value if self.ssh_enabled_switch else False,
+            'port': int(self.ssh_port_input.value) if self.ssh_port_input else 22,
+            'host_port': int(self.host_port_input.value) if self.host_port_input else 2222,
+            'users': {}
+        }
+        
+        # Collect user data from UI components
+        for user_data in self.users_data:
+            username = user_data['username'].value
+            if not username:
+                continue
+                
+            user_config = {
+                'password': user_data['password'].value,
+            }
+            
+            # Add UID if enabled
+            if user_data['uid_enabled'].value and user_data['uid'].value:
+                user_config['uid'] = int(user_data['uid'].value)
+            
+            # Add public key configuration
+            if user_data['pubkey_source'].value == 'File path' and user_data['pubkey_file'].value:
+                user_config['pubkey_file'] = user_data['pubkey_file'].value
+            elif user_data['pubkey_source'].value == 'Direct text' and user_data['pubkey_text'].value:
+                user_config['pubkey_text'] = user_data['pubkey_text'].value
+            else:
+                user_config['pubkey_file'] = None
+                user_config['pubkey_text'] = None
+            
+            # Add private key configuration
+            if user_data['privkey_source'].value == 'File path' and user_data['privkey_file'].value:
+                user_config['privkey_file'] = user_data['privkey_file'].value
+            elif user_data['privkey_source'].value == 'Direct text' and user_data['privkey_text'].value:
+                user_config['privkey_text'] = user_data['privkey_text'].value
+            else:
+                user_config['privkey_file'] = None
+                user_config['privkey_text'] = None
+            
+            ssh_config['users'][username] = user_config
+        
         return {
             'stage_1': {
-                'ssh': self.app.data.config.stage_1.get('ssh', {})
+                'ssh': ssh_config
             }
         }
     
-    def set_config_data(self, data: dict):
-        """Set SSH configuration data."""
+    def set_config_data(self, data: Dict[str, Any]) -> None:
+        """Set SSH configuration data from loaded config."""
         ssh_config = data.get('stage_1', {}).get('ssh', {})
         
+        # Set SSH enabled state
         if self.ssh_enabled_switch:
-            self.ssh_enabled_switch.set_value(ssh_config.get('enabled', False))
+            self.ssh_enabled_switch.set_value(ssh_config.get('enable', False))
         
+        # Set port values
         if self.ssh_port_input:
             self.ssh_port_input.set_value(ssh_config.get('port', 22))
         
         if self.host_port_input:
             self.host_port_input.set_value(ssh_config.get('host_port', 2222))
         
-        # Note: User loading from config would need to be implemented
-        # For now, users need to be re-entered when switching tabs
+        # Load users from configuration
+        users = ssh_config.get('users', {})
+        if users and self.users_container:
+            # Clear any existing users
+            self.users_container.clear()
+            self.users_data = []
+            
+            # Add each user from config
+            for username, user_config in users.items():
+                self._add_user_from_config(username, user_config)

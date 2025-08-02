@@ -6,7 +6,7 @@ providing common functionality for configuration management and validation.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Dict, List, Tuple
 
 from nicegui import ui
 
@@ -26,17 +26,17 @@ class BaseTab(ABC):
         pass
     
     @abstractmethod
-    def validate(self) -> tuple[bool, list[str]]:
+    def validate(self) -> Tuple[bool, List[str]]:
         """Validate the tab configuration. Returns (is_valid, error_messages)."""
         pass
     
     @abstractmethod
-    def get_config_data(self) -> dict[str, Any]:
+    def get_config_data(self) -> Dict[str, Any]:
         """Get the configuration data for this tab."""
         pass
     
     @abstractmethod
-    def set_config_data(self, data: dict[str, Any]) -> None:
+    def set_config_data(self, data: Dict[str, Any]) -> None:
         """Set the configuration data for this tab."""
         pass
     
