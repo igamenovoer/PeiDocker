@@ -27,7 +27,7 @@ class EnvironmentTab(BaseTab):
     
     def render(self) -> ui.element:
         """Render the environment tab content."""
-        with ui.column().classes('w-full') as container:
+        with ui.column().classes('w-full max-w-4xl') as container:
             self.container = container
             
             self.create_section_header(
