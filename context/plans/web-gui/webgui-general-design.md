@@ -56,6 +56,24 @@ PeiDocker uses a sequential two-stage Docker image building process that is fund
 - Scripts tab manages lifecycle hooks for both image stages
 - Environment and device settings follow inheritance patterns
 
+### Handling Stage-Specific Configuration in the GUI
+
+While the PeiDocker architecture separates configurations into `stage-1` and `stage-2`, the Web GUI may simplify some of these settings into a single, unified interface for a better user experience. This introduces a specific pattern for loading and saving these configurations.
+
+**Guiding Principle**: If the GUI provides a single section for a setting that is configured separately for `stage-1` and `stage-2` in `user_config.yml`, the GUI should treat it as a combined configuration.
+
+**Configuration Loading Behavior:**
+- When a project is loaded, the GUI will merge the values from both stages.
+- If a setting exists in both `stage_1` and `stage_2` (e.g., an environment variable with the same name), the value from `stage_2` takes precedence and overrides the `stage_1` value. This is analogous to applying `stage_1` settings and then applying `stage_2` settings on top.
+
+**Configuration Saving Behavior:**
+- When the user saves changes from a unified GUI control, the application will write the configured values to **both** the `stage_1` and `stage_2` sections in the `user_config.yml` file. This ensures that the simplified view in the GUI is consistently reflected in the underlying staged configuration.
+
+**Example Application:**
+- **Environment Variables**: The `Environment` tab might show a single list of variables. On load, it merges `stage_1.environment` and `stage_2.environment`, with `stage_2` values overriding. On save, the combined list is written back to both `stage_1.environment` and `stage_2.environment`.
+
+**Important Exception**: This merging logic **does not apply** if the GUI already provides separate, distinct controls for Stage 1 and Stage 2 settings (e.g., separate "Stage-1 Mounts" and "Stage-2 Mounts" sections). In such cases, the GUI controls map directly to their corresponding sections in `user_config.yml` without any merging.
+
 ## Technology Approach
 
 - **Framework**: NiceGUI (Python web framework)

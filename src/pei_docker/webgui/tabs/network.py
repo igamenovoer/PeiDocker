@@ -108,36 +108,44 @@ class NetworkTab(BaseTab):
         return container
     
     def _on_proxy_toggle(self, e):
-        """Handle proxy enable/disable toggle."""
+        """Handle proxy enable/disable toggle (applied to BOTH stages)."""
         enabled = e.value
-        
-        # Update configuration
-        if 'proxy' not in self.app.data.config.stage_1:
-            self.app.data.config.stage_1['proxy'] = {}
-        
+
+        # Ensure proxy section exists for both stages
+        for stage_dict in (self.app.data.config.stage_1, self.app.data.config.stage_2):
+            if 'proxy' not in stage_dict:
+                stage_dict['proxy'] = {}
+
+        # Update both stages
         self.app.data.config.stage_1['proxy']['enabled'] = enabled
+        self.app.data.config.stage_2['proxy']['enabled'] = enabled
         self.mark_modified()
     
     def _on_proxy_url_change(self, e):
-        """Handle proxy URL input changes."""
+        """Handle proxy URL input changes (applied to BOTH stages)."""
         proxy_url = e.value.strip()
-        
-        # Update configuration
-        if 'proxy' not in self.app.data.config.stage_1:
-            self.app.data.config.stage_1['proxy'] = {}
-        
-        self.app.data.config.stage_1['proxy']['url'] = f'http://{proxy_url}' if proxy_url else ''
+
+        # Ensure proxy section exists for both stages
+        for stage_dict in (self.app.data.config.stage_1, self.app.data.config.stage_2):
+            if 'proxy' not in stage_dict:
+                stage_dict['proxy'] = {}
+
+        url_value = f'http://{proxy_url}' if proxy_url else ''
+        self.app.data.config.stage_1['proxy']['url'] = url_value
+        self.app.data.config.stage_2['proxy']['url'] = url_value
         self.mark_modified()
     
     def _on_apt_mirror_change(self, e):
-        """Handle APT mirror selection changes."""
+        """Handle APT mirror selection changes (applied to BOTH stages)."""
         mirror = e.value
-        
-        # Update configuration
-        if 'apt' not in self.app.data.config.stage_1:
-            self.app.data.config.stage_1['apt'] = {}
-        
+
+        # Ensure apt section exists for both stages
+        for stage_dict in (self.app.data.config.stage_1, self.app.data.config.stage_2):
+            if 'apt' not in stage_dict:
+                stage_dict['apt'] = {}
+
         self.app.data.config.stage_1['apt']['mirror'] = mirror
+        self.app.data.config.stage_2['apt']['mirror'] = mirror
         self.mark_modified()
     
     def _add_port_mapping(self, host_port: str = '', container_port: str = ''):
@@ -338,10 +346,14 @@ class NetworkTab(BaseTab):
                     valid_mappings.append(f'{host_value}:{container_value}')
         
         # Update configuration
-        if 'ports' not in self.app.data.config.stage_1:
-            self.app.data.config.stage_1['ports'] = []
-        
+        # Ensure ports array exists for both stages
+        for stage_dict in (self.app.data.config.stage_1, self.app.data.config.stage_2):
+            if 'ports' not in stage_dict:
+                stage_dict['ports'] = []
+
+        # Apply to both stages
         self.app.data.config.stage_1['ports'] = valid_mappings
+        self.app.data.config.stage_2['ports'] = valid_mappings
         self.mark_modified()
     
     def validate(self) -> tuple[bool, list[str]]:
@@ -380,36 +392,49 @@ class NetworkTab(BaseTab):
         }
     
     def set_config_data(self, data: dict):
-        """Set network configuration data."""
+        """Set network configuration data merging stage-1 & stage-2 (stage-2 overrides)."""
         stage_1_config = data.get('stage_1', {})
-        
-        # Set proxy configuration
-        proxy_config = stage_1_config.get('proxy', {})
+        stage_2_config = data.get('stage_2', {})
+
+        # ---------- helpers ----------
+        def _merge_dict(a: dict, b: dict) -> dict:
+            """Return shallow merged dict where b overrides a."""
+            merged = dict(a)
+            merged.update(b)
+            return merged
+
+        # ---------- proxy ------------
+        proxy_cfg = _merge_dict(stage_1_config.get('proxy', {}), stage_2_config.get('proxy', {}))
         if self.proxy_enabled_switch:
-            self.proxy_enabled_switch.set_value(proxy_config.get('enabled', False))
-        
+            self.proxy_enabled_switch.set_value(proxy_cfg.get('enabled', False))
+
         if self.proxy_url_input:
-            proxy_url = proxy_config.get('url', '')
-            # Remove http:// prefix for display
+            proxy_url = proxy_cfg.get('url', '')
             if proxy_url.startswith('http://'):
-                proxy_url = proxy_url[7:]
+                proxy_url = proxy_url[len('http://'):]
             self.proxy_url_input.set_value(proxy_url)
-        
-        # Set APT configuration
-        apt_config = stage_1_config.get('apt', {})
+
+        # ---------- apt mirror -------
+        apt_cfg = _merge_dict(stage_1_config.get('apt', {}), stage_2_config.get('apt', {}))
         if self.apt_mirror_select:
-            self.apt_mirror_select.set_value(apt_config.get('mirror', 'default'))
-        
-        # Set port mappings
-        ports = stage_1_config.get('ports', [])
-        # Clear existing mappings
+            self.apt_mirror_select.set_value(apt_cfg.get('mirror', 'default'))
+
+        # ---------- ports ------------
+        combined_ports: list[str] = []
+        for p in stage_1_config.get('ports', []):
+            if p not in combined_ports:
+                combined_ports.append(p)
+        for p in stage_2_config.get('ports', []):
+            if p not in combined_ports:
+                combined_ports.append(p)
+
+        # Reset UI container
         if self.port_mappings_container:
             self.port_mappings_container.clear()
             self.port_mappings_data = []
             self.port_mapping_count = 0
-        
-        # Add loaded port mappings
-        for port_mapping in ports:
+
+        for port_mapping in combined_ports:
             if ':' in port_mapping:
                 host_port, container_port = port_mapping.split(':', 1)
                 self._add_port_mapping(host_port, container_port)

@@ -6,4 +6,6 @@ So, some of the settings in `user_config.yml` will be simplified and then reflec
 
 This princple applies to all the settings in `user_config.yml` where stage-1 and stage-2 can be configured separately but the GUI has only a single section for them. 
 
+Example project is given in `tmp/build-example`, you can load that project to debug. Note that, because your action in GUI may corrupt the project files, you should always work on a new copy of the example project, using `pei-docker-cli create -p ./tmp/build-example` command, and then load the project in the GUI.
+
 IMPORTANT: Note that, if the GUI already supports separete-stage settings, you should not change the behavior of the GUI, you should only change the behavior of the GUI it supports only a single section for the settings that are splitted into stage-1 and stage-2 in `user_config.yml`.

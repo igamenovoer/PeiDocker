@@ -4,41 +4,22 @@
     {
       "from": "initial",
       "command": "init",
-      "timestamp": "2025-08-02T06:36:06.236Z",
+      "timestamp": "2025-08-02T21:30:55.204Z",
       "args": [
         {
           "workingDirectory": "/Users/igame/code/PeiDocker",
-          "ideType": "claude"
+          "ideType": "vscode"
         }
       ]
     },
     {
       "from": "initialized",
       "command": "action",
-      "timestamp": "2025-08-02T06:36:22.238Z",
-      "args": [
-        "nicegui-developer"
-      ]
-    },
-    {
-      "from": "role_activated_with_memory",
-      "command": "remember",
-      "timestamp": "2025-08-02T06:49:36.262Z",
-      "args": [
-        "nicegui-developer",
-        "PeiDocker Core Working Principles and Usage (from /README.md, /docs/index.md, /src/pei_docker/templates/config-template-full.yml):\n\n## Core Philosophy\n**\"Don't keep your docker images around, keep the build files!\"** - Configuration-driven Docker automation framework that transforms YAML configurations into reproducible containerized environments without deep Dockerfile knowledge.\n\n## Two-Stage Architecture \n**Stage-1**: System-level setup (users, SSH, system packages via apt)\n**Stage-2**: Application-level setup (custom apps, external storage, GUI tools)\n- Base images: ubuntu:24.04 → pei-image:stage-1 → pei-image:stage-2\n- External storage only available in stage-2\n\n## CLI Workflow\n```bash\n# 1. Create project\npei-docker-cli create -p ./build\n\n# 2. Configure (generates docker-compose.yml)\npei-docker-cli configure -p ./build\n\n# 3. Build images\ndocker compose build stage-1 --progress=plain\ndocker compose build stage-2 --progress=plain\n\n# 4. Run container\ndocker compose up stage-2\n```\n\n## Key Configuration Fields (user_config.yml)\n**Image Settings**: `base` (ubuntu:24.04), `output` (pei-image:stage-1/2)\n**SSH Configuration**: `enable`, `port` (22), `host_port` (2222), `users` with passwords/keys\n**Storage Types**: `auto-volume`, `manual-volume`, `host`, `image` for /soft/{app,data,workspace}\n**Proxy Settings**: `address` (host.docker.internal), `port` (7890), `enable_globally`\n**Device Types**: `cpu` or `gpu`\n**Mount Volumes**: Custom volume mounting with `type`, `dst_path`, `host_path`\n\n## SSH Key Management\n- 4 methods: `pubkey_file`, `pubkey_text`, `privkey_file`, `privkey_text` \n- Supports `~` auto-discovery (id_rsa, id_dsa, id_ecdsa, id_ed25519)\n- Default users: `me` (uid:1000, pass:123456), `you` (uid:1001), `root`\n\n## Custom Script Execution Points\n**on_build**: During image building\n**on_first_run**: Container's first startup\n**on_every_run**: Every container startup  \n**on_user_login**: When user SSH logins\n**on_entry**: Custom entrypoint with arguments\n- Supports shell parameters: `'script.sh --param=value --flag'`\n\n## Storage Strategy (/soft → /hard linking)\n- `/soft/{app,data,workspace}` → `/hard/volume/xxx` (if mounted) OR `/hard/image/xxx`\n- Automatic switching between external volumes and in-image storage\n- Flexible post-build storage reconfiguration\n\n## Environment Variable Support\nDocker Compose-style `${VAR:-default}` substitution throughout configurations\n\n## Project Structure\n```\nuser_config.yml          # Main configuration\nstage-1.Dockerfile       # System setup Dockerfile\nstage-2.Dockerfile       # Application setup Dockerfile  \ncompose-template.yml     # Docker Compose template\ninstallation/\n  stage-1/custom/        # Custom system scripts\n  stage-2/custom/        # Custom application scripts\n  stage-*/system/        # System configuration files\n```",
-        "--tags",
-        "peidocker configuration docker automation two-stage"
-      ]
-    },
-    {
-      "from": "memory_saved",
-      "command": "action",
-      "timestamp": "2025-08-02T07:05:53.216Z",
+      "timestamp": "2025-08-02T21:31:29.968Z",
       "args": [
         "nicegui-developer"
       ]
     }
   ],
-  "lastUpdated": "2025-08-02T07:05:53.222Z"
+  "lastUpdated": "2025-08-02T21:31:29.978Z"
 }
