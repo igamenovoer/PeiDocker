@@ -27,7 +27,7 @@ class EnvironmentTab(BaseTab):
     
     def render(self) -> ui.element:
         """Render the environment tab content."""
-        with ui.column().classes('w-full max-w-4xl') as container:
+        with ui.column().classes('w-full') as container:
             self.container = container
             
             self.create_section_header(
@@ -38,9 +38,9 @@ class EnvironmentTab(BaseTab):
             # Layout with two columns
             with ui.row().classes('w-full gap-6'):
                 # Left column - Environment Variables
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     with self.create_card('🌍 Environment Variables'):
-                        with self.create_form_group('Environment Variables', 
+                        with self.create_form_group('Environment Variables',
                                                   'Set custom environment variables for your container'):
                             
                             # Environment variables container
@@ -52,7 +52,7 @@ class EnvironmentTab(BaseTab):
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 # Right column - Device Configuration
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     with self.create_card('🖥️ Device Configuration'):
                         with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
                             self.device_type_select = ui.select(
@@ -61,11 +61,11 @@ class EnvironmentTab(BaseTab):
                                     'gpu': 'GPU Support'
                                 },
                                 value='cpu'
-                            ).classes('max-w-md')
+                            ).classes('w-full')
                             self.device_type_select.on('change', self._on_device_type_change)
                         
                         # GPU Configuration (initially hidden)
-                        with ui.column().classes('mt-6') as gpu_config:
+                        with ui.column().classes('mt-6 w-full') as gpu_config:
                             self.gpu_config_container = gpu_config
                             
                             with self.create_form_group('GPU Configuration'):
@@ -79,11 +79,11 @@ class EnvironmentTab(BaseTab):
                                         .classes('text-sm text-gray-600 mb-4')
                                 
                                 # GPU Memory Limit
-                                with self.create_form_group('GPU Memory Limit (optional)', 
+                                with self.create_form_group('GPU Memory Limit (optional)',
                                                           'Limit GPU memory usage (Docker 19.03+ required)'):
                                     self.gpu_memory_input = ui.input(
                                         placeholder='e.g., 4GB or leave empty for no limit'
-                                    ).classes('max-w-md')
+                                    ).classes('w-full')
                                     self.gpu_memory_input.on('input', self._on_gpu_config_change)
                         
                         # Hide GPU config initially
@@ -107,9 +107,9 @@ class EnvironmentTab(BaseTab):
         
         if self.env_variables_container:
             with self.env_variables_container:
-                with ui.card().classes('w-full p-3 mb-3') as variable_card:
+                with ui.card().classes('w-full p-3 mb-3 no-wrap') as variable_card:
                     # Variable configuration
-                    with ui.row().classes('items-center gap-3'):
+                    with ui.row().classes('items-center gap-3 w-full'):
                         # Variable name input
                         name_input = ui.input(
                             placeholder='VARIABLE_NAME',
@@ -302,7 +302,30 @@ class EnvironmentTab(BaseTab):
         }
     
     def set_config_data(self, data: Dict[str, Any]) -> None:
-        """Set environment configuration data from both stages."""
+        """Set environment configuration data from both stages.
+        
+        This method can be invoked before the UI elements for this tab are
+        rendered (e.g., when the project is first loaded and `_load_config_into_tabs`
+        iterates through all tabs).  In that scenario the containers used to
+        display environment variables are not available yet.  Performing the
+        usual update workflow would therefore:
+        
+        1. Skip adding UI elements because the containers are `None`.
+        2. Call `_update_env_variables_config`, which detects an empty
+           `env_variables_data` list and consequently **overwrites** the loaded
+           configuration with an empty environment list.
+        
+        To prevent this destructive behaviour we detect the "UI-not-ready"
+        state early and **exit without touching either the UI or the in-memory
+        configuration**.  Once the tab is actually rendered `render()` will
+        call `set_config_data` again, this time with fully initialised UI
+        containers, allowing the environment variables to be displayed and kept
+        intact.
+        """
+        # Guard: if UI containers are not yet ready, do nothing to avoid wiping config
+        if self.env_variables_container is None:
+            return
+        
         stage_1_config = data.get('stage_1', {})
         stage_2_config = data.get('stage_2', {})
         

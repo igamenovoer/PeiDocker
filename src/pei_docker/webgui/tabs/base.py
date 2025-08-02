@@ -57,7 +57,7 @@ class BaseTab(ABC):
     
     def create_form_group(self, label: str, help_text: Optional[str] = None) -> ui.element:
         """Create a form group with label and optional help text."""
-        with ui.column().classes('mb-4') as group:
+        with ui.column().classes('mb-4 w-full') as group:
             ui.label(label).classes('font-medium text-gray-700 mb-1')
             if help_text:
                 ui.label(help_text).classes('text-sm text-gray-500 mb-2')
