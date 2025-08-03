@@ -68,7 +68,7 @@ class NetworkTab(BaseTab):
                             'ustc': 'USTC'
                         },
                         value='default'
-                    ).classes('max-w-md')
+                    ).classes('w-full')
                     self.apt_mirror_select.on('change', self._on_apt_mirror_change)
             
             # Port Mappings
@@ -162,7 +162,7 @@ class NetworkTab(BaseTab):
                 
                 # Port configuration
                 with ui.row().classes('gap-4 mb-4'):
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         host_input = ui.input(
                             placeholder='Host port (e.g., 8080 or 9090-9099)',
@@ -170,7 +170,7 @@ class NetworkTab(BaseTab):
                         ).classes('w-full')
                         host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                     
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
                         container_input = ui.input(
                             placeholder='Container port (e.g., 80 or 9090-9099)',

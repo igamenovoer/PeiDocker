@@ -41,7 +41,7 @@ class StorageTab(BaseTab):
             with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
                 with ui.row().classes('items-start gap-2'):
                     ui.icon('info', color='blue').classes('mt-1')
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('📋 Key Concepts:').classes('font-semibold text-blue-800')
                         ui.markdown("""**Storage** is Stage-2's unique dynamic system for predefined directories (/soft/app, /soft/data, /soft/workspace).
 **Mounts** are general volume mounts that can be defined for any container path.""").classes('text-blue-700 text-sm mt-1')
@@ -100,7 +100,7 @@ class StorageTab(BaseTab):
             # Three-column grid for storage configuration
             with ui.row().classes('gap-4 w-full'):
                 # Storage Type
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     ui.label('Storage type:').classes('font-medium text-gray-700 mb-1')
                     type_select = ui.select(
                         options={
@@ -113,7 +113,7 @@ class StorageTab(BaseTab):
                     ).classes('w-full')
                 
                 # Host Path
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     ui.label('Host path:').classes('font-medium text-gray-700 mb-1')
                     host_path_input = ui.input(
                         placeholder=f'/host/path/to/{storage_type}'
@@ -121,7 +121,7 @@ class StorageTab(BaseTab):
                     ui.label('Only editable when type is \'host\'').classes('text-xs text-gray-500 mt-1')
                 
                 # Volume Name
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     ui.label('Volume name:').classes('font-medium text-gray-700 mb-1')
                     volume_name_input = ui.input(
                         placeholder=f'my-{storage_type}-volume'
@@ -191,14 +191,14 @@ class StorageTab(BaseTab):
                 # Mount configuration - First row
                 with ui.row().classes('gap-4 mb-4'):
                     # Container Path
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Container path:').classes('font-medium text-gray-700 mb-1')
                         container_path_input = ui.input(
                             placeholder='/container/path'
                         ).classes('w-full')
                     
                     # Mount Type
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Mount type:').classes('font-medium text-gray-700 mb-1')
                         mount_type_select = ui.select(
                             options={
@@ -212,7 +212,7 @@ class StorageTab(BaseTab):
                 # Mount configuration - Second row
                 with ui.row().classes('gap-4'):
                     # Host Path
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Host path:').classes('font-medium text-gray-700 mb-1')
                         host_path_input = ui.input(
                             placeholder='/host/path'
@@ -220,7 +220,7 @@ class StorageTab(BaseTab):
                         ui.label('Only editable when type is \'host\'').classes('text-xs text-gray-500 mt-1')
                     
                     # Volume Name
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Volume name:').classes('font-medium text-gray-700 mb-1')
                         volume_name_input = ui.input(
                             placeholder='my-volume'

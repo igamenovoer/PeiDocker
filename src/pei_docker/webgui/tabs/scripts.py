@@ -95,7 +95,7 @@ class ScriptsTab(BaseTab):
             with self.create_form_group('Custom Entry Point', f'Override the default entry point for {stage.upper()}'):
                 
                 # Entry point mode selection
-                with ui.column().classes('mb-4'):
+                with ui.column().classes('mb-4 w-full'):
                     entry_mode_radio = ui.radio(
                         options={
                             'none': 'Use default',
@@ -111,7 +111,7 @@ class ScriptsTab(BaseTab):
                     entry_config_container.bind_visibility_from(entry_mode_radio, 'value', lambda v: v != 'none')
                     
                     # File path mode
-                    with ui.column() as file_mode_container:
+                    with ui.column().classes('w-full') as file_mode_container:
                         entry_file_input = ui.input(
                             placeholder=f'{path_prefix}/custom/script-{self._generate_uuid()}.bash --param=value'
                         ).classes('w-full')
@@ -120,18 +120,19 @@ class ScriptsTab(BaseTab):
                         file_mode_container.bind_visibility_from(entry_mode_radio, 'value', lambda v: v == 'file')
                     
                     # Inline script mode
-                    with ui.column() as inline_mode_container:
-                        with ui.row().classes('items-center mb-2 gap-0'):
+                    with ui.column().classes('w-full') as inline_mode_container:
+                        with ui.row().classes('items-center mb-2 gap-0 w-full'):
                             ui.label(f'{path_prefix}/custom/').classes('px-3 py-2 bg-gray-100 border border-r-0 rounded-l text-sm font-mono')
                             entry_inline_name_input = ui.input(
-                                placeholder=f'script-{self._generate_uuid()}.bash',
+                                placeholder='entry-script.bash',
                                 value=f'script-{self._generate_uuid()}.bash'
-                            ).classes('flex-1 rounded-l-none').props('readonly')
+                            ).classes('w-full rounded-l-none')
                         
                         entry_inline_content_textarea = ui.textarea(
                             placeholder='#!/bin/bash\necho \'Custom entry point\'',
                             value='#!/bin/bash\necho \'Custom entry point\''
                         ).classes('w-full').props('rows=4')
+                        entry_inline_name_input.on('input', lambda e, s=stage: self._on_entry_config_change(s))
                         entry_inline_content_textarea.on('input', lambda e, s=stage: self._on_entry_config_change(s))
                         
                         inline_mode_container.bind_visibility_from(entry_mode_radio, 'value', lambda v: v == 'inline')
@@ -154,11 +155,11 @@ class ScriptsTab(BaseTab):
             with self.create_form_group('Lifecycle Scripts', 'Scripts that run at specific lifecycle events'):
                 
                 for lifecycle_type, description in self.lifecycle_types:
-                    with ui.column().classes('mb-4'):
+                    with ui.column().classes('mb-4 w-full'):
                         ui.label(f'{lifecycle_type} - {description}').classes('text-sm font-medium text-gray-700 mb-2')
                         
                         # Add script buttons
-                        with ui.row().classes('gap-2 mb-2'):
+                        with ui.row().classes('gap-2 mb-2 w-full'):
                             ui.button('📁 Add File', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix: self._add_lifecycle_script(s, lt, 'file', pp)) \
                                 .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
@@ -255,7 +256,7 @@ class ScriptsTab(BaseTab):
                             value=f'{path_prefix}/custom/script-{self._generate_uuid()}.bash'
                         ).classes('w-full mb-2')
                         
-                        with ui.row().classes('gap-2'):
+                        with ui.row().classes('gap-2 w-full'):
                             ui.button('✏️ Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
                                 .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
                             ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
@@ -267,11 +268,12 @@ class ScriptsTab(BaseTab):
                     script_uuid = self._generate_uuid()
                     with ui.column().classes('w-full'):
                         # Script name display
-                        with ui.row().classes('items-center mb-2 gap-0'):
+                        with ui.row().classes('items-center mb-2 gap-0 w-full'):
                             ui.label(f'{path_prefix}/custom/').classes('px-3 py-2 bg-gray-100 border border-r-0 rounded-l text-sm font-mono')
                             script_name_input = ui.input(
-                                value=f'script-{script_uuid}.bash'
-                            ).classes('flex-1 rounded-l-none').props('readonly')
+                                value=f'script-{script_uuid}.bash',
+                                placeholder='script-name.bash'
+                            ).classes('w-full rounded-l-none')
                         
                         # Script content
                         script_content_textarea = ui.textarea(
@@ -279,7 +281,7 @@ class ScriptsTab(BaseTab):
                             value='#!/bin/bash\necho \'Inline script content\''
                         ).classes('w-full mb-2').props('rows=3')
                         
-                        with ui.row().classes('gap-2'):
+                        with ui.row().classes('gap-2 w-full'):
                             ui.button('👁️ View', on_click=lambda name=script_name_input, content=script_content_textarea: self._view_inline_script(name.value, content.value)) \
                                 .classes('bg-blue-600 hover:bg-blue-700 text-white text-sm')
                             ui.button('✏️ Edit', on_click=lambda name=script_name_input, content=script_content_textarea: self._edit_inline_script(name.value, content)) \
@@ -287,6 +289,7 @@ class ScriptsTab(BaseTab):
                             ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
                                 .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                         
+                        script_name_input.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
                         script_content_textarea.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
                 
                 # Store script data

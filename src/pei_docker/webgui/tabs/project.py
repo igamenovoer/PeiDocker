@@ -45,7 +45,7 @@ class ProjectTab(BaseTab):
                 # Two-column grid layout matching static demo
                 with ui.row().classes('w-full gap-6'):
                     # Left Column - Basic Settings
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Basic Settings').classes('text-lg font-semibold mb-4')
                         
                         # Project name
@@ -53,7 +53,7 @@ class ProjectTab(BaseTab):
                             self.project_name_input = ui.input(
                                 placeholder='Enter project name',
                                 value=self.app.data.project.name or 'demo-project'
-                            ).classes('w-full max-w-md')
+                            ).classes('w-full')
                             self.project_name_input.on('input', self._on_project_name_change)
                         
                         # Base Docker image
@@ -65,11 +65,11 @@ class ProjectTab(BaseTab):
                                     'ubuntu:24.04': '🐧 Ubuntu 24.04 LTS (Latest)',
                                 },
                                 value='ubuntu:22.04'
-                            ).classes('w-full max-w-md')
+                            ).classes('w-full')
                             self.base_image_select.on('change', self._on_base_image_change)
                     
                     # Right Column - Generated Docker Images
-                    with ui.column().classes('flex-1'):
+                    with ui.column().classes('w-full'):
                         ui.label('Generated Docker Images').classes('text-lg font-semibold mb-4')
                         
                         # Preview panel with stage images

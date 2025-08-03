@@ -48,7 +48,7 @@ class SummaryTab(BaseTab):
             # Two-column layout for overview and actions
             with ui.row().classes('w-full gap-6'):
                 # Left column - Configuration Overview
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     self._create_project_overview()
                     self._create_ssh_overview()
                     self._create_network_overview()
@@ -57,7 +57,7 @@ class SummaryTab(BaseTab):
                     self._create_scripts_overview()
                 
                 # Right column - Actions and Export
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     self._create_actions_section()
                     self._create_config_preview()
             
@@ -77,7 +77,7 @@ class SummaryTab(BaseTab):
                     ui.label('Directory:')
                 
                 # Values column
-                with ui.column().classes('flex-1'):
+                with ui.column().classes('w-full'):
                     ui.label(self.app.data.project.name or 'Not set').bind_text_from(
                         self.app.data.project, 'name', lambda x: x or 'Not set'
                     )

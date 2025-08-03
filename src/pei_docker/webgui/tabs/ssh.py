@@ -46,12 +46,12 @@ class SSHTab(BaseTab):
                     with ui.column():
                         ui.label('📦 Container Port').classes('font-medium text-gray-700 mb-1')
                         self.ssh_port_input = ui.number('SSH Port', value=22, min=1, max=65535) \
-                            .classes('w-32')
+                            .classes('w-full')
                     
                     with ui.column():
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         self.host_port_input = ui.number('Host Port', value=2222, min=1, max=65535) \
-                            .classes('w-32')
+                            .classes('w-full')
                 
                 port_config.bind_visibility_from(self.ssh_enabled_switch, 'value')
             
@@ -118,7 +118,7 @@ class SSHTab(BaseTab):
                     uid_container = ui.column().classes('ml-6')
                     with uid_container:
                         ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
-                        uid_input = ui.input('UID', placeholder='1000', value='1000').props('type=number min=0').classes('max-w-xs')
+                        uid_input = ui.input('UID', placeholder='1000', value='1000').props('type=number min=0').classes('w-full')
                         ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
                     
                     # Bind UID input visibility to checkbox
@@ -237,7 +237,7 @@ class SSHTab(BaseTab):
                     uid_container = ui.column().classes('ml-6')
                     with uid_container:
                         ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
-                        uid_input = ui.input('UID', placeholder='1000', value='').props('type=number min=0').classes('max-w-xs')
+                        uid_input = ui.input('UID', placeholder='1000', value='').props('type=number min=0').classes('w-full')
                         ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
                     
                     # Bind UID input visibility to checkbox
@@ -358,7 +358,7 @@ class SSHTab(BaseTab):
                     with uid_container:
                         ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
                         uid_input = ui.input('UID', placeholder='1000', 
-                                           value=str(uid_value) if uid_value is not None else '').props('type=number min=0').classes('max-w-xs')
+                                           value=str(uid_value) if uid_value is not None else '').props('type=number min=0').classes('w-full')
                         ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')
                     
                     # Bind UID input visibility to checkbox
