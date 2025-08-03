@@ -134,14 +134,14 @@ class NetworkTab(BaseTab):
             current_ports = self.app.data.config.stage_1.get('ports', [])
             if not current_ports:
                 # Add example port mapping only if no ports configured
-                self._add_port_mapping('8080', '80')
+                self._add_port_mapping('8080', '80', mark_as_modified=False)
             else:
                 # Load existing port mappings
                 self.set_config_data({'stage_1': self.app.data.config.stage_1})
         
         return container
     
-    def _on_proxy_toggle(self, e):
+    def _on_proxy_toggle(self, e: Any) -> None:
         """Handle proxy enable/disable toggle (applied to BOTH stages)."""
         enabled = e.value
 
@@ -150,12 +150,12 @@ class NetworkTab(BaseTab):
             if 'proxy' not in stage_dict:
                 stage_dict['proxy'] = {}
 
-        # Update both stages
-        self.app.data.config.stage_1['proxy']['enabled'] = enabled
-        self.app.data.config.stage_2['proxy']['enabled'] = enabled
+        # Update both stages with correct key name
+        self.app.data.config.stage_1['proxy']['enable_globally'] = enabled
+        self.app.data.config.stage_2['proxy']['enable_globally'] = enabled
         self.mark_modified()
     
-    def _on_proxy_url_change(self, e):
+    def _on_proxy_url_change(self, e: Any) -> None:
         """Handle proxy URL input changes (applied to BOTH stages)."""
         proxy_url = e.value.strip()
 
@@ -169,7 +169,7 @@ class NetworkTab(BaseTab):
         self.app.data.config.stage_2['proxy']['url'] = url_value
         self.mark_modified()
     
-    def _on_apt_mirror_change(self, e):
+    def _on_apt_mirror_change(self, e: Any) -> None:
         """Handle APT mirror selection changes (applied to BOTH stages)."""
         mirror = e.value
 
@@ -182,64 +182,66 @@ class NetworkTab(BaseTab):
         self.app.data.config.stage_2['apt']['mirror'] = mirror
         self.mark_modified()
     
-    def _add_port_mapping(self, host_port: str = '', container_port: str = ''):
+    def _add_port_mapping(self, host_port: str = '', container_port: str = '', mark_as_modified: bool = True) -> None:
         """Add a new port mapping configuration."""
         mapping_id = f'port-mapping-{self.port_mapping_count}'
         
-        with self.port_mappings_container:
-            with ui.card().classes('w-full p-4 mb-4') as mapping_card:
-                # Mapping header
-                with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'🔌 Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
-                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
-                
-                # Port configuration
-                with ui.row().classes('gap-4 mb-4'):
-                    with ui.column().classes('w-full'):
-                        ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
-                        host_input = ui.input(
-                            placeholder='Host port (e.g., 8080 or 9090-9099)',
-                            value=host_port
-                        ).classes('w-full')
-                        host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
+        if self.port_mappings_container:
+            with self.port_mappings_container:
+                with ui.card().classes('w-full p-4 mb-4') as mapping_card:
+                    # Mapping header
+                    with ui.row().classes('items-center justify-between mb-4'):
+                        ui.label(f'🔌 Port Mapping {self.port_mapping_count + 1}').classes('text-lg font-semibold')
+                        ui.button('🗑️ Remove', on_click=lambda: self._remove_port_mapping(mapping_card, mapping_id)) \
+                            .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                     
-                    with ui.column().classes('w-full'):
-                        ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
-                        container_input = ui.input(
-                            placeholder='Container port (e.g., 80 or 9090-9099)',
-                            value=container_port
-                        ).classes('w-full')
-                        container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
-                
-                # Port mapping preview (simplified)
-                preview_label = ui.label('-').classes('font-mono text-sm text-gray-900 font-bold mt-3')
-                
-                # Store mapping data
-                mapping_data = {
-                    'id': mapping_id,
-                    'host_input': host_input,
-                    'container_input': container_input,
-                    'host_error': host_error,
-                    'container_error': container_error,
-                    'preview_label': preview_label,
-                    'card': mapping_card
-                }
-                
-                # Add event handlers
-                host_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'host'))
-                container_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'container'))
-                
-                self.port_mappings_data.append(mapping_data)
-                
-                # Update preview if values provided
-                if host_port or container_port:
-                    self._update_port_mapping_preview(mapping_data)
+                    # Port configuration
+                    with ui.row().classes('gap-4 mb-4'):
+                        with ui.column().classes('w-full'):
+                            ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
+                            host_input = ui.input(
+                                placeholder='Host port (e.g., 8080 or 9090-9099)',
+                                value=host_port
+                            ).classes('w-full')
+                            host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
+                        
+                        with ui.column().classes('w-full'):
+                            ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
+                            container_input = ui.input(
+                                placeholder='Container port (e.g., 80 or 9090-9099)',
+                                value=container_port
+                            ).classes('w-full')
+                            container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
+                    
+                    # Port mapping preview (simplified)
+                    preview_label = ui.label('-').classes('font-mono text-sm text-gray-900 font-bold mt-3')
+                    
+                    # Store mapping data
+                    mapping_data = {
+                        'id': mapping_id,
+                        'host_input': host_input,
+                        'container_input': container_input,
+                        'host_error': host_error,
+                        'container_error': container_error,
+                        'preview_label': preview_label,
+                        'card': mapping_card
+                    }
+                    
+                    # Add event handlers
+                    host_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'host'))
+                    container_input.on('input', lambda e, data=mapping_data: self._on_port_input_change(e, data, 'container'))
+                    
+                    self.port_mappings_data.append(mapping_data)
+                    
+                    # Update preview if values provided
+                    if host_port or container_port:
+                        self._update_port_mapping_preview(mapping_data)
         
         self.port_mapping_count += 1
-        self.mark_modified()
+        if mark_as_modified:
+            self.mark_modified()
     
-    def _remove_port_mapping(self, mapping_card, mapping_id):
+    def _remove_port_mapping(self, mapping_card: ui.card, mapping_id: str) -> None:
         """Remove a port mapping configuration."""
         mapping_card.delete()
         
@@ -251,13 +253,13 @@ class NetworkTab(BaseTab):
         
         self.mark_modified()
     
-    def _on_port_input_change(self, e, mapping_data, port_type):
+    def _on_port_input_change(self, e: Any, mapping_data: Dict[str, Any], port_type: str) -> None:
         """Handle port input changes."""
         self._validate_port_input(mapping_data, port_type)
         self._update_port_mapping_preview(mapping_data)
         self._update_port_mappings_config()
     
-    def _validate_port_input(self, mapping_data, port_type):
+    def _validate_port_input(self, mapping_data: Dict[str, Any], port_type: str) -> bool:
         """Validate port input and show errors."""
         input_field = mapping_data[f'{port_type}_input']
         error_field = mapping_data[f'{port_type}_error']
@@ -312,19 +314,19 @@ class NetworkTab(BaseTab):
         input_field.classes(remove='border-red-500')
         return True
     
-    def _show_port_error(self, input_field, error_field, message):
+    def _show_port_error(self, input_field: ui.input, error_field: ui.label, message: str) -> None:
         """Show port validation error."""
         error_field.set_text(message)
         error_field.classes(replace='text-red-600 text-sm mt-1')
         input_field.classes(add='border-red-500')
     
-    def _show_port_warning(self, input_field, error_field, message):
+    def _show_port_warning(self, input_field: ui.input, error_field: ui.label, message: str) -> None:
         """Show port validation warning."""
         error_field.set_text(message)
         error_field.classes(replace='text-yellow-600 text-sm mt-1')
         input_field.classes(remove='border-red-500')
     
-    def _validate_matching_ranges(self, mapping_data) -> bool:
+    def _validate_matching_ranges(self, mapping_data: Dict[str, Any]) -> bool:
         """Validate that host and container port ranges have matching counts."""
         host_value = mapping_data['host_input'].value.strip()
         container_value = mapping_data['container_input'].value.strip()
@@ -358,7 +360,7 @@ class NetworkTab(BaseTab):
         
         return True
     
-    def _update_port_mapping_preview(self, mapping_data):
+    def _update_port_mapping_preview(self, mapping_data: Dict[str, Any]) -> None:
         """Update the port mapping preview display."""
         host_value = mapping_data['host_input'].value.strip()
         container_value = mapping_data['container_input'].value.strip()
@@ -386,7 +388,7 @@ class NetworkTab(BaseTab):
             preview_label.set_text('-')
             preview_label.classes(replace='font-mono text-sm text-gray-900 font-bold mt-3')
     
-    def _update_port_mappings_config(self):
+    def _update_port_mappings_config(self) -> None:
         """Update the port mappings configuration."""
         valid_mappings = []
         
@@ -448,7 +450,7 @@ class NetworkTab(BaseTab):
             }
         }
     
-    def set_config_data(self, data: dict):
+    def set_config_data(self, data: dict) -> None:
         """Set network configuration data merging stage-1 & stage-2 (stage-2 overrides)."""
         stage_1_config = data.get('stage_1', {})
         stage_2_config = data.get('stage_2', {})
@@ -463,7 +465,7 @@ class NetworkTab(BaseTab):
         # ---------- proxy ------------
         proxy_cfg = _merge_dict(stage_1_config.get('proxy', {}), stage_2_config.get('proxy', {}))
         if self.proxy_enabled_switch:
-            self.proxy_enabled_switch.set_value(proxy_cfg.get('enabled', False))
+            self.proxy_enabled_switch.set_value(proxy_cfg.get('enable_globally', False))
 
         if self.proxy_url_input:
             proxy_url = proxy_cfg.get('url', '')
@@ -494,4 +496,4 @@ class NetworkTab(BaseTab):
         for port_mapping in combined_ports:
             if ':' in port_mapping:
                 host_port, container_port = port_mapping.split(':', 1)
-                self._add_port_mapping(host_port, container_port)
+                self._add_port_mapping(host_port, container_port, mark_as_modified=False)
