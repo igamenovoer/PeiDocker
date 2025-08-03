@@ -314,49 +314,6 @@
     </content>
     <tags>#其他</tags>
   </item>
-  <item id="mem_1754048971513_6018stso2" time="2025/08/01 19:49">
-    <content>
-      Comprehensive NiceGUI Testing with HTML Capture and Screenshot Reports (2025-08-01):
-    
-      **SUCCESSFUL IMPLEMENTATION:**
-      - ✅ Created comprehensive test script for PeiDocker NiceGUI WebGUI
-      - ✅ Implemented HTML content saving at key navigation points
-      - ✅ Generated detailed screenshot report following guidelines
-      - ✅ Successfully captured first page → project creation → second page workflow
-    
-      **TESTING RESULTS:**
-      - First page HTML: 39,922 characters (welcome page with auto-generated directory)
-      - Second page HTML: 48,592 characters (project active state with tabs)
-      - Screenshots: 5 PNG files (1280x752/924px) showing complete workflow
-      - Auto-generated directory: /tmp/peidocker-20250801-194809
-    
-      **TECHNICAL IMPLEMENTATION:**
-      - JavaScript HTML extraction: `await page.evaluate(&quot;document.querySelector(&#x27;html&#x27;).outerHTML&quot;)`
-      - Playwright automation with proper NiceGUI wait strategies
-      - Screenshot report generation following /context/instructions/gui-test-screenshots.md
-      - Comprehensive error handling and process cleanup
-    
-      **SCREENSHOT REPORT STRUCTURE:**
-      - Report file: /tmp/screenshot-reports/{timestamp}-peidocker-webgui-test.md
-      - Images: /tmp/screenshot-reports/imgs/ (5 screenshots + 2 HTML files)
-      - Step-by-step documentation with before/after screenshots
-      - Technical details and test summary included
-    
-      **KEY WORKFLOW VALIDATED:**
-      1. Welcome page with auto-generated project directory field
-      2. Click &quot;Create Project&quot; button navigation
-      3. Project active state with visible tab navigation
-      4. HTML content growth from 39K to 48K chars (tab structure added)
-    
-      **BEST PRACTICES APPLIED:**
-      - Wait for WebSocket + Vue.js components before capture
-      - Full page screenshots for complete content
-      - Clean process management with proper termination
-      - Structured reporting with markdown format
-      - File organization following project guidelines
-    </content>
-    <tags>#其他</tags>
-  </item>
   <item id="mem_1754059415267_qceusdf7o" time="2025/08/01 22:43">
     <content>
       PeiDocker Web GUI CLI Usage - `pei-docker-gui` Command (from /workspace/code/PeiDocker/src/pei_docker/webgui/cli_launcher.py):

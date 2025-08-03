@@ -1,11 +1,9 @@
 # Do this task
 
-The GUI does not contain all the functionality of the `user_config.yml` and this PeiDocker project, this is expected, as the GUI aims to provide a user-friendly interface for common tasks, while the `user_config.yml` file contains detailed configurations that can be edited for advanced use cases.
+## Expanding widgets to full width
 
-So, some of the settings in `user_config.yml` will be simplified and then reflected in the GUI, for example, the environment variables in `user_config.yml` can be configured for `stage-1` and `stage-2` separately, but in the GUI, they are combined into a single section, so we assume that the GUI will set environment variables for both stages at the same time. When loading the project, you simply combine the environment variables from both stages, if `stage-1` and `stage-2` have the same variable, the value from `stage-2` will be used, the behavior is just like `export` command applied to the environment variables in stage-1 and then stage-2.
+We are now not fully utilizing the available space in the widget area, many text widgets are difficult to read because they are too narrow. 
 
-This princple applies to all the settings in `user_config.yml` where stage-1 and stage-2 can be configured separately but the GUI has only a single section for them. 
+The "environment" tab (`src/pei_docker/webgui/tabs/environment.py`) has been fixed to use the full width of the widget area, except the top-level widget which is designed to be using a portion of the center area on the screen (otherwise it would be too wide on large screens). For the other tabs, always prefer to use the full width of its parent widget, unless there is a specific reason not to do so.
 
-Example project is given in `tmp/build-example`, you can load that project to debug. Note that, because your action in GUI may corrupt the project files, you should always work on a new copy of the example project, using `pei-docker-cli create -p ./tmp/build-example` command, and then load the project in the GUI.
-
-IMPORTANT: Note that, if the GUI already supports separete-stage settings, you should not change the behavior of the GUI, you should only change the behavior of the GUI it supports only a single section for the settings that are splitted into stage-1 and stage-2 in `user_config.yml`.
+Check the GUI source code and fix them.
