@@ -5,10 +5,12 @@ This tab provides a complete configuration review, validation status,
 and actions for saving and exporting the project.
 """
 
-from typing import TYPE_CHECKING, List, Tuple, Dict, Optional
+from typing import TYPE_CHECKING, List, Tuple, Dict, Optional, Any
 from nicegui import ui
 from .base import BaseTab
+from ..models import TabName
 import yaml
+import asyncio
 
 if TYPE_CHECKING:
     from ..app import PeiDockerWebGUI
@@ -18,8 +20,6 @@ class SummaryTab(BaseTab):
     
     def __init__(self, app: 'PeiDockerWebGUI'):
         super().__init__(app)
-        self.validation_status_container: Optional[ui.row] = None
-        self.errors_container: Optional[ui.column] = None
         self.save_button: Optional[ui.button] = None
         self.configure_button: Optional[ui.button] = None
         self.download_button: Optional[ui.button] = None
@@ -32,20 +32,10 @@ class SummaryTab(BaseTab):
             
             self.create_section_header(
                 '📋 Configuration Summary',
-                'Review your complete PeiDocker configuration, validate all settings, and save your user_config.yml file'
+                'Review your complete PeiDocker configuration and save your user_config.yml file'
             )
             
-            # Validation Status
-            with self.create_card('✅ Validation Status'):
-                # Status indicators grid
-                with ui.row().classes('grid grid-cols-3 gap-4 w-full') as status_grid:
-                    self.validation_status_container = status_grid
-                
-                # Errors container (initially hidden)
-                with ui.column().classes('w-full mt-4') as errors_container:
-                    self.errors_container = errors_container
-            
-            # Generated user_config.yml Preview (directly after validation status)
+            # Generated user_config.yml Preview
             self._create_config_preview()
             
             # Actions section
@@ -86,13 +76,6 @@ class SummaryTab(BaseTab):
     
     def _save_configuration(self) -> None:
         """Save the configuration."""
-        is_valid, errors = self.validate_all_tabs()
-        
-        if not is_valid:
-            ui.notify('Please fix all validation errors before saving the configuration.', 
-                     type='negative', timeout=5000)
-            return
-        
         try:
             # Generate the configuration
             config_data = self._generate_full_config()
@@ -105,18 +88,22 @@ class SummaryTab(BaseTab):
     
     def _configure_project(self) -> None:
         """Configure the project using pei-docker-cli."""
-        async def confirm_configure():
+        async def confirm_configure() -> None:
             with ui.dialog() as dialog, ui.card().classes('w-96'):
                 ui.label('Configure Project').classes('text-lg font-semibold mb-3')
                 ui.label('Run pei-docker-cli configure to build project structure? This may take a few minutes.').classes('mb-4')
                 
                 with ui.row().classes('gap-2 justify-end'):
                     ui.button('Cancel', on_click=dialog.close).classes('bg-gray-600 hover:bg-gray-700 text-white')
-                    ui.button('Configure', on_click=lambda: (dialog.close(), self._run_configure())).classes('bg-yellow-600 hover:bg-yellow-700 text-white')
+                    def handle_configure() -> None:
+                        dialog.close()
+                        self._run_configure()
+                    ui.button('Configure', on_click=handle_configure).classes('bg-yellow-600 hover:bg-yellow-700 text-white')
             
             dialog.open()
         
-        confirm_configure()
+        # Use asyncio.create_task to run the async function
+        asyncio.create_task(confirm_configure())
     
     def _run_configure(self) -> None:
         """Run the actual configure command."""
@@ -128,18 +115,14 @@ class SummaryTab(BaseTab):
     
     def _download_project(self) -> None:
         """Download the project as ZIP."""
-        is_valid, errors = self.validate_all_tabs()
         warnings = []
-        
-        if not is_valid:
-            warnings.append('Configuration has validation errors.')
         
         # Check if project is configured (in real implementation)
         if not self._is_project_configured():
             warnings.append('Project has not been configured yet.')
         
         if warnings:
-            async def confirm_download():
+            async def confirm_download() -> None:
                 with ui.dialog() as dialog, ui.card().classes('w-96'):
                     ui.label('Download Warning').classes('text-lg font-semibold mb-3')
                     ui.label('Warning:').classes('font-semibold text-yellow-700')
@@ -149,11 +132,15 @@ class SummaryTab(BaseTab):
                     
                     with ui.row().classes('gap-2 justify-end'):
                         ui.button('Cancel', on_click=dialog.close).classes('bg-gray-600 hover:bg-gray-700 text-white')
-                        ui.button('Download', on_click=lambda: (dialog.close(), self._start_download())).classes('bg-blue-600 hover:bg-blue-700 text-white')
+                        def handle_download() -> None:
+                            dialog.close()
+                            self._start_download()
+                        ui.button('Download', on_click=handle_download).classes('bg-blue-600 hover:bg-blue-700 text-white')
                 
                 dialog.open()
             
-            confirm_download()
+            # Use asyncio.create_task to run the async function
+            asyncio.create_task(confirm_download())
         else:
             self._start_download()
     
@@ -168,85 +155,9 @@ class SummaryTab(BaseTab):
         # In a real implementation, this would check for build files
         return False
     
-    def validate_all_tabs(self) -> Tuple[bool, List[str]]:
-        """Validate all tabs and return overall status."""
-        # Use the integrated real-time validator
-        validation_errors = self.app.real_time_validator.validate_all_tabs()
-        
-        all_errors = []
-        for tab_name, errors in validation_errors.items():
-            # Prefix errors with tab name
-            tab_errors = [f"{tab_name.title()}: {error}" for error in errors]
-            all_errors.extend(tab_errors)
-        
-        return len(all_errors) == 0, all_errors
-    
     def refresh_summary(self) -> None:
         """Refresh the summary display."""
-        self._update_validation_status()
         self._update_config_preview()
-    
-    def _update_validation_status(self) -> None:
-        """Update the validation status display."""
-        if not self.validation_status_container:
-            return
-        
-        self.validation_status_container.clear()
-        
-        # Get validation status for each tab
-        tab_statuses = {}
-        all_errors = []
-        
-        for tab_name, tab in self.app.tabs.items():
-            is_valid, errors = tab.validate()
-            tab_statuses[tab_name.value] = {
-                'valid': is_valid,
-                'error_count': len(errors),
-                'errors': errors
-            }
-            if errors:
-                # Prefix errors with tab name
-                tab_errors = [f"{tab_name.value.title()}: {error}" for error in errors]
-                all_errors.extend(tab_errors)
-        
-        # Create status indicators
-        with self.validation_status_container:
-            for tab_name, status in tab_statuses.items():
-                with ui.row().classes('items-center gap-2'):
-                    # Status dot
-                    dot_color = 'bg-green-500' if status['valid'] else 'bg-red-500'
-                    ui.element('div').classes(f'w-3 h-3 rounded-full {dot_color}')
-                    
-                    # Status text
-                    if status['valid']:
-                        ui.label(f'{tab_name.title()}: Valid').classes('text-sm')
-                    else:
-                        ui.label(f'{tab_name.title()}: {status["error_count"]} error{"s" if status["error_count"] != 1 else ""}').classes('text-sm')
-        
-        # Update errors container
-        self.errors_container.clear()
-        
-        if all_errors:
-            with self.errors_container:
-                with ui.card().classes('w-full p-3 bg-red-50 border-red-200'):
-                    with ui.row().classes('items-center gap-2 mb-2'):
-                        ui.icon('error', color='red')
-                        ui.label('Configuration Errors').classes('text-sm font-semibold text-red-700')
-                    
-                    with ui.column().classes('text-sm text-red-700'):
-                        for error in all_errors[:5]:  # Show first 5 errors
-                            ui.label(f'• {error}').classes('mb-1')
-                        if len(all_errors) > 5:
-                            ui.label(f'... and {len(all_errors) - 5} more errors').classes('text-xs')
-        
-        # Update save button state
-        if self.save_button:
-            if all_errors:
-                self.save_button.props('disabled')
-                self.save_button.classes(replace='w-full bg-gray-400 text-white cursor-not-allowed')
-            else:
-                self.save_button.props(remove='disabled')
-                self.save_button.classes(replace='w-full bg-green-600 hover:bg-green-700 text-white')
     
     def _update_config_preview(self) -> None:
         """Update the configuration preview."""
@@ -269,13 +180,17 @@ class SummaryTab(BaseTab):
     
     def _generate_full_config(self) -> dict:
         """Generate the complete configuration by collecting data from all tabs."""
-        config = {
+        config: Dict[str, Dict[str, Any]] = {
             'stage_1': {},
             'stage_2': {}
         }
         
         # Collect configuration from each tab
-        for tab in self.app.tabs.values():
+        for tab_name, tab in self.app.tabs.items():
+            # Skip the summary tab itself to avoid recursion
+            if tab_name == TabName.SUMMARY:
+                continue
+                
             if hasattr(tab, 'get_config_data'):
                 tab_config = tab.get_config_data()
                 

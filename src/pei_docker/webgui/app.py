@@ -314,6 +314,53 @@ class PeiDockerWebGUI:
     # Event handlers
     def switch_tab(self, tab: TabName) -> None:
         """Switch to a different tab."""
+        # If there are unsaved changes, show a warning dialog
+        if self.data.config.modified:
+            # Create dialog for unsaved changes warning
+            with ui.dialog() as dialog, ui.card():
+                ui.label('⚠️ Unsaved Changes').classes('text-lg font-bold mb-2')
+                ui.label('You have unsaved changes. Switch tabs without saving?').classes('mb-4')
+                ui.label('Your changes will be lost if you do not save.').classes('text-sm text-red-600 mb-4')
+                
+                with ui.row().classes('gap-2'):
+                    ui.button('Cancel', on_click=dialog.close).classes('bg-gray-500 hover:bg-gray-600')
+                    ui.button('🔄 Switch Anyway', 
+                             on_click=lambda: self._do_switch_tab(tab, dialog)) \
+                        .classes('bg-red-600 hover:bg-red-700')
+            dialog.open()
+        else:
+            # No unsaved changes, just switch
+            self._do_switch_tab_direct(tab)
+    
+    def _do_switch_tab(self, tab: TabName, dialog: ui.dialog) -> None:
+        """Handle tab switch after user confirms discarding changes."""
+        dialog.close()
+        
+        # Create async task to reload configuration and switch tabs
+        async def reload_and_switch() -> None:
+            try:
+                if self.data.project.directory:
+                    # Load the saved user_config.yml
+                    success = await self.file_ops.load_configuration(
+                        self.data.project.directory,
+                        self.data.config
+                    )
+                    if success:
+                        # Load configuration into all tabs
+                        self._load_config_into_tabs()
+                        
+                        # Now switch to the new tab
+                        self._do_switch_tab_direct(tab)
+                    else:
+                        ui.notify('⚠️ Could not reload saved configuration', type='warning')
+            except Exception as e:
+                ui.notify(f'❌ Error reloading configuration: {str(e)}', type='negative')
+        
+        # Schedule the async task
+        asyncio.create_task(reload_and_switch())
+    
+    def _do_switch_tab_direct(self, tab: TabName) -> None:
+        """Directly switch to a tab without any checks."""
         self.data.tabs.active_tab = tab
         self.render_active_tab()
     
