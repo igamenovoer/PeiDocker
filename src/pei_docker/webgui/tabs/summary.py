@@ -11,6 +11,9 @@ from .base import BaseTab
 from ..models import TabName
 import yaml
 import asyncio
+import omegaconf as oc
+from omegaconf import DictConfig
+import copy
 
 if TYPE_CHECKING:
     from ..app import PeiDockerWebGUI
@@ -168,7 +171,14 @@ class SummaryTab(BaseTab):
         
         try:
             config_data = self._generate_full_config()
-            config_yaml = yaml.dump(config_data, default_flow_style=False, sort_keys=False)
+            
+            # Use OmegaConf to convert to YAML for consistent formatting
+            if isinstance(config_data, dict):
+                # Create OmegaConf config and convert to YAML
+                config_yaml = oc.OmegaConf.to_yaml(oc.OmegaConf.create(config_data))
+            else:
+                # Fallback to regular YAML dump
+                config_yaml = yaml.dump(config_data, default_flow_style=False, sort_keys=False)
             
             with self.config_preview_container:
                 with ui.card().classes('w-full p-3 bg-gray-50'):
@@ -180,7 +190,8 @@ class SummaryTab(BaseTab):
     
     def _generate_full_config(self) -> dict:
         """Generate the complete configuration by collecting data from all tabs."""
-        config: Dict[str, Dict[str, Any]] = {
+        # Use OmegaConf to create a proper configuration structure
+        config_dict: Dict[str, Dict[str, Any]] = {
             'stage_1': {},
             'stage_2': {}
         }
@@ -197,20 +208,39 @@ class SummaryTab(BaseTab):
                 # Merge stage_1 configuration
                 if 'stage_1' in tab_config:
                     for key, value in tab_config['stage_1'].items():
+                        # Skip internal metadata keys
+                        if key.startswith('_'):
+                            continue
                         if value:  # Only add non-empty values
-                            config['stage_1'][key] = value
+                            # Deep copy the value to avoid references
+                            config_dict['stage_1'][key] = copy.deepcopy(value)
                 
                 # Merge stage_2 configuration
                 if 'stage_2' in tab_config:
                     for key, value in tab_config['stage_2'].items():
+                        # Skip internal metadata keys
+                        if key.startswith('_'):
+                            continue
                         if value:  # Only add non-empty values
-                            config['stage_2'][key] = value
+                            # Deep copy the value to avoid references
+                            config_dict['stage_2'][key] = copy.deepcopy(value)
         
         # Clean up empty sections
         for stage in ['stage_1', 'stage_2']:
-            config[stage] = {k: v for k, v in config[stage].items() if v}
+            config_dict[stage] = {k: v for k, v in config_dict[stage].items() if v}
         
-        return config
+        # Create OmegaConf DictConfig and resolve it to remove any references
+        config = oc.OmegaConf.create(config_dict)
+        
+        # Convert to container with resolve=True to eliminate references
+        resolved_config = oc.OmegaConf.to_container(config, resolve=True)
+        
+        # Ensure we return a dict type
+        if isinstance(resolved_config, dict):
+            return resolved_config
+        else:
+            # Fallback to original dict if something goes wrong
+            return config_dict
     
     def validate(self) -> tuple[bool, list[str]]:
         """Validate summary tab (always valid)."""

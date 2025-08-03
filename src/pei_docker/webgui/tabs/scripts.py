@@ -433,131 +433,370 @@ class ScriptsTab(BaseTab):
             return path.startswith('stage-1/') or path.startswith('stage-2/')
     
     def get_config_data(self) -> dict:
-        """Get scripts configuration data."""
-        stage_1_scripts = {}
-        stage_2_scripts = {}
+        """Get scripts configuration data.
         
-        # Collect Stage-1 entry point
+        For inline scripts, we store them temporarily with metadata.
+        The actual file writing will be handled by the save process.
+        """
+        stage_1_data: Dict[str, Any] = {}
+        stage_2_data: Dict[str, Any] = {}
+        
+        # We need to store inline scripts data for the save process
+        stage_1_inline_scripts = []
+        stage_2_inline_scripts = []
+        
+        # Collect Stage-1 configuration
         if self.stage1_entry_mode_radio and self.stage1_entry_mode_radio.value != 'none':
             mode = self.stage1_entry_mode_radio.value
             if mode == 'file' and self.stage1_entry_file_input:
                 path = self.stage1_entry_file_input.value.strip()
                 if path:
-                    stage_1_scripts['entry_point'] = {'type': 'file', 'path': path}
+                    # For file mode, use on_entry format for entry point
+                    if 'custom' not in stage_1_data:
+                        stage_1_data['custom'] = {}
+                    stage_1_data['custom']['on_entry'] = [path]
             elif mode == 'inline' and self.stage1_entry_inline_name_input and self.stage1_entry_inline_content_textarea:
                 name = self.stage1_entry_inline_name_input.value.strip()
                 content = self.stage1_entry_inline_content_textarea.value.strip()
                 if name and content:
-                    stage_1_scripts['entry_point'] = {
-                        'type': 'inline',
-                        'name': name,
-                        'content': content
-                    }
+                    # Store inline script data for later processing
+                    script_path = f'stage-1/custom/{name}'
+                    stage_1_inline_scripts.append({
+                        'path': script_path,
+                        'content': content,
+                        'type': 'entry_point'
+                    })
+                    if 'custom' not in stage_1_data:
+                        stage_1_data['custom'] = {}
+                    stage_1_data['custom']['on_entry'] = [script_path]
         
-        # Collect Stage-2 entry point
+        # Collect Stage-2 configuration
         if self.stage2_entry_mode_radio and self.stage2_entry_mode_radio.value != 'none':
             mode = self.stage2_entry_mode_radio.value
             if mode == 'file' and self.stage2_entry_file_input:
                 path = self.stage2_entry_file_input.value.strip()
                 if path:
-                    stage_2_scripts['entry_point'] = {'type': 'file', 'path': path}
+                    if 'custom' not in stage_2_data:
+                        stage_2_data['custom'] = {}
+                    stage_2_data['custom']['on_entry'] = [path]
             elif mode == 'inline' and self.stage2_entry_inline_name_input and self.stage2_entry_inline_content_textarea:
                 name = self.stage2_entry_inline_name_input.value.strip()
                 content = self.stage2_entry_inline_content_textarea.value.strip()
                 if name and content:
-                    stage_2_scripts['entry_point'] = {
-                        'type': 'inline',
-                        'name': name,
-                        'content': content
-                    }
+                    script_path = f'stage-2/custom/{name}'
+                    stage_2_inline_scripts.append({
+                        'path': script_path,
+                        'content': content,
+                        'type': 'entry_point'
+                    })
+                    if 'custom' not in stage_2_data:
+                        stage_2_data['custom'] = {}
+                    stage_2_data['custom']['on_entry'] = [script_path]
         
         # Collect Stage-1 lifecycle scripts
         for lifecycle_type, scripts_list in self.stage1_lifecycle_scripts.items():
-            lifecycle_scripts = []
+            script_paths = []
             for script_data in scripts_list:
                 if script_data['type'] == 'file':
                     path = script_data['input'].value.strip()
                     if path:
-                        lifecycle_scripts.append({'type': 'file', 'path': path})
+                        script_paths.append(path)
                 else:  # inline
                     name = script_data['name_input'].value.strip()
                     content = script_data['content_textarea'].value.strip()
                     if name and content:
-                        lifecycle_scripts.append({
-                            'type': 'inline',
-                            'name': name,
-                            'content': content
+                        script_path = f'stage-1/custom/{name}'
+                        stage_1_inline_scripts.append({
+                            'path': script_path,
+                            'content': content,
+                            'type': lifecycle_type
                         })
+                        script_paths.append(script_path)
             
-            if lifecycle_scripts:
-                stage_1_scripts[lifecycle_type] = lifecycle_scripts
+            if script_paths:
+                if 'custom' not in stage_1_data:
+                    stage_1_data['custom'] = {}
+                stage_1_data['custom'][lifecycle_type] = script_paths
         
         # Collect Stage-2 lifecycle scripts
         for lifecycle_type, scripts_list in self.stage2_lifecycle_scripts.items():
-            lifecycle_scripts = []
+            script_paths = []
             for script_data in scripts_list:
                 if script_data['type'] == 'file':
                     path = script_data['input'].value.strip()
                     if path:
-                        lifecycle_scripts.append({'type': 'file', 'path': path})
+                        script_paths.append(path)
                 else:  # inline
                     name = script_data['name_input'].value.strip()
                     content = script_data['content_textarea'].value.strip()
                     if name and content:
-                        lifecycle_scripts.append({
-                            'type': 'inline',
-                            'name': name,
-                            'content': content
+                        script_path = f'stage-2/custom/{name}'
+                        stage_2_inline_scripts.append({
+                            'path': script_path,
+                            'content': content,
+                            'type': lifecycle_type
                         })
+                        script_paths.append(script_path)
             
-            if lifecycle_scripts:
-                stage_2_scripts[lifecycle_type] = lifecycle_scripts
+            if script_paths:
+                if 'custom' not in stage_2_data:
+                    stage_2_data['custom'] = {}
+                stage_2_data['custom'][lifecycle_type] = script_paths
+        
+        # Store inline scripts metadata for the save process
+        if stage_1_inline_scripts:
+            if '_inline_scripts' not in stage_1_data:
+                stage_1_data['_inline_scripts'] = []
+            stage_1_data['_inline_scripts'] = stage_1_inline_scripts
+            
+        if stage_2_inline_scripts:
+            if '_inline_scripts' not in stage_2_data:
+                stage_2_data['_inline_scripts'] = []
+            stage_2_data['_inline_scripts'] = stage_2_inline_scripts
         
         return {
-            'stage_1': {
-                'scripts': stage_1_scripts
-            },
-            'stage_2': {
-                'scripts': stage_2_scripts
-            }
+            'stage_1': stage_1_data,
+            'stage_2': stage_2_data
         }
     
     def set_config_data(self, data: dict) -> None:
         """Set scripts configuration data."""
-        stage_1_config = data.get('stage_1', {})
-        stage_2_config = data.get('stage_2', {})
+        try:
+            stage_1_config = data.get('stage_1', {})
+            stage_2_config = data.get('stage_2', {})
+            
+            # Clear existing lifecycle scripts UI
+            self._clear_lifecycle_scripts()
+            
+            # Build inline scripts lookup from persisted metadata
+            inline_scripts_lookup = self._build_inline_scripts_lookup(stage_1_config, stage_2_config)
+            
+            # Load from 'custom' structure (not 'scripts')
+            stage_1_custom = stage_1_config.get('custom', {})
+            stage_2_custom = stage_2_config.get('custom', {})
+            
+            # Load Stage-1 entry point from 'on_entry' lifecycle type
+            if 'on_entry' in stage_1_custom:
+                entry_paths = stage_1_custom['on_entry']
+                if entry_paths and len(entry_paths) > 0:
+                    entry_path = entry_paths[0]  # Take first entry point
+                    self._load_entry_point('stage1', entry_path, inline_scripts_lookup)
+            
+            # Load Stage-2 entry point from 'on_entry' lifecycle type  
+            if 'on_entry' in stage_2_custom:
+                entry_paths = stage_2_custom['on_entry']
+                if entry_paths and len(entry_paths) > 0:
+                    entry_path = entry_paths[0]  # Take first entry point
+                    self._load_entry_point('stage2', entry_path, inline_scripts_lookup)
+            
+            # Load Stage-1 lifecycle scripts
+            for lifecycle_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+                if lifecycle_type in stage_1_custom:
+                    script_paths = stage_1_custom[lifecycle_type]
+                    for script_path in script_paths:
+                        self._load_lifecycle_script('stage1', lifecycle_type, script_path, inline_scripts_lookup)
+            
+            # Load Stage-2 lifecycle scripts
+            for lifecycle_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+                if lifecycle_type in stage_2_custom:
+                    script_paths = stage_2_custom[lifecycle_type]
+                    for script_path in script_paths:
+                        self._load_lifecycle_script('stage2', lifecycle_type, script_path, inline_scripts_lookup)
+                        
+        except Exception as e:
+            print(f"Error loading scripts configuration: {e}")
+    
+    def _build_inline_scripts_lookup(self, stage_1_config: dict, stage_2_config: dict) -> Dict[str, Dict[str, str]]:
+        """Build lookup table for inline scripts from persisted metadata."""
+        inline_scripts_lookup: Dict[str, Dict[str, str]] = {}
         
-        # Set entry points
-        stage_1_scripts = stage_1_config.get('scripts', {})
-        stage_2_scripts = stage_2_config.get('scripts', {})
+        # Process Stage-1 inline scripts metadata
+        stage_1_inline_scripts = stage_1_config.get('_inline_scripts', [])
+        for script_info in stage_1_inline_scripts:
+            script_path = script_info.get('path', '')
+            script_content = script_info.get('content', '')
+            script_type = script_info.get('type', '')
+            
+            if script_path:
+                inline_scripts_lookup[script_path] = {
+                    'content': script_content,
+                    'type': script_type
+                }
         
-        # Load Stage-1 entry point
-        if 'entry_point' in stage_1_scripts:
-            entry_point = stage_1_scripts['entry_point']
-            if self.stage1_entry_mode_radio:
-                self.stage1_entry_mode_radio.set_value(entry_point['type'])
+        # Process Stage-2 inline scripts metadata
+        stage_2_inline_scripts = stage_2_config.get('_inline_scripts', [])
+        for script_info in stage_2_inline_scripts:
+            script_path = script_info.get('path', '')
+            script_content = script_info.get('content', '')
+            script_type = script_info.get('type', '')
+            
+            if script_path:
+                inline_scripts_lookup[script_path] = {
+                    'content': script_content,
+                    'type': script_type
+                }
+        
+        return inline_scripts_lookup
+    
+    def _clear_lifecycle_scripts(self) -> None:
+        """Clear existing lifecycle script UI elements."""
+        # Clear Stage-1 lifecycle scripts
+        for lifecycle_type in self.stage1_lifecycle_scripts:
+            self.stage1_lifecycle_scripts[lifecycle_type] = []
+            if lifecycle_type in self.stage1_lifecycle_containers:
+                self.stage1_lifecycle_containers[lifecycle_type].clear()
+        
+        # Clear Stage-2 lifecycle scripts
+        for lifecycle_type in self.stage2_lifecycle_scripts:
+            self.stage2_lifecycle_scripts[lifecycle_type] = []
+            if lifecycle_type in self.stage2_lifecycle_containers:
+                self.stage2_lifecycle_containers[lifecycle_type].clear()
+    
+    def _load_entry_point(self, stage: str, entry_path: str, inline_scripts_lookup: Dict[str, Dict[str, str]]) -> None:
+        """Load entry point configuration and set UI."""
+        try:
+            # Check if this script is in the inline scripts lookup
+            is_inline_script = entry_path in inline_scripts_lookup
+            
+            if stage == 'stage1':
+                if self.stage1_entry_mode_radio:
+                    if is_inline_script:
+                        # Set as inline mode with persisted content
+                        self.stage1_entry_mode_radio.set_value('inline')
+                        script_name = self._extract_script_name(entry_path)
+                        script_content = inline_scripts_lookup[entry_path]['content']
+                        
+                        if self.stage1_entry_inline_name_input:
+                            self.stage1_entry_inline_name_input.set_value(script_name)
+                        if self.stage1_entry_inline_content_textarea:
+                            self.stage1_entry_inline_content_textarea.set_value(script_content)
+                    else:
+                        # Set as file mode
+                        self.stage1_entry_mode_radio.set_value('file')  
+                        if self.stage1_entry_file_input:
+                            self.stage1_entry_file_input.set_value(entry_path)
+            else:  # stage2
+                if self.stage2_entry_mode_radio:
+                    if is_inline_script:
+                        # Set as inline mode with persisted content
+                        self.stage2_entry_mode_radio.set_value('inline')
+                        script_name = self._extract_script_name(entry_path)
+                        script_content = inline_scripts_lookup[entry_path]['content']
+                        
+                        if self.stage2_entry_inline_name_input:
+                            self.stage2_entry_inline_name_input.set_value(script_name)
+                        if self.stage2_entry_inline_content_textarea:
+                            self.stage2_entry_inline_content_textarea.set_value(script_content)
+                    else:
+                        # Set as file mode
+                        self.stage2_entry_mode_radio.set_value('file')
+                        if self.stage2_entry_file_input:
+                            self.stage2_entry_file_input.set_value(entry_path)
+                            
+        except Exception as e:
+            print(f"Error loading entry point {entry_path}: {e}")
+    
+    def _load_lifecycle_script(self, stage: str, lifecycle_type: str, script_path: str, inline_scripts_lookup: Dict[str, Dict[str, str]]) -> None:
+        """Load a lifecycle script and create appropriate UI element."""
+        try:
+            # Check if this script is in the inline scripts lookup
+            is_inline_script = script_path in inline_scripts_lookup
+            
+            # Determine path prefix for UI
+            path_prefix = 'stage-1' if stage == 'stage1' else 'stage-2'
+            
+            if is_inline_script:
+                # Create inline script UI with persisted content
+                script_name = self._extract_script_name(script_path)
+                script_content = inline_scripts_lookup[script_path]['content']
+                self._add_lifecycle_script_from_data(stage, lifecycle_type, 'inline', path_prefix, script_name, script_content)
+            else:
+                # Create file-based script UI
+                self._add_lifecycle_script_from_data(stage, lifecycle_type, 'file', path_prefix, script_path, '')
                 
-                if entry_point['type'] == 'file' and self.stage1_entry_file_input:
-                    self.stage1_entry_file_input.set_value(entry_point.get('path', ''))
-                elif entry_point['type'] == 'inline':
-                    if self.stage1_entry_inline_name_input:
-                        self.stage1_entry_inline_name_input.set_value(entry_point.get('name', ''))
-                    if self.stage1_entry_inline_content_textarea:
-                        self.stage1_entry_inline_content_textarea.set_value(entry_point.get('content', ''))
-        
-        # Load Stage-2 entry point
-        if 'entry_point' in stage_2_scripts:
-            entry_point = stage_2_scripts['entry_point']
-            if self.stage2_entry_mode_radio:
-                self.stage2_entry_mode_radio.set_value(entry_point['type'])
-                
-                if entry_point['type'] == 'file' and self.stage2_entry_file_input:
-                    self.stage2_entry_file_input.set_value(entry_point.get('path', ''))
-                elif entry_point['type'] == 'inline':
-                    if self.stage2_entry_inline_name_input:
-                        self.stage2_entry_inline_name_input.set_value(entry_point.get('name', ''))
-                    if self.stage2_entry_inline_content_textarea:
-                        self.stage2_entry_inline_content_textarea.set_value(entry_point.get('content', ''))
-        
-        # Load lifecycle scripts (this would be more complex in a real implementation)
-        # For now, we'll skip loading existing lifecycle scripts to avoid complexity
+        except Exception as e:
+            print(f"Error loading lifecycle script {script_path}: {e}")
+    
+    def _extract_script_name(self, script_path: str) -> str:
+        """Extract script name from path."""
+        from pathlib import Path
+        return Path(script_path).name
+    
+    def _add_lifecycle_script_from_data(self, stage: str, lifecycle_type: str, script_type: str, 
+                                       path_prefix: str, script_path_or_name: str, content: str) -> None:
+        """Add a lifecycle script UI element from loaded data."""
+        try:
+            # This is similar to _add_lifecycle_script but for loading existing scripts
+            script_id = f'{stage}-{lifecycle_type}-{script_type}-{self._generate_uuid()}'
+            container = self.stage1_lifecycle_containers[lifecycle_type] if stage == 'stage1' else self.stage2_lifecycle_containers[lifecycle_type]
+            
+            with container:
+                with ui.card().classes('w-full p-3 mb-3') as script_card:
+                    if script_type == 'file':
+                        # File path script
+                        with ui.column().classes('w-full'):
+                            script_input = ui.input(
+                                placeholder=f'{path_prefix}/custom/script-{self._generate_uuid()}.bash --param=value',
+                                value=script_path_or_name
+                            ).classes('w-full mb-2')
+                            
+                            with ui.row().classes('gap-2 w-full'):
+                                ui.button('✏️ Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
+                                    .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
+                                ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                                    .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
+                            
+                            script_input.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
+                        
+                        # Store script data
+                        script_data = {
+                            'id': script_id,
+                            'type': script_type,
+                            'card': script_card,
+                            'input': script_input
+                        }
+                    else:
+                        # Inline script
+                        with ui.column().classes('w-full'):
+                            # Script name display
+                            with ui.row().classes('items-center mb-2 gap-0 w-full'):
+                                ui.label(f'{path_prefix}/custom/').classes('px-3 py-2 bg-gray-100 border border-r-0 rounded-l text-sm font-mono')
+                                script_name_input = ui.input(
+                                    value=script_path_or_name,
+                                    placeholder='script-name.bash'
+                                ).classes('w-full rounded-l-none')
+                            
+                            # Script content
+                            script_content_textarea = ui.textarea(
+                                placeholder="#!/bin/bash\\necho 'Inline script content'",
+                                value=content
+                            ).classes('w-full mb-2').props('rows=3')
+                            
+                            with ui.row().classes('gap-2 w-full'):
+                                ui.button('👁️ View', on_click=lambda name=script_name_input, content_ta=script_content_textarea: self._view_inline_script(name.value, content_ta.value)) \
+                                    .classes('bg-blue-600 hover:bg-blue-700 text-white text-sm')
+                                ui.button('✏️ Edit', on_click=lambda name=script_name_input, content_ta=script_content_textarea: self._edit_inline_script(name.value, content_ta)) \
+                                    .classes('bg-yellow-600 hover:bg-yellow-700 text-white text-sm')
+                                ui.button('🗑️ Remove', on_click=lambda: self._remove_script(script_card, stage, lifecycle_type, script_id)) \
+                                    .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
+                            
+                            script_name_input.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
+                            script_content_textarea.on('input', lambda e, s=stage, lt=lifecycle_type: self._on_lifecycle_script_change(s, lt))
+                        
+                        # Store script data
+                        script_data = {
+                            'id': script_id,
+                            'type': script_type,
+                            'card': script_card,
+                            'name_input': script_name_input,
+                            'content_textarea': script_content_textarea
+                        }
+                    
+                    # Add to scripts list
+                    if stage == 'stage1':
+                        self.stage1_lifecycle_scripts[lifecycle_type].append(script_data)
+                    else:
+                        self.stage2_lifecycle_scripts[lifecycle_type].append(script_data)
+                        
+        except Exception as e:
+            print(f"Error adding lifecycle script UI for {script_path_or_name}: {e}")

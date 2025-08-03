@@ -255,9 +255,19 @@ class NetworkTab(BaseTab):
     
     def _on_port_input_change(self, e: Any, mapping_data: Dict[str, Any], port_type: str) -> None:
         """Handle port input changes."""
-        self._validate_port_input(mapping_data, port_type)
+        # Validate the input
+        is_valid = self._validate_port_input(mapping_data, port_type)
+        
+        # Update preview
         self._update_port_mapping_preview(mapping_data)
-        self._update_port_mappings_config()
+        
+        # Only update config and mark modified if we have valid complete mappings
+        host_value = mapping_data['host_input'].value.strip()
+        container_value = mapping_data['container_input'].value.strip()
+        
+        # Only mark as modified if both ports are provided and valid
+        if host_value and container_value and is_valid:
+            self._update_port_mappings_config()
     
     def _validate_port_input(self, mapping_data: Dict[str, Any], port_type: str) -> bool:
         """Validate port input and show errors."""
@@ -388,7 +398,7 @@ class NetworkTab(BaseTab):
             preview_label.set_text('-')
             preview_label.classes(replace='font-mono text-sm text-gray-900 font-bold mt-3')
     
-    def _update_port_mappings_config(self) -> None:
+    def _update_port_mappings_config(self, mark_as_modified: bool = True) -> None:
         """Update the port mappings configuration."""
         valid_mappings = []
         
@@ -410,10 +420,14 @@ class NetworkTab(BaseTab):
             if 'ports' not in stage_dict:
                 stage_dict['ports'] = []
 
-        # Apply to both stages
-        self.app.data.config.stage_1['ports'] = valid_mappings
-        self.app.data.config.stage_2['ports'] = valid_mappings
-        self.mark_modified()
+        # Check if the ports actually changed
+        current_ports = self.app.data.config.stage_1.get('ports', [])
+        if valid_mappings != current_ports or not hasattr(self, '_ports_initialized'):
+            self.app.data.config.stage_1['ports'] = valid_mappings
+            self.app.data.config.stage_2['ports'] = valid_mappings
+            if mark_as_modified and hasattr(self, '_ports_initialized'):
+                self.mark_modified()
+            self._ports_initialized = True
     
     def validate(self) -> tuple[bool, list[str]]:
         """Validate network configuration."""
@@ -441,12 +455,43 @@ class NetworkTab(BaseTab):
         return len(errors) == 0, errors
     
     def get_config_data(self) -> dict:
-        """Get network configuration data."""
+        """Get network configuration data from current UI state."""
+        # Build proxy configuration from UI state
+        proxy_config = {}
+        if self.proxy_enabled_switch:
+            proxy_config['enable_globally'] = self.proxy_enabled_switch.value
+            if self.proxy_url_input and self.proxy_enabled_switch.value:
+                url = self.proxy_url_input.value.strip()
+                if url:
+                    # Parse proxy URL to extract address and port
+                    import re
+                    match = re.match(r'(?:https?://)?([^:]+):(\d+)', url)
+                    if match:
+                        proxy_config['address'] = match.group(1)
+                        proxy_config['port'] = int(match.group(2))
+                        proxy_config['use_https'] = url.startswith('https://')
+        
+        # Build APT configuration
+        apt_config = self.app.data.config.stage_1.get('apt', {})
+        if self.apt_mirror_select:
+            apt_config['mirror'] = self.apt_mirror_select.value
+        
+        # Build ports configuration from UI
+        ports = []
+        for mapping_data in self.port_mappings_data:
+            host_port = mapping_data['host_input'].value.strip()
+            container_port = mapping_data['container_input'].value.strip()
+            if host_port and container_port:
+                ports.append(f"{host_port}:{container_port}")
+        
         return {
             'stage_1': {
-                'proxy': self.app.data.config.stage_1.get('proxy', {}),
-                'apt': self.app.data.config.stage_1.get('apt', {}),
-                'ports': self.app.data.config.stage_1.get('ports', [])
+                'proxy': proxy_config,
+                'apt': apt_config,
+                'ports': ports
+            },
+            'stage_2': {
+                'proxy': proxy_config  # Same proxy config for both stages
             }
         }
     

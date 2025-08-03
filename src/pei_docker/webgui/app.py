@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Literal
 from datetime import datetime
+import copy
 
 from nicegui import ui, app
 from nicegui.events import ValueChangeEventArguments
@@ -296,14 +297,28 @@ class PeiDockerWebGUI:
                     # Merge stage_1 data
                     if 'stage_1' in tab_config:
                         for key, value in tab_config['stage_1'].items():
-                            if value is not None:  # Only update if value is not None
-                                self.data.config.stage_1[key] = value
+                            # Special handling for _inline_scripts from Scripts tab
+                            if key == '_inline_scripts' and tab_name == TabName.SCRIPTS:
+                                self.data.config.stage_1[key] = copy.deepcopy(value)
+                            # Skip other internal metadata keys
+                            elif key.startswith('_'):
+                                continue
+                            elif value is not None:  # Only update if value is not None
+                                # Deep copy to avoid references
+                                self.data.config.stage_1[key] = copy.deepcopy(value)
                     
                     # Merge stage_2 data
                     if 'stage_2' in tab_config:
                         for key, value in tab_config['stage_2'].items():
-                            if value is not None:  # Only update if value is not None
-                                self.data.config.stage_2[key] = value
+                            # Special handling for _inline_scripts from Scripts tab
+                            if key == '_inline_scripts' and tab_name == TabName.SCRIPTS:
+                                self.data.config.stage_2[key] = copy.deepcopy(value)
+                            # Skip other internal metadata keys
+                            elif key.startswith('_'):
+                                continue
+                            elif value is not None:  # Only update if value is not None
+                                # Deep copy to avoid references
+                                self.data.config.stage_2[key] = copy.deepcopy(value)
                                 
                 except Exception as e:
                     print(f"Error collecting config from {tab_name.value} tab: {e}")

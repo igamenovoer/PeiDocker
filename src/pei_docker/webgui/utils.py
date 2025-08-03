@@ -13,6 +13,9 @@ import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import yaml
+import omegaconf as oc
+from omegaconf import DictConfig
+import copy
 
 from ..config_processor import PeiConfigProcessor
 from ..user_config import UserConfig
@@ -276,22 +279,30 @@ class FileOperations:
     async def save_configuration(self, project_dir: Path, config_state: ConfigurationState) -> bool:
         """Save configuration to user_config.yml and script files."""
         try:
-            # Create user_config.yml from configuration state
+            # Create user_config.yml from configuration state with deep copy
             config_data = {
-                'stage_1': dict(config_state.stage_1),
-                'stage_2': dict(config_state.stage_2)
+                'stage_1': copy.deepcopy(dict(config_state.stage_1)),
+                'stage_2': copy.deepcopy(dict(config_state.stage_2))
             }
+            
+            # Process inline scripts before saving
+            await self._process_and_save_inline_scripts(project_dir, config_data)
+            
+            # Remove _inline_scripts metadata from config data
+            for stage in ['stage_1', 'stage_2']:
+                if stage in config_data and '_inline_scripts' in config_data[stage]:
+                    del config_data[stage]['_inline_scripts']
             
             # Remove empty sections to keep YAML clean
             config_data = {k: v for k, v in config_data.items() if v}
-            for stage in config_data.values():
-                if isinstance(stage, dict):
+            for stage_dict in config_data.values():
+                if isinstance(stage_dict, dict):
                     # Remove empty nested dictionaries
-                    for key, value in list(stage.items()):
+                    for key, value in list(stage_dict.items()):
                         if isinstance(value, dict) and not value:
-                            del stage[key]
+                            del stage_dict[key]
                         elif isinstance(value, list) and not value:
-                            del stage[key]
+                            del stage_dict[key]
             
             config_file = project_dir / 'user_config.yml'
             
@@ -300,11 +311,12 @@ class FileOperations:
                 backup_file = project_dir / 'user_config.yml.backup'
                 shutil.copy2(config_file, backup_file)
             
-            with open(config_file, 'w') as f:
-                yaml.dump(config_data, f, default_flow_style=False, sort_keys=False, indent=2)
+            # Use OmegaConf to save YAML without anchors
+            config = oc.OmegaConf.create(config_data)
+            yaml_str = oc.OmegaConf.to_yaml(config)
             
-            # Save any inline scripts to appropriate directories
-            await self._save_inline_scripts(project_dir, config_state)
+            with open(config_file, 'w') as f:
+                f.write(yaml_str)
             
             # Mark configuration as saved
             from datetime import datetime
@@ -345,49 +357,46 @@ class FileOperations:
             print(f"Error loading configuration: {e}")
             return False
     
-    async def _save_inline_scripts(self, project_dir: Path, config_state: ConfigurationState) -> None:
-        """Save inline scripts to stage directories."""
+    async def _process_and_save_inline_scripts(self, project_dir: Path, config_data: dict) -> None:
+        """Process and save inline scripts from the Scripts tab.
+        
+        The Scripts tab stores inline script metadata in _inline_scripts.
+        This method extracts that data, saves the scripts to files, and ensures
+        the config only contains file paths (not inline content).
+        """
         try:
-            for stage_name, stage_config in [('stage_1', config_state.stage_1), ('stage_2', config_state.stage_2)]:
-                scripts_config = stage_config.get('scripts', {})
+            installation_dir = project_dir / 'installation'
+            
+            for stage_name, stage_config in [('stage_1', config_data.get('stage_1', {})), 
+                                            ('stage_2', config_data.get('stage_2', {}))]:
+                if not stage_config or '_inline_scripts' not in stage_config:
+                    continue
                 
-                # Create stage directory if it doesn't exist
-                stage_dir = project_dir / stage_name.replace('_', '-') / 'custom'
-                stage_dir.mkdir(parents=True, exist_ok=True)
+                inline_scripts = stage_config.get('_inline_scripts', [])
                 
-                # Save entry point inline script
-                if 'entry_point' in scripts_config:
-                    entry_point = scripts_config['entry_point']
-                    if entry_point.get('type') == 'inline':
-                        script_name = entry_point.get('name', 'entry_point.bash')
-                        script_content = entry_point.get('content', '')
+                for script_info in inline_scripts:
+                    script_path = script_info.get('path', '')
+                    script_content = script_info.get('content', '')
+                    
+                    if script_path and script_content:
+                        # Create full path for the script file
+                        full_path = installation_dir / script_path
                         
-                        script_path = stage_dir / script_name
-                        with open(script_path, 'w') as f:
+                        # Create directory if it doesn't exist
+                        full_path.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Write script content
+                        with open(full_path, 'w') as f:
+                            # Ensure script has proper shebang if missing
+                            if not script_content.startswith('#!'):
+                                f.write('#!/bin/bash\n')
                             f.write(script_content)
                         
                         # Make script executable
-                        script_path.chmod(0o755)
-                
-                # Save lifecycle scripts
-                for lifecycle_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
-                    if lifecycle_type in scripts_config:
-                        lifecycle_scripts = scripts_config[lifecycle_type]
+                        full_path.chmod(0o755)
                         
-                        for i, script in enumerate(lifecycle_scripts):
-                            if script.get('type') == 'inline':
-                                script_name = script.get('name', f'{lifecycle_type}_{i}.bash')
-                                script_content = script.get('content', '')
-                                
-                                script_path = stage_dir / script_name
-                                with open(script_path, 'w') as f:
-                                    f.write(script_content)
-                                
-                                # Make script executable
-                                script_path.chmod(0o755)
-                                
         except Exception as e:
-            print(f"Error saving inline scripts: {e}")
+            print(f"Error processing inline scripts: {e}")
     
     async def create_project_zip(self, project_dir: Path) -> Optional[Path]:
         """Create a ZIP archive of the project directory."""

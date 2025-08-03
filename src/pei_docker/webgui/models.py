@@ -85,6 +85,9 @@ class AppData:
         self.config.modified = True
         if tab:
             self.tabs.tab_modified[tab] = True
+        # Force UI update for NiceGUI reactivity
+        from nicegui import ui
+        ui.update()
     
     def mark_saved(self) -> None:
         """Mark configuration as saved."""
@@ -92,6 +95,9 @@ class AppData:
         self.tabs.tab_modified.clear()
         from datetime import datetime
         self.config.last_saved = datetime.now().strftime("%I:%M %p")
+        # Force UI update for NiceGUI reactivity
+        from nicegui import ui
+        ui.update()
     
     def add_validation_error(self, tab: TabName, error: str) -> None:
         """Add validation error for a tab."""
