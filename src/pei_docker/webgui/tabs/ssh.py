@@ -90,13 +90,13 @@ class SSHTab(BaseTab):
         self.users_data = []
         self.user_count = 0
         
-        # Load configuration data after rendering
-        # This will populate SSH settings and users from the loaded config
-        config_data = {
-            'stage_1': dict(self.app.data.config.stage_1),
-            'stage_2': dict(self.app.data.config.stage_2)
-        }
-        self.set_config_data(config_data)
+        # Load users from configuration
+        ssh_config = self.app.data.config.stage_1.get('ssh', {})
+        users = ssh_config.get('users', {})
+        if users and self.users_container:
+            # Add each user from config
+            for username, user_config in users.items():
+                self._add_user_from_config(username, user_config)
         
         return container
     
