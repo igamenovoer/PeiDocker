@@ -52,12 +52,14 @@ class SSHTab(BaseTab):
                         ssh_port = ssh_config.get('port', 22)
                         self.ssh_port_input = ui.number('SSH Port', value=ssh_port, min=1, max=65535) \
                             .classes('w-full')
+                        self.ssh_port_input.on('change', self._on_port_change)
                     
                     with ui.column():
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         host_port = ssh_config.get('host_port', 2222)
                         self.host_port_input = ui.number('Host Port', value=host_port, min=1, max=65535) \
                             .classes('w-full')
+                        self.host_port_input.on('change', self._on_port_change)
                 
                 port_config.bind_visibility_from(self.ssh_enabled_switch, 'value')
             
@@ -201,10 +203,13 @@ class SSHTab(BaseTab):
                 for component in [username_input, password_input, uid_enabled, uid_input, 
                                 pubkey_source, pubkey_file_input, pubkey_text_input,
                                 privkey_source, privkey_file_input, privkey_text_input]:
-                    component.on('change', lambda e: self.mark_modified())
+                    component.on('change', lambda e, data=user_data: self._on_user_data_change(data))
                 
                 # Add to users data list
                 self.users_data.append(user_data)
+        
+        self._update_users_config()
+        self.mark_modified()
     
     def _on_ssh_toggle(self, e: Any) -> None:
         """Handle SSH enable/disable toggle."""
@@ -215,6 +220,20 @@ class SSHTab(BaseTab):
             self.app.data.config.stage_1['ssh'] = {}
         
         self.app.data.config.stage_1['ssh']['enable'] = enabled
+        self.mark_modified()
+    
+    def _on_port_change(self, e: Any) -> None:
+        """Handle port value changes."""
+        # Update configuration
+        if 'ssh' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['ssh'] = {}
+        
+        if self.ssh_port_input:
+            self.app.data.config.stage_1['ssh']['port'] = int(self.ssh_port_input.value)
+        
+        if self.host_port_input:
+            self.app.data.config.stage_1['ssh']['host_port'] = int(self.host_port_input.value)
+        
         self.mark_modified()
     
     def _add_user(self) -> None:
@@ -321,11 +340,12 @@ class SSHTab(BaseTab):
                 for component in [username_input, password_input, uid_enabled, uid_input, 
                                 pubkey_source, pubkey_file_input, pubkey_text_input,
                                 privkey_source, privkey_file_input, privkey_text_input]:
-                    component.on('change', lambda e: self.mark_modified())
+                    component.on('change', lambda e, data=user_data: self._on_user_data_change(data))
                 
                 # Add to users data list
                 self.users_data.append(user_data)
         
+        self._update_users_config()
         self.mark_modified()
     
     def _validate_password(self, e: Any, password_input: ui.input) -> None:
@@ -348,7 +368,50 @@ class SSHTab(BaseTab):
         user_card.delete()
         # Remove from tracking list
         self.users_data = [u for u in self.users_data if u['id'] != user_id]
+        self._update_users_config()
         self.mark_modified()
+    
+    def _on_user_data_change(self, user_data: Dict[str, Any]) -> None:
+        """Handle changes to user data fields."""
+        self._update_users_config()
+        self.mark_modified()
+    
+    def _update_users_config(self) -> None:
+        """Update the SSH users configuration from UI components."""
+        if 'ssh' not in self.app.data.config.stage_1:
+            self.app.data.config.stage_1['ssh'] = {}
+        
+        users_config = {}
+        
+        # Collect user data from UI components
+        for user_data in self.users_data:
+            username = user_data['username'].value
+            if not username:
+                continue
+                
+            user_config = {
+                'password': user_data['password'].value,
+            }
+            
+            # Add UID if enabled
+            if user_data['uid_enabled'].value and user_data['uid'].value:
+                user_config['uid'] = int(user_data['uid'].value)
+            
+            # Add public key configuration
+            if user_data['pubkey_source'].value == 'File path' and user_data['pubkey_file'].value:
+                user_config['pubkey_file'] = user_data['pubkey_file'].value
+            elif user_data['pubkey_source'].value == 'Direct text' and user_data['pubkey_text'].value:
+                user_config['pubkey_text'] = user_data['pubkey_text'].value
+            
+            # Add private key configuration
+            if user_data['privkey_source'].value == 'File path' and user_data['privkey_file'].value:
+                user_config['privkey_file'] = user_data['privkey_file'].value
+            elif user_data['privkey_source'].value == 'Direct text' and user_data['privkey_text'].value:
+                user_config['privkey_text'] = user_data['privkey_text'].value
+            
+            users_config[username] = user_config
+        
+        self.app.data.config.stage_1['ssh']['users'] = users_config
     
     def _add_user_from_config(self, username: str, user_config: Dict[str, Any]) -> None:
         """Add a user from configuration data."""
@@ -476,7 +539,7 @@ class SSHTab(BaseTab):
                 for component in [username_input, password_input, uid_enabled, uid_input, 
                                 pubkey_source, pubkey_file_input, pubkey_text_input,
                                 privkey_source, privkey_file_input, privkey_text_input]:
-                    component.on('change', lambda e: self.mark_modified())
+                    component.on('change', lambda e, data=user_data: self._on_user_data_change(data))
                 
                 # Add to users data list
                 self.users_data.append(user_data)
