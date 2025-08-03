@@ -36,21 +36,27 @@ class SSHTab(BaseTab):
             
             # SSH Service Configuration
             with self.create_card('🔐 SSH Service'):
+                # Get SSH configuration from state
+                ssh_config = self.app.data.config.stage_1.get('ssh', {})
+                
                 # Enable SSH toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
-                    self.ssh_enabled_switch = ui.switch('✅ Enable SSH Server', value=False)
+                    ssh_enabled = ssh_config.get('enable', False)
+                    self.ssh_enabled_switch = ui.switch('✅ Enable SSH Server', value=ssh_enabled)
                     self.ssh_enabled_switch.on('change', self._on_ssh_toggle)
                 
                 # Port configuration
                 with ui.row().classes('gap-4 mb-4') as port_config:
                     with ui.column():
                         ui.label('📦 Container Port').classes('font-medium text-gray-700 mb-1')
-                        self.ssh_port_input = ui.number('SSH Port', value=22, min=1, max=65535) \
+                        ssh_port = ssh_config.get('port', 22)
+                        self.ssh_port_input = ui.number('SSH Port', value=ssh_port, min=1, max=65535) \
                             .classes('w-full')
                     
                     with ui.column():
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
-                        self.host_port_input = ui.number('Host Port', value=2222, min=1, max=65535) \
+                        host_port = ssh_config.get('host_port', 2222)
+                        self.host_port_input = ui.number('Host Port', value=host_port, min=1, max=65535) \
                             .classes('w-full')
                 
                 port_config.bind_visibility_from(self.ssh_enabled_switch, 'value')
@@ -110,7 +116,8 @@ class SSHTab(BaseTab):
                 # User configuration
                 with ui.row().classes('gap-4 mb-4'):
                     username_input = ui.input('Username', placeholder='username', value='me').classes('flex-1')
-                    password_input = ui.input('Password', placeholder='Enter secure password', password=True, value='').classes('flex-1')
+                    password_input = ui.input('Password', placeholder='Enter password (letters, numbers, -, _)', value='').classes('flex-1')
+                    password_input.on('input', lambda e: self._validate_password(e, password_input))
                 
                 # Optional UID Configuration
                 with ui.column().classes('mb-4'):
@@ -125,9 +132,9 @@ class SSHTab(BaseTab):
                     uid_input.bind_visibility_from(uid_enabled, 'value')
                 
                 # SSH Key configuration (simplified for default user)
-                with ui.column().classes('mb-4'):
+                with ui.column().classes('mb-4 w-full'):
                     # Public key configuration
-                    with ui.column().classes('mb-4'):
+                    with ui.column().classes('mb-4 w-full'):
                         ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         pubkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
@@ -151,7 +158,7 @@ class SSHTab(BaseTab):
                         pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
                     
                     # Private key configuration
-                    with ui.column():
+                    with ui.column().classes('w-full'):
                         ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         privkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
@@ -229,7 +236,8 @@ class SSHTab(BaseTab):
                 # User configuration
                 with ui.row().classes('gap-4 mb-4'):
                     username_input = ui.input('Username', placeholder='username', value=f'user{user_count}').classes('flex-1')
-                    password_input = ui.input('Password', placeholder='Enter secure password', password=True).classes('flex-1')
+                    password_input = ui.input('Password', placeholder='Enter password (letters, numbers, -, _)').classes('flex-1')
+                    password_input.on('input', lambda e: self._validate_password(e, password_input))
                 
                 # Optional UID Configuration
                 with ui.column().classes('mb-4'):
@@ -244,9 +252,9 @@ class SSHTab(BaseTab):
                     uid_input.bind_visibility_from(uid_enabled, 'value')
                 
                 # SSH Key configuration
-                with ui.column().classes('mb-4'):
+                with ui.column().classes('mb-4 w-full'):
                     # Public key configuration
-                    with ui.column().classes('mb-4'):
+                    with ui.column().classes('mb-4 w-full'):
                         ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         pubkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
@@ -270,7 +278,7 @@ class SSHTab(BaseTab):
                         pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
                     
                     # Private key configuration
-                    with ui.column():
+                    with ui.column().classes('w-full'):
                         ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         privkey_source = ui.radio(['None', 'File path', 'Direct text'], value='None').props('inline')
@@ -320,6 +328,21 @@ class SSHTab(BaseTab):
         
         self.mark_modified()
     
+    def _validate_password(self, e: Any, password_input: ui.input) -> None:
+        """Validate password contains only letters, numbers, dashes, and underscores."""
+        import re
+        password = e.value
+        
+        # Check if password contains only allowed characters
+        if password and not re.match(r'^[a-zA-Z0-9_-]*$', password):
+            # Remove invalid characters
+            valid_password = re.sub(r'[^a-zA-Z0-9_-]', '', password)
+            password_input.set_value(valid_password)
+            
+            # Show error notification
+            ui.notify('Password can only contain letters, numbers, dashes (-), and underscores (_)', 
+                     type='negative', position='top', timeout=3000)
+    
     def _remove_user(self, user_card: ui.card, user_id: str) -> None:
         """Remove a user configuration."""
         user_card.delete()
@@ -345,8 +368,9 @@ class SSHTab(BaseTab):
                 # User configuration
                 with ui.row().classes('gap-4 mb-4'):
                     username_input = ui.input('Username', placeholder='username', value=username).classes('flex-1')
-                    password_input = ui.input('Password', placeholder='Enter secure password', password=True, 
+                    password_input = ui.input('Password', placeholder='Enter password (letters, numbers, -, _)', 
                                             value=user_config.get('password', '')).classes('flex-1')
+                    password_input.on('input', lambda e: self._validate_password(e, password_input))
                 
                 # Optional UID Configuration
                 uid_value = user_config.get('uid')
@@ -365,9 +389,9 @@ class SSHTab(BaseTab):
                     uid_input.bind_visibility_from(uid_enabled, 'value')
                 
                 # SSH Key configuration
-                with ui.column().classes('mb-4'):
+                with ui.column().classes('mb-4 w-full'):
                     # Public key configuration
-                    with ui.column().classes('mb-4'):
+                    with ui.column().classes('mb-4 w-full'):
                         ui.label('Public Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         # Determine initial source selection
@@ -400,7 +424,7 @@ class SSHTab(BaseTab):
                         pubkey_text_container.bind_visibility_from(pubkey_source, 'value', lambda v: v == 'Direct text')
                     
                     # Private key configuration
-                    with ui.column():
+                    with ui.column().classes('w-full'):
                         ui.label('Private Key (copy into container)').classes('font-medium text-gray-700 mb-2')
                         
                         # Determine initial source selection

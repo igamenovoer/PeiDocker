@@ -20,7 +20,7 @@ class ProjectTab(BaseTab):
     def __init__(self, app: 'PeiDockerWebGUI') -> None:
         super().__init__(app)
         self.project_name_input: Optional[ui.input] = None
-        self.base_image_select: Optional[ui.select] = None
+        self.base_image_input: Optional[ui.input] = None
         self.stage1_image_label: Optional[ui.label] = None
         self.stage2_image_label: Optional[ui.label] = None
         
@@ -57,16 +57,14 @@ class ProjectTab(BaseTab):
                             self.project_name_input.on('input', self._on_project_name_change)
                         
                         # Base Docker image
-                        with self.create_form_group('Base Docker Image', 'Docker Hub image to use as the base for your container'):
-                            self.base_image_select = ui.select(
-                                options={
-                                    'ubuntu:22.04': '🐧 Ubuntu 22.04 LTS (Recommended)',
-                                    'ubuntu:20.04': '🐧 Ubuntu 20.04 LTS',
-                                    'ubuntu:24.04': '🐧 Ubuntu 24.04 LTS (Latest)',
-                                },
-                                value='ubuntu:22.04'
+                        with self.create_form_group('Base Docker Image', 'Docker Hub image to use as the base for your container (e.g., ubuntu:22.04, alpine:latest)'):
+                            # Get base image from configuration or use default
+                            current_base_image = self.app.data.config.stage_1.get('image', {}).get('base', 'ubuntu:22.04')
+                            self.base_image_input = ui.input(
+                                placeholder='ubuntu:22.04',
+                                value=current_base_image
                             ).classes('w-full')
-                            self.base_image_select.on('change', self._on_base_image_change)
+                            self.base_image_input.on('input', self._on_base_image_change)
                     
                     # Right Column - Generated Docker Images
                     with ui.column().classes('w-full'):
@@ -189,8 +187,8 @@ class ProjectTab(BaseTab):
         # Update UI components with loaded data
         stage_1_image = data.get('stage_1', {}).get('image', {})
         
-        if 'base' in stage_1_image and self.base_image_select:
-            self.base_image_select.set_value(stage_1_image['base'])
+        if 'base' in stage_1_image and self.base_image_input:
+            self.base_image_input.set_value(stage_1_image['base'])
         
         # Update image previews
         self._update_image_previews()

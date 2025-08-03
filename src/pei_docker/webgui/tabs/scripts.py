@@ -58,33 +58,29 @@ class ScriptsTab(BaseTab):
             )
             
             # Important Path Access Rules
-            with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
-                ui.label('ℹ️ Important: Script Path Access Rules').classes('text-lg font-semibold text-blue-800 mb-3')
+            with ui.card().classes('w-full p-3 mb-4 bg-blue-50 border-blue-200'):
+                ui.label('ℹ️ Important: Script Path Access Rules').classes('text-base font-semibold text-blue-800 mb-2')
                 
-                with ui.column().classes('text-sm'):
-                    with ui.column().classes('mb-3'):
+                with ui.column().classes('text-sm space-y-2'):
+                    with ui.column():
                         ui.label('🏗️ Stage-1 Scripts:').classes('font-semibold')
-                        with ui.column().classes('ml-4 mt-1'):
+                        with ui.column().classes('ml-4'):
                             ui.markdown('• Can **ONLY** reference paths starting with `stage-1/`').classes('text-sm')
                             ui.markdown('• **Cannot access** any `stage-2/` paths (stage-2 doesn\'t exist yet)').classes('text-sm')
                             ui.markdown('• Examples: `stage-1/custom/script.sh`, `stage-1/system/setup.sh`').classes('text-sm')
                     
                     with ui.column():
                         ui.label('🏗️ Stage-2 Scripts:').classes('font-semibold')
-                        with ui.column().classes('ml-4 mt-1'):
+                        with ui.column().classes('ml-4'):
                             ui.markdown('• Can reference paths starting with **both** `stage-1/` and `stage-2/`').classes('text-sm')
                             ui.markdown('• Has access to all stage-1 resources plus stage-2 resources').classes('text-sm')
                             ui.markdown('• Examples: `stage-2/custom/app.sh`, `stage-1/system/base.sh`').classes('text-sm')
-                    
-                    with ui.card().classes('mt-3 p-2 bg-yellow-50 border-yellow-200'):
-                        ui.label('**Why?** Stage-1 builds first and becomes the foundation. Stage-2 builds on top of Stage-1, inheriting all its resources.') \
-                            .classes('text-xs font-semibold')
             
             # Stage-1 Scripts
             self._create_stage_scripts_section('stage1', '🏗️ Stage-1 Image Scripts', 'stage-1')
             
             # Stage-2 Scripts
-            self._create_stage_scripts_section('stage2', '🏗️ Stage-2 Image Scripts', 'stage-2')
+            self._create_stage_scripts_section('stage2', '🏗️ Stage-2 Image Scripts (builds on top of Stage-1, inheriting all its resources)', 'stage-2')
         
         return container
     
@@ -438,12 +434,91 @@ class ScriptsTab(BaseTab):
     
     def get_config_data(self) -> dict:
         """Get scripts configuration data."""
+        stage_1_scripts = {}
+        stage_2_scripts = {}
+        
+        # Collect Stage-1 entry point
+        if self.stage1_entry_mode_radio and self.stage1_entry_mode_radio.value != 'none':
+            mode = self.stage1_entry_mode_radio.value
+            if mode == 'file' and self.stage1_entry_file_input:
+                path = self.stage1_entry_file_input.value.strip()
+                if path:
+                    stage_1_scripts['entry_point'] = {'type': 'file', 'path': path}
+            elif mode == 'inline' and self.stage1_entry_inline_name_input and self.stage1_entry_inline_content_textarea:
+                name = self.stage1_entry_inline_name_input.value.strip()
+                content = self.stage1_entry_inline_content_textarea.value.strip()
+                if name and content:
+                    stage_1_scripts['entry_point'] = {
+                        'type': 'inline',
+                        'name': name,
+                        'content': content
+                    }
+        
+        # Collect Stage-2 entry point
+        if self.stage2_entry_mode_radio and self.stage2_entry_mode_radio.value != 'none':
+            mode = self.stage2_entry_mode_radio.value
+            if mode == 'file' and self.stage2_entry_file_input:
+                path = self.stage2_entry_file_input.value.strip()
+                if path:
+                    stage_2_scripts['entry_point'] = {'type': 'file', 'path': path}
+            elif mode == 'inline' and self.stage2_entry_inline_name_input and self.stage2_entry_inline_content_textarea:
+                name = self.stage2_entry_inline_name_input.value.strip()
+                content = self.stage2_entry_inline_content_textarea.value.strip()
+                if name and content:
+                    stage_2_scripts['entry_point'] = {
+                        'type': 'inline',
+                        'name': name,
+                        'content': content
+                    }
+        
+        # Collect Stage-1 lifecycle scripts
+        for lifecycle_type, scripts_list in self.stage1_lifecycle_scripts.items():
+            lifecycle_scripts = []
+            for script_data in scripts_list:
+                if script_data['type'] == 'file':
+                    path = script_data['input'].value.strip()
+                    if path:
+                        lifecycle_scripts.append({'type': 'file', 'path': path})
+                else:  # inline
+                    name = script_data['name_input'].value.strip()
+                    content = script_data['content_textarea'].value.strip()
+                    if name and content:
+                        lifecycle_scripts.append({
+                            'type': 'inline',
+                            'name': name,
+                            'content': content
+                        })
+            
+            if lifecycle_scripts:
+                stage_1_scripts[lifecycle_type] = lifecycle_scripts
+        
+        # Collect Stage-2 lifecycle scripts
+        for lifecycle_type, scripts_list in self.stage2_lifecycle_scripts.items():
+            lifecycle_scripts = []
+            for script_data in scripts_list:
+                if script_data['type'] == 'file':
+                    path = script_data['input'].value.strip()
+                    if path:
+                        lifecycle_scripts.append({'type': 'file', 'path': path})
+                else:  # inline
+                    name = script_data['name_input'].value.strip()
+                    content = script_data['content_textarea'].value.strip()
+                    if name and content:
+                        lifecycle_scripts.append({
+                            'type': 'inline',
+                            'name': name,
+                            'content': content
+                        })
+            
+            if lifecycle_scripts:
+                stage_2_scripts[lifecycle_type] = lifecycle_scripts
+        
         return {
             'stage_1': {
-                'scripts': self.app.data.config.stage_1.get('scripts', {})
+                'scripts': stage_1_scripts
             },
             'stage_2': {
-                'scripts': self.app.data.config.stage_2.get('scripts', {})
+                'scripts': stage_2_scripts
             }
         }
     

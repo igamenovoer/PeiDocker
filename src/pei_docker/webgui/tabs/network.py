@@ -37,9 +37,13 @@ class NetworkTab(BaseTab):
             
             # Proxy Configuration
             with self.create_card('🔗 Proxy Configuration'):
+                # Get proxy configuration from state
+                proxy_config_state = self.app.data.config.stage_1.get('proxy', {})
+                
                 # Enable proxy toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
-                    self.proxy_enabled_switch = ui.switch('Enable HTTP Proxy', value=False)
+                    proxy_enabled = proxy_config_state.get('enable_globally', False)
+                    self.proxy_enabled_switch = ui.switch('Enable HTTP Proxy', value=proxy_enabled)
                     self.proxy_enabled_switch.on('change', self._on_proxy_toggle)
                 
                 with ui.column().classes('ml-2') as proxy_config:
@@ -49,8 +53,13 @@ class NetworkTab(BaseTab):
                     with self.create_form_group('Proxy URL', 'HTTP proxy URL for network requests'):
                         with ui.row().classes('gap-0'):
                             ui.label('http://').classes('px-3 py-2 bg-gray-100 border border-r-0 rounded-l text-sm')
+                            # Combine address and port from config
+                            proxy_address = proxy_config_state.get('address', 'host.docker.internal')
+                            proxy_port = proxy_config_state.get('port', 7890)
+                            proxy_url_value = f"{proxy_address}:{proxy_port}" if proxy_address else ''
                             self.proxy_url_input = ui.input(
-                                placeholder='host.docker.internal:7890'
+                                placeholder='host.docker.internal:7890',
+                                value=proxy_url_value
                             ).classes('flex-1 rounded-l-none')
                             self.proxy_url_input.on('input', self._on_proxy_url_change)
                 
@@ -59,15 +68,23 @@ class NetworkTab(BaseTab):
             # APT Configuration
             with self.create_card('📥 APT Configuration'):
                 with self.create_form_group('APT Mirror', 'Choose APT repository mirror for faster package downloads'):
+                    # Get APT configuration from state
+                    apt_config = self.app.data.config.stage_1.get('apt', {})
+                    current_mirror = apt_config.get('repo_source', 'default')
+                    # Map empty string to 'default'
+                    if current_mirror == '':
+                        current_mirror = 'default'
+                    
                     self.apt_mirror_select = ui.select(
                         options={
                             'default': 'Default Ubuntu Mirrors',
-                            'tuna': 'Tsinghua University (tuna)',
-                            'aliyun': 'Alibaba Cloud (aliyun)',
-                            '163': 'NetEase (163)',
-                            'ustc': 'USTC'
+                            'tuna': 'Tsinghua University (tuna): https://mirrors.tuna.tsinghua.edu.cn/ubuntu/',
+                            'aliyun': 'Alibaba Cloud (aliyun): http://mirrors.aliyun.com/ubuntu/',
+                            '163': 'NetEase (163): http://mirrors.163.com/ubuntu/',
+                            'ustc': 'USTC (ustc): http://mirrors.ustc.edu.cn/ubuntu/',
+                            'cn': 'Ubuntu CN Mirror (cn): http://cn.archive.ubuntu.com/ubuntu/'
                         },
-                        value='default'
+                        value=current_mirror
                     ).classes('w-full')
                     self.apt_mirror_select.on('change', self._on_apt_mirror_change)
             
@@ -75,6 +92,23 @@ class NetworkTab(BaseTab):
             with self.create_card('🔌 Port Mappings'):
                 with self.create_form_group('Additional Port Mappings', 
                                          'Map container ports to host ports (SSH port is configured separately)'):
+                    
+                    # Warning about port mappings being applied to both stages
+                    with ui.card().classes('w-full p-3 mb-4 bg-yellow-50 border-yellow-200'):
+                        with ui.row().classes('items-center gap-2'):
+                            ui.icon('warning', color='orange')
+                            with ui.column().classes('text-sm'):
+                                ui.label('Port mappings will be applied to both stage-1 and stage-2 containers.') \
+                                    .classes('text-yellow-800 font-medium')
+                                ui.label('For more customization, edit the user_config.yml file directly.') \
+                                    .classes('text-yellow-700')
+                    
+                    # Available port mapping formats
+                    with ui.card().classes('w-full p-3 mb-4 bg-gray-50 border-gray-200'):
+                        ui.label('Available formats:').classes('text-sm font-medium text-gray-700 mb-2')
+                        with ui.column().classes('ml-4 text-sm font-mono'):
+                            ui.label('• Single port: 8080:80')
+                            ui.label('• Port range: 9090-9099:9090-9099')
                     
                     # Port mappings container
                     with ui.column().classes('w-full mb-4') as mappings_container:
@@ -178,12 +212,8 @@ class NetworkTab(BaseTab):
                         ).classes('w-full')
                         container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                 
-                # Port mapping preview
-                with ui.column().classes('mt-3 p-3 bg-gray-50 rounded'):
-                    ui.label('Docker Compose Format:').classes('font-medium text-sm text-gray-700')
-                    preview_label = ui.label('-').classes('font-mono text-sm text-gray-900 font-bold')
-                    info_label = ui.label('Supports single ports (8080:80) and ranges (9090-9099:9090-9099)') \
-                        .classes('text-xs text-gray-500 mt-1')
+                # Port mapping preview (simplified)
+                preview_label = ui.label('-').classes('font-mono text-sm text-gray-900 font-bold mt-3')
                 
                 # Store mapping data
                 mapping_data = {
@@ -193,7 +223,6 @@ class NetworkTab(BaseTab):
                     'host_error': host_error,
                     'container_error': container_error,
                     'preview_label': preview_label,
-                    'info_label': info_label,
                     'card': mapping_card
                 }
                 
@@ -274,10 +303,6 @@ class NetworkTab(BaseTab):
                     self._show_port_error(input_field, error_field, 'Port must be between 1 and 65535')
                     return False
                 
-                if port < 1024:
-                    self._show_port_warning(input_field, error_field, 'Warning: Port < 1024 requires root privileges')
-                    return True
-                
             except ValueError:
                 self._show_port_error(input_field, error_field, 'Port must be a number or range (e.g., 8080 or 9090-9099)')
                 return False
@@ -299,36 +324,67 @@ class NetworkTab(BaseTab):
         error_field.classes(replace='text-yellow-600 text-sm mt-1')
         input_field.classes(remove='border-red-500')
     
+    def _validate_matching_ranges(self, mapping_data) -> bool:
+        """Validate that host and container port ranges have matching counts."""
+        host_value = mapping_data['host_input'].value.strip()
+        container_value = mapping_data['container_input'].value.strip()
+        
+        # Check if both are ranges
+        if '-' in host_value and '-' in container_value:
+            try:
+                # Parse host range
+                host_parts = host_value.split('-')
+                host_start = int(host_parts[0].strip())
+                host_end = int(host_parts[1].strip())
+                host_count = host_end - host_start + 1
+                
+                # Parse container range
+                container_parts = container_value.split('-')
+                container_start = int(container_parts[0].strip())
+                container_end = int(container_parts[1].strip())
+                container_count = container_end - container_start + 1
+                
+                # Check if counts match
+                if host_count != container_count:
+                    self._show_port_error(
+                        mapping_data['container_input'], 
+                        mapping_data['container_error'], 
+                        f'Port range count mismatch: host has {host_count} ports, container has {container_count} ports'
+                    )
+                    return False
+            except (ValueError, IndexError):
+                # This shouldn't happen as individual validation should catch it
+                return False
+        
+        return True
+    
     def _update_port_mapping_preview(self, mapping_data):
         """Update the port mapping preview display."""
         host_value = mapping_data['host_input'].value.strip()
         container_value = mapping_data['container_input'].value.strip()
         preview_label = mapping_data['preview_label']
-        info_label = mapping_data['info_label']
         
         if host_value and container_value:
             # Check if both inputs are valid
             host_valid = self._validate_port_input(mapping_data, 'host')
             container_valid = self._validate_port_input(mapping_data, 'container')
             
-            if host_valid and container_valid:
+            # Additional validation for matching range counts
+            ranges_valid = self._validate_matching_ranges(mapping_data)
+            
+            if host_valid and container_valid and ranges_valid:
                 mapping_text = f'"{host_value}:{container_value}"'
                 preview_label.set_text(mapping_text)
-                preview_label.classes(replace='font-mono text-sm text-green-600 font-bold')
-                info_label.set_text('Will be added to stage_1.ports array in user_config.yml')
-                info_label.classes(replace='text-xs text-green-600 mt-1')
+                preview_label.classes(replace='font-mono text-sm text-green-600 font-bold mt-3')
             else:
                 preview_label.set_text('Invalid mapping - check errors above')
-                preview_label.classes(replace='font-mono text-sm text-red-600 font-bold')
-                info_label.classes(replace='text-xs text-gray-500 mt-1')
+                preview_label.classes(replace='font-mono text-sm text-red-600 font-bold mt-3')
         elif host_value or container_value:
             preview_label.set_text('Incomplete mapping - both ports required')
-            preview_label.classes(replace='font-mono text-sm text-yellow-600')
-            info_label.classes(replace='text-xs text-gray-500 mt-1')
+            preview_label.classes(replace='font-mono text-sm text-yellow-600 mt-3')
         else:
             preview_label.set_text('-')
-            preview_label.classes(replace='font-mono text-sm text-gray-900')
-            info_label.classes(replace='text-xs text-gray-500 mt-1')
+            preview_label.classes(replace='font-mono text-sm text-gray-900 font-bold mt-3')
     
     def _update_port_mappings_config(self):
         """Update the port mappings configuration."""
@@ -341,8 +397,9 @@ class NetworkTab(BaseTab):
             if host_value and container_value:
                 host_valid = self._validate_port_input(mapping_data, 'host')
                 container_valid = self._validate_port_input(mapping_data, 'container')
+                ranges_valid = self._validate_matching_ranges(mapping_data)
                 
-                if host_valid and container_valid:
+                if host_valid and container_valid and ranges_valid:
                     valid_mappings.append(f'{host_value}:{container_value}')
         
         # Update configuration

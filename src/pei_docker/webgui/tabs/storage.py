@@ -37,14 +37,16 @@ class StorageTab(BaseTab):
                 'Configure Storage (Stage-2\'s dynamic system) and Mounts (general volume mounts) for both stages'
             )
             
-            # Key concepts info
+            # Key concepts info - combined
             with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
                 with ui.row().classes('items-start gap-2'):
                     ui.icon('info', color='blue').classes('mt-1')
                     with ui.column().classes('w-full'):
-                        ui.label('📋 Key Concepts:').classes('font-semibold text-blue-800')
+                        ui.label('📋 Key Concepts:').classes('font-semibold text-blue-800 mb-2')
                         ui.markdown("""**Storage** is Stage-2's unique dynamic system for predefined directories (/soft/app, /soft/data, /soft/workspace).
-**Mounts** are general volume mounts that can be defined for any container path.""").classes('text-blue-700 text-sm mt-1')
+**Mounts** are general volume mounts that can be defined for any container path.
+
+These 3 storage entries are always present and default to 'image' type even when omitted from user_config.yml. They cannot be created or removed - only their storage type and related options can be configured.""").classes('text-blue-700 text-sm')
             
             # Stage-2 Dynamic Storage System
             with self.create_card('🏗️ Stage-2 Dynamic Storage System (Stage-2 ONLY)'):
@@ -55,15 +57,6 @@ class StorageTab(BaseTab):
                 self._create_storage_entry('app', '📱 App Storage (/soft/app)', 'Application files and dependencies - Fixed destination')
                 self._create_storage_entry('data', '💾 Data Storage (/soft/data)', 'User data and persistent files - Fixed destination')
                 self._create_storage_entry('workspace', '🛠️ Workspace Storage (/soft/workspace)', 'Development and workspace files - Fixed destination')
-                
-                # Storage note
-                with ui.card().classes('w-full p-3 mt-4 bg-blue-50 border-blue-200'):
-                    with ui.row().classes('items-start gap-2'):
-                        ui.icon('lightbulb', color='blue')
-                        with ui.column():
-                            ui.label('💡 Storage Note:').classes('font-semibold text-blue-800')
-                            ui.label('These 3 storage entries are always present and default to \'image\' type even when omitted from user_config.yml. They cannot be created or removed - only their storage type and related options can be configured.') \
-                                .classes('text-blue-700 text-sm')
             
             # Stage-1 Mounts
             with self.create_card('🗂️ Stage-1 Mounts (General Volume Mounts)'):

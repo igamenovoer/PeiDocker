@@ -45,192 +45,17 @@ class SummaryTab(BaseTab):
                 with ui.column().classes('w-full mt-4') as errors_container:
                     self.errors_container = errors_container
             
-            # Two-column layout for overview and actions
-            with ui.row().classes('w-full gap-6'):
-                # Left column - Configuration Overview
-                with ui.column().classes('w-full'):
-                    self._create_project_overview()
-                    self._create_ssh_overview()
-                    self._create_network_overview()
-                    self._create_environment_overview()
-                    self._create_storage_overview()
-                    self._create_scripts_overview()
-                
-                # Right column - Actions and Export
-                with ui.column().classes('w-full'):
-                    self._create_actions_section()
-                    self._create_config_preview()
+            # Generated user_config.yml Preview (directly after validation status)
+            self._create_config_preview()
+            
+            # Actions section
+            self._create_actions_section()
             
             # Refresh the summary initially
             self.refresh_summary()
         
         return container
     
-    def _create_project_overview(self) -> None:
-        """Create project settings overview."""
-        with self.create_card('🏗️ Project Settings'):
-            with ui.row().classes('w-full text-sm'):
-                # Labels column
-                with ui.column().classes('font-semibold'):
-                    ui.label('Name:')
-                    ui.label('Base Image:')
-                    ui.label('Directory:')
-                
-                # Values column
-                with ui.column().classes('w-full'):
-                    ui.label(self.app.data.project.name or 'Not set').bind_text_from(
-                        self.app.data.project, 'name', lambda x: x or 'Not set'
-                    )
-                    base_image = self.app.data.config.stage_1.get('image', {}).get('base', 'ubuntu:22.04')
-                    ui.label(base_image)
-                    ui.label(str(self.app.data.project.directory) if self.app.data.project.directory else 'Not set')
-    
-    def _create_ssh_overview(self) -> None:
-        """Create SSH configuration overview."""
-        with self.create_card('🔐 SSH Configuration'):
-            with ui.column().classes('text-sm'):
-                ssh_config = self.app.data.config.stage_1.get('ssh', {})
-                enabled = ssh_config.get('enabled', False)
-                
-                if enabled:
-                    port = ssh_config.get('port', 22)
-                    host_port = ssh_config.get('host_port', 2222)
-                    ui.label(f'✅ Enabled (port {host_port}:{port})').classes('mb-2')
-                    
-                    # Users info (simplified)
-                    users = ssh_config.get('users', [])
-                    if users:
-                        for user in users[:2]:  # Show first 2 users
-                            username = user.get('username', 'unknown')
-                            uid = user.get('uid', 'auto')
-                            ui.label(f'👤 User: {username} (UID: {uid})').classes('mb-1')
-                        if len(users) > 2:
-                            ui.label(f'... and {len(users) - 2} more users').classes('mb-1')
-                    else:
-                        ui.label('👤 No users configured').classes('mb-2')
-                else:
-                    ui.label('❌ Disabled').classes('mb-2')
-    
-    def _create_network_overview(self) -> None:
-        """Create network configuration overview."""
-        with self.create_card('🌐 Network Configuration'):
-            with ui.column().classes('text-sm'):
-                # Proxy
-                proxy_config = self.app.data.config.stage_1.get('proxy', {})
-                if proxy_config.get('enabled', False):
-                    proxy_url = proxy_config.get('url', '')
-                    ui.label(f'🔗 Proxy: {proxy_url}').classes('mb-2')
-                else:
-                    ui.label('🔗 Proxy: Not configured').classes('mb-2')
-                
-                # APT Mirror
-                apt_config = self.app.data.config.stage_1.get('apt', {})
-                mirror = apt_config.get('mirror', 'default')
-                ui.label(f'📥 APT Mirror: {mirror.title()}').classes('mb-2')
-                
-                # Port mappings
-                ports = self.app.data.config.stage_1.get('ports', [])
-                if ports:
-                    ui.label(f'🔌 Additional ports: {", ".join(ports[:3])}').classes('mb-2')
-                    if len(ports) > 3:
-                        ui.label(f'... and {len(ports) - 3} more').classes('text-xs text-gray-500')
-                else:
-                    ui.label('🔌 Additional ports: None')
-    
-    def _create_environment_overview(self) -> None:
-        """Create environment configuration overview."""
-        with self.create_card('⚙️ Environment Configuration'):
-            with ui.column().classes('text-sm'):
-                # Environment variables
-                env_config = self.app.data.config.stage_1.get('environment', [])
-                
-                # Handle both list and dict formats
-                variables = {}
-                if isinstance(env_config, list):
-                    # Parse list format ['KEY=VALUE', ...]
-                    for env_str in env_config:
-                        if '=' in env_str:
-                            key, value = env_str.split('=', 1)
-                            variables[key.strip()] = value.strip()
-                elif isinstance(env_config, dict):
-                    variables = env_config.get('variables', {})
-                
-                if variables:
-                    var_count = len(variables)
-                    ui.label(f'🌍 Environment variables: {var_count}').classes('mb-2')
-                    # Show first few variables
-                    for i, (name, value) in enumerate(list(variables.items())[:2]):
-                        ui.label(f'  • {name}={value}').classes('text-xs mb-1')
-                    if var_count > 2:
-                        ui.label(f'  ... and {var_count - 2} more').classes('text-xs text-gray-500 mb-2')
-                else:
-                    ui.label('🌍 Environment variables: None').classes('mb-2')
-                
-                # Device configuration
-                device_config = self.app.data.config.stage_1.get('device', {})
-                device_type = device_config.get('type', 'cpu')
-                if device_type == 'gpu':
-                    gpu_config = device_config.get('gpu', {})
-                    ui.label('🖥️ Device: GPU support enabled')
-                    if gpu_config.get('memory'):
-                        ui.label(f'  Memory limit: {gpu_config["memory"]}').classes('text-xs')
-                else:
-                    ui.label('🖥️ Device: CPU only')
-    
-    def _create_storage_overview(self) -> None:
-        """Create storage configuration overview."""
-        with self.create_card('💾 Storage Configuration'):
-            with ui.column().classes('text-sm'):
-                # Stage-2 dynamic storage
-                storage_config = self.app.data.config.stage_2.get('storage', {})
-                ui.label('🏗️ Stage-2 Dynamic Storage:').classes('font-semibold mb-1')
-                
-                for storage_type in ['app', 'data', 'workspace']:
-                    config = storage_config.get(storage_type, {})
-                    storage_mode = config.get('type', 'image')
-                    ui.label(f'  • {storage_type}: {storage_mode}').classes('text-xs mb-1')
-                
-                # Mounts
-                stage1_mounts = self.app.data.config.stage_1.get('mounts', [])
-                stage2_mounts = self.app.data.config.stage_2.get('mounts', [])
-                
-                if stage1_mounts or stage2_mounts:
-                    ui.label('📁 Volume Mounts:').classes('font-semibold mt-2 mb-1')
-                    if stage1_mounts:
-                        ui.label(f'  • Stage-1: {len(stage1_mounts)} mounts').classes('text-xs mb-1')
-                    if stage2_mounts:
-                        ui.label(f'  • Stage-2: {len(stage2_mounts)} mounts').classes('text-xs mb-1')
-                else:
-                    ui.label('📁 Volume Mounts: None').classes('mt-2')
-    
-    def _create_scripts_overview(self) -> None:
-        """Create scripts configuration overview."""
-        with self.create_card('📜 Scripts Configuration'):
-            with ui.column().classes('text-sm'):
-                # Stage-1 scripts
-                stage1_scripts = self.app.data.config.stage_1.get('scripts', {})
-                stage2_scripts = self.app.data.config.stage_2.get('scripts', {})
-                
-                if stage1_scripts or stage2_scripts:
-                    if stage1_scripts:
-                        ui.label('🏗️ Stage-1 Scripts:').classes('font-semibold mb-1')
-                        if 'entry_point' in stage1_scripts:
-                            ui.label('  • Custom entry point configured').classes('text-xs mb-1')
-                        
-                        lifecycle_count = sum(1 for key in stage1_scripts.keys() if key.startswith('on_'))
-                        if lifecycle_count > 0:
-                            ui.label(f'  • {lifecycle_count} lifecycle scripts').classes('text-xs mb-1')
-                    
-                    if stage2_scripts:
-                        ui.label('🏗️ Stage-2 Scripts:').classes('font-semibold mt-2 mb-1')
-                        if 'entry_point' in stage2_scripts:
-                            ui.label('  • Custom entry point configured').classes('text-xs mb-1')
-                        
-                        lifecycle_count = sum(1 for key in stage2_scripts.keys() if key.startswith('on_'))
-                        if lifecycle_count > 0:
-                            ui.label(f'  • {lifecycle_count} lifecycle scripts').classes('text-xs mb-1')
-                else:
-                    ui.label('📜 No custom scripts configured')
     
     def _create_actions_section(self) -> None:
         """Create the actions section."""
@@ -443,11 +268,28 @@ class SummaryTab(BaseTab):
                 ui.label(f'Error generating preview: {str(e)}').classes('text-red-600 text-sm')
     
     def _generate_full_config(self) -> dict:
-        """Generate the complete configuration."""
+        """Generate the complete configuration by collecting data from all tabs."""
         config = {
-            'stage_1': dict(self.app.data.config.stage_1),
-            'stage_2': dict(self.app.data.config.stage_2)
+            'stage_1': {},
+            'stage_2': {}
         }
+        
+        # Collect configuration from each tab
+        for tab in self.app.tabs.values():
+            if hasattr(tab, 'get_config_data'):
+                tab_config = tab.get_config_data()
+                
+                # Merge stage_1 configuration
+                if 'stage_1' in tab_config:
+                    for key, value in tab_config['stage_1'].items():
+                        if value:  # Only add non-empty values
+                            config['stage_1'][key] = value
+                
+                # Merge stage_2 configuration
+                if 'stage_2' in tab_config:
+                    for key, value in tab_config['stage_2'].items():
+                        if value:  # Only add non-empty values
+                            config['stage_2'][key] = value
         
         # Clean up empty sections
         for stage in ['stage_1', 'stage_2']:
