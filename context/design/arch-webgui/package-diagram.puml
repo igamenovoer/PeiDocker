@@ -1,6 +1,6 @@
 @startuml PeiDocker-WebGUI-Package-Diagram
 !theme plain
-title PeiDocker WebGUI - Package Architecture
+title PeiDocker WebGUI - Refactored Package Architecture
 
 ' Define packages
 package "PeiDocker WebGUI" {
@@ -10,75 +10,91 @@ package "PeiDocker WebGUI" {
         [cli_launcher.py] <<CLI Integration>>
     }
     
-    package "Data Layer" {
-        [models.py] <<Data Models>>
-        [utils.py] <<Utilities>>
+    package "Models Layer" {
+        package "models/" {
+            [ui_state.py] <<Bindable UI State>>
+            [config.py] <<Pydantic Validation>>
+        }
+    }
+    
+    package "Utils Layer" {
+        package "utils/" {
+            [bridge.py] <<State-Config Bridge>>
+        }
+    }
+    
+    package "Legacy Support" {
+        [legacy_models.py] <<Legacy Data Models>>
+        [legacy_utils.py] <<Legacy Utilities>>
     }
     
     package "Tab Components" {
-        package "Core Tabs" {
+        package "tabs/" {
             [base.py] <<Abstract Base>>
-            [project.py] <<Project Config>>
-            [summary.py] <<Configuration Summary>>
-        }
-        
-        package "Infrastructure Tabs" {
-            [ssh.py] <<SSH Configuration>>
-            [network.py] <<Network & Proxy>>
-            [environment.py] <<Environment Variables>>
-            [storage.py] <<Storage & Mounts>>
-            [scripts.py] <<Custom Scripts>>
+            package "Current Tabs" {
+                [project.py]
+                [ssh.py]
+                [network.py]
+                [environment.py]
+                [storage.py]
+                [scripts.py]
+                [summary.py]
+            }
         }
     }
 }
 
 package "External Dependencies" {
-    [NiceGUI Framework] <<Web UI Framework>>
-    [Pydantic] <<Data Validation>>
-    [OmegaConf] <<Configuration Management>>
+    [NiceGUI Framework] <<Reactive UI>>
+    [Pydantic v2] <<Data Validation>>
     [PyYAML] <<YAML Processing>>
 }
 
 package "PeiDocker Core" {
-    [pei.py] <<CLI Core>>
-    [Templates] <<Configuration Templates>>
+    [pei-docker-cli] <<CLI Commands>>
+    [user_config.yml] <<Configuration>>
 }
 
 ' Define relationships
-[app.py] --> [models.py] : uses
+[app.py] --> [legacy_models.py] : temporary
 [app.py] --> [base.py] : coordinates
 [app.py] --> [NiceGUI Framework] : built on
 
-[base.py] <|-- [project.py] : extends
-[base.py] <|-- [ssh.py] : extends  
-[base.py] <|-- [network.py] : extends
-[base.py] <|-- [environment.py] : extends
-[base.py] <|-- [storage.py] : extends
-[base.py] <|-- [scripts.py] : extends
-[base.py] <|-- [summary.py] : extends
+[ui_state.py] --> [NiceGUI Framework] : @bindable_dataclass
+[config.py] --> [Pydantic v2] : BaseModel
 
-[models.py] --> [Pydantic] : uses
-[summary.py] --> [OmegaConf] : uses
-[summary.py] --> [PyYAML] : uses
+[bridge.py] --> [ui_state.py] : converts from
+[bridge.py] --> [config.py] : validates with
+[bridge.py] --> [PyYAML] : serializes
+
+[Current Tabs] --> [legacy_models.py] : uses
+[Current Tabs] --> [base.py] : extends
 
 [cli_launcher.py] --> [app.py] : launches
-[cli_launcher.py] --> [pei.py] : integrates with
+[bridge.py] --> [user_config.yml] : reads/writes
 
-[base.py] --> [utils.py] : uses
-[project.py] --> [Templates] : loads from
-
-note right of [base.py]
-  Template Method Pattern
-  - Common UI helpers
-  - Validation interface
-  - Configuration management
+note right of [ui_state.py]
+  Reactive State Layer
+  - @bindable_dataclass
+  - Automatic UI sync
+  - Single source of truth
+  - No event handlers
 end note
 
-note bottom of [app.py]
-  Main Controller
-  - Centralizes state management
-  - Coordinates tab interactions
-  - Handles configuration persistence
+note bottom of [bridge.py]
+  Bridge Pattern
+  - UI State ↔ Pydantic
+  - YAML serialization
+  - Validation orchestration
+  - Error handling
+end note
+
+note left of [config.py]
+  Validation Layer
+  - Field validators
+  - Type coercion
+  - Pattern matching
+  - Error messages
 end note
 
 @enduml

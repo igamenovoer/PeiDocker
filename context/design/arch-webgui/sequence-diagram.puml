@@ -1,168 +1,135 @@
 @startuml PeiDocker-WebGUI-Sequence-Diagram
 !theme plain
-title PeiDocker WebGUI - User Configuration Flow
+title PeiDocker WebGUI - Reactive Data Flow
 
 actor User
-participant "CLI Launcher" as CLI
-participant "PeiDockerWebGUI" as App
-participant "ProjectTab" as ProjectTab
-participant "SSHTab" as SSHTab
-participant "NetworkTab" as NetworkTab
-participant "SummaryTab" as SummaryTab
-participant "AppData" as Data
-participant "ConfigData" as Config
-database "File System" as FS
+participant "UI Widget" as Widget
+participant "Bindable Property" as Binding
+participant "UI State\n(AppUIState)" as State
+participant "Other Widgets" as Others
+participant "ConfigBridge" as Bridge
+participant "Pydantic\nValidation" as Pydantic
+participant "YAML File" as File
 
-== Application Startup ==
-User -> CLI: pei-docker-gui start --project-dir /path/to/project
-activate CLI
+== Reactive UI Updates (Automatic) ==
+User -> Widget: Modify input
+activate Widget
 
-CLI -> CLI: validate_port(8080)
-CLI -> CLI: validate_project_dir(path)
-CLI -> App: __init__(project_dir)
-activate App
+Widget -> Binding: Update bound value
+activate Binding
+note right: NiceGUI handles\nbinding automatically
 
-App -> Data: create AppData instance
-activate Data
+Binding -> State: Update property
+activate State
+State -> State: Mark modified = True
 
-App -> App: _initialize_tabs()
-App -> ProjectTab: __init__(app)
-activate ProjectTab
-App -> SSHTab: __init__(app)
-activate SSHTab
-App -> NetworkTab: __init__(app) 
-activate NetworkTab
-App -> SummaryTab: __init__(app)
-activate SummaryTab
+State --> Others: Notify observers
+activate Others
+note right: All bound widgets\nupdate automatically
 
-App -> App: _create_main_ui()
-App -> FS: check if user_config.yml exists
-FS --> App: file exists/not exists
+Others -> Others: Re-render if needed
+deactivate Others
 
-alt Project exists
-    App -> App: load_project(project_dir)
-    App -> FS: read user_config.yml
-    FS --> App: config data
-    App -> Config: parse and validate config
-    activate Config
-    Config --> App: structured config data
+Widget --> User: Show immediate feedback
+deactivate Widget
+deactivate Binding
+deactivate State
+
+== Configuration Save Flow ==
+User -> Widget: Click Save
+activate Widget
+
+Widget -> Bridge: save_to_yaml(ui_state, path)
+activate Bridge
+
+Bridge -> Bridge: validate_ui_state(ui_state)
+activate Bridge #LightBlue
+
+loop For each component
+    Bridge -> Pydantic: Create validation model
+    activate Pydantic
     
-    App -> ProjectTab: set_config_data(data)
-    ProjectTab -> ProjectTab: populate UI fields
-    App -> SSHTab: set_config_data(data)
-    SSHTab -> SSHTab: populate UI fields
-    App -> NetworkTab: set_config_data(data)
-    NetworkTab -> NetworkTab: populate UI fields
-else New Project
-    App -> ProjectTab: render() with defaults
-    ProjectTab -> ProjectTab: create default project settings
+    alt Valid data
+        Pydantic --> Bridge: Return validated model
+    else Validation error
+        Pydantic --> Bridge: Raise ValidationError
+    end
+    deactivate Pydantic
 end
 
-CLI -> App: run(port=8080)
-App --> User: WebGUI Interface displayed
+Bridge --> Bridge: Aggregate validation results
+deactivate Bridge
 
-== User Configuration Workflow ==
-
-User -> ProjectTab: modify project name
-ProjectTab -> ProjectTab: _on_project_name_change()
-ProjectTab -> Data: update config.stage_1['image']['output']
-ProjectTab -> App: mark_modified()
-App -> Data: set modified = True
-
-User -> App: click SSH tab
-App -> App: switch_to_tab(TabName.SSH)
-App -> SSHTab: render()
-SSHTab --> User: SSH configuration interface
-
-User -> SSHTab: enable SSH toggle
-SSHTab -> SSHTab: _on_ssh_toggle(enabled=True)
-SSHTab -> Data: update config.stage_1['ssh']['enable']
-SSHTab -> App: mark_modified()
-
-User -> SSHTab: add new user
-SSHTab -> SSHTab: _add_user('developer', 'password123')
-SSHTab -> SSHTab: create user UI elements
-SSHTab -> Data: update config.stage_1['ssh']['users']
-SSHTab -> App: mark_modified()
-
-User -> App: click Network tab
-App -> App: switch_to_tab(TabName.NETWORK)
-App -> NetworkTab: render()
-NetworkTab --> User: Network configuration interface
-
-User -> NetworkTab: enable proxy
-NetworkTab -> NetworkTab: _on_proxy_toggle(enabled=True)
-NetworkTab -> Data: update config.stage_1['proxy']
-NetworkTab -> Data: update config.stage_2['proxy']
-NetworkTab -> App: mark_modified()
-
-User -> NetworkTab: add port mapping
-NetworkTab -> NetworkTab: _add_port_mapping()
-NetworkTab -> NetworkTab: create port mapping UI
-NetworkTab -> NetworkTab: _validate_port_input()
-NetworkTab -> Data: update config.stage_1['ports']
-NetworkTab -> App: mark_modified()
-
-== Configuration Validation & Save ==
-
-User -> App: click Summary tab
-App -> App: switch_to_tab(TabName.SUMMARY)
-App -> SummaryTab: render()
-activate SummaryTab
-
-SummaryTab -> SummaryTab: refresh_summary()
-SummaryTab -> SummaryTab: _generate_full_config()
-
-loop for each tab
-    SummaryTab -> ProjectTab: get_config_data()
-    ProjectTab --> SummaryTab: tab configuration
-    SummaryTab -> SSHTab: get_config_data()
-    SSHTab --> SummaryTab: tab configuration
-    SummaryTab -> NetworkTab: get_config_data()
-    NetworkTab --> SummaryTab: tab configuration
+alt All valid
+    Bridge -> Bridge: _ui_to_user_config_format()
+    note right: Convert to YAML structure
+    
+    Bridge -> File: Write YAML
+    activate File
+    File --> Bridge: Success
+    deactivate File
+    
+    Bridge -> State: mark_saved()
+    State -> State: modified = False
+    State -> State: last_saved = now()
+    
+    Bridge --> Widget: Return success
+    Widget -> User: Show success notification
+else Validation failed
+    Bridge --> Widget: Return errors
+    Widget -> User: Show error messages
 end
 
-SummaryTab -> SummaryTab: merge all configurations
-SummaryTab -> SummaryTab: _update_config_preview()
-SummaryTab --> User: Configuration summary displayed
+deactivate Bridge
+deactivate Widget
 
-User -> SummaryTab: click "Save Configuration"
-SummaryTab -> SummaryTab: _save_configuration()
+== Configuration Load Flow ==
+User -> Widget: Load project
+activate Widget
 
-loop validate all tabs
-    SummaryTab -> ProjectTab: validate()
-    ProjectTab --> SummaryTab: (is_valid, errors)
-    SummaryTab -> SSHTab: validate()
-    SSHTab --> SummaryTab: (is_valid, errors)
-    SummaryTab -> NetworkTab: validate()
-    NetworkTab --> SummaryTab: (is_valid, errors)
+Widget -> File: Read user_config.yml
+activate File
+File --> Widget: YAML data
+deactivate File
+
+Widget -> Bridge: load_into_ui(yaml_data, ui_state)
+activate Bridge
+
+Bridge -> Bridge: Parse YAML structure
+Bridge -> State: Update UI properties
+activate State
+
+loop For each property
+    State -> Binding: Property changed
+    activate Binding
+    Binding --> Others: Notify observers
+    activate Others
+    Others -> Others: Update UI automatically
+    deactivate Others
+    deactivate Binding
 end
 
-alt validation successful
-    SummaryTab -> Config: generate final YAML
-    Config --> SummaryTab: yaml_content
-    SummaryTab -> FS: write user_config.yml
-    FS --> SummaryTab: file saved
-    SummaryTab --> User: "Configuration saved successfully!"
-else validation errors
-    SummaryTab --> User: display validation errors
-end
+State -> State: modified = False
+deactivate State
 
-== Optional: Project Configuration ==
+Bridge --> Widget: Load complete
+deactivate Bridge
 
-User -> SummaryTab: click "Configure Project"
-SummaryTab -> SummaryTab: _configure_project()
-SummaryTab -> SummaryTab: _run_configure()
-note right: In real implementation, this would call:\npei-docker-cli configure -p /path/to/project
-SummaryTab --> User: "Project configuration started..."
+Widget --> User: Show loaded project
+deactivate Widget
 
-deactivate SummaryTab
-deactivate NetworkTab
-deactivate SSHTab  
-deactivate ProjectTab
-deactivate Config
-deactivate Data
-deactivate App
-deactivate CLI
+== Real-time Binding Example ==
+note over User, Others: Example: GPU Enable Checkbox
+
+User -> Widget: Check "Enable GPU"
+Widget -> State: gpu_enabled = True
+
+State --> Others: Notify GPU config panel
+activate Others
+Others -> Others: bind_visibility_from()\nmakes panel visible
+Others --> User: GPU options appear
+deactivate Others
+
+note right: No manual code needed!\nBinding handles everything
 
 @enduml
