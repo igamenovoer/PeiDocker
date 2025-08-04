@@ -273,9 +273,9 @@ class SSHTab(BaseTab):
                     data['user_data'][field] = value
                     self.app.ui_state.mark_modified()
                 
-                # Bind change handlers
-                username_input.on('change', lambda e: update_user_field('name', e.value))
-                password_input.on('change', lambda e: self._validate_and_update_password(e.value, password_input, row_data))
+                # Bind change handlers for inputs using proper on_value_change
+                username_input.on_value_change(lambda e: update_user_field('name', e.value))
+                password_input.on_value_change(lambda e: self._validate_and_update_password(e.value, password_input, row_data))
                 
                 # UID change handler
                 def update_uid(data: Dict[str, Any] = row_data) -> None:
@@ -286,8 +286,8 @@ class SSHTab(BaseTab):
                         data['user_data']['uid'] = None
                     self.app.ui_state.mark_modified()
                 
-                uid_enabled.on('change', lambda e: update_uid())
-                uid_input.on('change', lambda e: update_uid())
+                uid_enabled.on_value_change(lambda e: update_uid())
+                uid_input.on_value_change(lambda e: update_uid())
                 
                 # SSH key change handlers
                 def update_ssh_keys(data: Dict[str, Any] = row_data) -> None:
@@ -310,7 +310,7 @@ class SSHTab(BaseTab):
                 
                 for component in [pubkey_source, pubkey_file_input, pubkey_text_input,
                                 privkey_source, privkey_file_input, privkey_text_input]:
-                    component.on('change', lambda e: update_ssh_keys())
+                    component.on_value_change(lambda e: update_ssh_keys())
     
     def _validate_and_update_password(self, password: str, password_input: ui.input, row_data: Dict[str, Any]) -> None:
         """Validate password and update user data."""
