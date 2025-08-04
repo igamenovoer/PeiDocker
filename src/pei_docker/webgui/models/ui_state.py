@@ -79,20 +79,22 @@ class ScriptsUI:
     """UI state for scripts configuration"""
     
     # Entry point configuration
-    stage1_entry_mode: str = "default"  # "default", "custom", "custom_param"
-    stage1_entry_command: str = ""
-    stage1_entry_params: str = ""
+    stage1_entry_mode: str = "none"  # "none", "file", "inline"
+    stage1_entry_file_path: str = ""
+    stage1_entry_inline_name: str = ""
+    stage1_entry_inline_content: str = ""
     
-    stage2_entry_mode: str = "default"
-    stage2_entry_command: str = ""
-    stage2_entry_params: str = ""
+    stage2_entry_mode: str = "none"  # "none", "file", "inline"
+    stage2_entry_file_path: str = ""
+    stage2_entry_inline_name: str = ""
+    stage2_entry_inline_content: str = ""
     
-    # Lifecycle scripts
-    pre_build: List[str] = field(default_factory=list)
-    post_build: List[str] = field(default_factory=list)
-    first_run: List[str] = field(default_factory=list)
-    every_run: List[str] = field(default_factory=list)
-    user_login: List[str] = field(default_factory=list)
+    # Lifecycle scripts - storing as JSON for complex structure
+    stage1_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    stage2_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    
+    # Temporary storage for inline scripts being edited
+    _inline_scripts_metadata: Dict[str, Dict[str, str]] = field(default_factory=dict)
 
 @binding.bindable_dataclass
 class ProjectUI:
