@@ -13,6 +13,6 @@ Key Features:
 - Real-time validation and reactive UI updates
 """
 
-from .app import PeiDockerWebGUI
+from pei_docker.webgui.app import PeiDockerWebGUI
 
 __all__ = ['PeiDockerWebGUI']

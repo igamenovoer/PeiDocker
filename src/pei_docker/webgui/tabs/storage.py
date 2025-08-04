@@ -7,10 +7,10 @@ for both stages.
 
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional, Any
 from nicegui import ui
-from .base import BaseTab
+from pei_docker.webgui.tabs.base import BaseTab
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class StorageTab(BaseTab):
     """Storage configuration tab."""

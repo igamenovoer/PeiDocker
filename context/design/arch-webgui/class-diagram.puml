@@ -1,0 +1,219 @@
+@startuml PeiDocker-WebGUI-Class-Diagram
+!theme plain
+title PeiDocker WebGUI - Class Diagram
+
+' Main Application Classes
+class PeiDockerWebGUI {
+    +data: AppData
+    +tabs: Dict[TabName, BaseTab]
+    +current_tab: TabName
+    +project_loaded: bool
+    +modified: bool
+    +lock: asyncio.Lock
+    --
+    +__init__(project_dir: Optional[Path])
+    +run(port: int, jump_to_page: Optional[str])
+    +switch_to_tab(tab_name: TabName)
+    +save_project()
+    +load_project(project_dir: Path)
+    +_initialize_tabs()
+    +_create_main_ui()
+    +_handle_tab_switch()
+}
+
+' Data Models
+class AppData {
+    +project: ProjectConfig
+    +config: ConfigData
+    +validation_results: Dict[TabName, ValidationResult]
+}
+
+class ProjectConfig {
+    +directory: Path
+    +name: str
+    +user_config_file: Path
+    +is_loaded: bool
+}
+
+class ConfigData {
+    +stage_1: Dict[str, Any]
+    +stage_2: Dict[str, Any]
+    --
+    +merge_stage_configs()
+    +validate_consistency()
+}
+
+class ValidationResult {
+    +is_valid: bool
+    +errors: List[str]
+    +warnings: List[str]
+}
+
+' Abstract Base Tab
+abstract class BaseTab {
+    #app: PeiDockerWebGUI
+    #container: Optional[ui.element]
+    --
+    +__init__(app: PeiDockerWebGUI)
+    +{abstract} render(): ui.element
+    +{abstract} validate(): Tuple[bool, List[str]]
+    +{abstract} get_config_data(): Dict[str, Any]
+    +{abstract} set_config_data(data: Dict[str, Any])
+    +mark_modified()
+    +create_card(title: str): ui.card
+    +create_form_group(title: str, description: str): ui.column
+    +create_section_header(title: str, description: str)
+}
+
+' Concrete Tab Implementations
+class ProjectTab {
+    +project_name_input: ui.input
+    +project_dir_input: ui.input
+    +description_textarea: ui.textarea
+    +base_image_select: ui.select
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +get_config_data(): Dict[str, Any]
+    +set_config_data(data: Dict[str, Any])
+    +_on_project_name_change()
+    +_generate_temp_directory()
+}
+
+class SSHTab {
+    +ssh_enabled_switch: ui.switch
+    +ssh_port_input: ui.input
+    +host_port_input: ui.input
+    +users_container: ui.column
+    +users_data: List[Dict[str, Any]]
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +_add_user(username: str, password: str)
+    +_remove_user(user_id: str)
+    +_handle_ssh_key_upload()
+}
+
+class NetworkTab {
+    +proxy_enabled_switch: ui.switch
+    +proxy_url_input: ui.input
+    +apt_mirror_select: ui.select
+    +port_mappings_data: List[Dict[str, Any]]
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +_add_port_mapping()
+    +_validate_port_input()
+    +_update_port_mappings_config()
+}
+
+class EnvironmentTab {
+    +device_type_select: ui.select
+    +gpu_config_container: ui.column
+    +env_variables_data: List[Dict[str, Any]]
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +_add_env_variable()
+    +_on_device_type_change()
+}
+
+class StorageTab {
+    +storage_configs: Dict[str, Any]
+    +stage1_mounts_data: List[Dict[str, Any]]
+    +stage2_mounts_data: List[Dict[str, Any]]
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +_create_storage_entry()
+    +_add_mount(stage: str)
+    +_on_storage_type_change()
+}
+
+class ScriptsTab {
+    +stage1_entry_mode_radio: ui.radio
+    +stage2_entry_mode_radio: ui.radio
+    +stage1_lifecycle_scripts: Dict[str, List[Dict]]
+    +stage2_lifecycle_scripts: Dict[str, List[Dict]]
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +_add_lifecycle_script()
+    +_validate_script_path()
+    +_generate_uuid(): str
+}
+
+class SummaryTab {
+    +save_button: ui.button
+    +configure_button: ui.button
+    +download_button: ui.button
+    --
+    +render(): ui.element
+    +validate(): Tuple[bool, List[str]]
+    +refresh_summary()
+    +_generate_full_config(): Dict[str, Any]
+    +_save_configuration()
+    +_configure_project()
+}
+
+' Enums
+enum TabName {
+    PROJECT
+    SSH
+    NETWORK
+    ENVIRONMENT
+    STORAGE
+    SCRIPTS
+    SUMMARY
+}
+
+' CLI Launcher
+class CLILauncher {
+    --
+    +{static} main()
+    +{static} start_webgui(port: int, project_dir: Optional[Path], jump_to_page: Optional[str])
+    +{static} validate_port(port: int): bool
+    +{static} validate_project_dir(path: Path): bool
+}
+
+' Relationships
+PeiDockerWebGUI *-- AppData : contains
+PeiDockerWebGUI o-- BaseTab : manages
+AppData *-- ProjectConfig : contains
+AppData *-- ConfigData : contains
+AppData *-- ValidationResult : contains
+
+BaseTab <|-- ProjectTab : implements
+BaseTab <|-- SSHTab : implements
+BaseTab <|-- NetworkTab : implements
+BaseTab <|-- EnvironmentTab : implements
+BaseTab <|-- StorageTab : implements
+BaseTab <|-- ScriptsTab : implements
+BaseTab <|-- SummaryTab : implements
+
+PeiDockerWebGUI --> TabName : uses
+CLILauncher --> PeiDockerWebGUI : creates
+
+' Notes
+note right of BaseTab
+  Template Method Pattern
+  - Defines common interface
+  - Provides shared utilities
+  - Enforces validation contract
+end note
+
+note bottom of ConfigData
+  Two-Stage Configuration
+  - stage_1: System-level config
+  - stage_2: Application-level config
+  - Merging and validation logic
+end note
+
+note left of SummaryTab
+  Configuration Aggregator
+  - Collects data from all tabs
+  - Generates final YAML config
+  - Handles save/export operations
+end note
+
+@enduml

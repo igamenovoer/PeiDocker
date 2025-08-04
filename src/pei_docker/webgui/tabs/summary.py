@@ -7,8 +7,8 @@ and actions for saving and exporting the project.
 
 from typing import TYPE_CHECKING, List, Tuple, Dict, Optional, Any
 from nicegui import ui
-from .base import BaseTab
-from ..models import TabName
+from pei_docker.webgui.tabs.base import BaseTab
+from pei_docker.webgui.legacy_models import TabName
 import yaml
 import asyncio
 import omegaconf as oc
@@ -16,7 +16,7 @@ from omegaconf import DictConfig
 import copy
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class SummaryTab(BaseTab):
     """Summary and validation tab."""

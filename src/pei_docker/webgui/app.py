@@ -16,9 +16,9 @@ import copy
 from nicegui import ui, app
 from nicegui.events import ValueChangeEventArguments
 
-from .models import AppData, AppState, TabName, ProjectState
-from .utils import ProjectManager, FileOperations, ValidationManager, RealTimeValidator
-from .tabs import (
+from pei_docker.webgui.legacy_models import AppData, AppState, TabName, ProjectState
+from pei_docker.webgui.legacy_utils import ProjectManager, FileOperations, ValidationManager, RealTimeValidator
+from pei_docker.webgui.tabs import (
     ProjectTab, SSHTab, NetworkTab, EnvironmentTab, 
     StorageTab, ScriptsTab, SummaryTab
 )

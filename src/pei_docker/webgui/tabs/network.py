@@ -7,11 +7,11 @@ APT repository mirrors, and port mappings.
 
 from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from nicegui import ui
-from .base import BaseTab
+from pei_docker.webgui.tabs.base import BaseTab
 import re
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class NetworkTab(BaseTab):
     """Network configuration tab."""

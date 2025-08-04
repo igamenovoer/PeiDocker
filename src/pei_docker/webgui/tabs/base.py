@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Dict, List, Tuple
 from nicegui import ui
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class BaseTab(ABC):
     """Base class for all configuration tabs."""
@@ -42,7 +42,7 @@ class BaseTab(ABC):
     
     def mark_modified(self) -> None:
         """Mark this tab as modified."""
-        from ..models import TabName
+        from pei_docker.webgui.legacy_models import TabName
         # This would need to be implemented based on which tab this is
         # For now, just mark the general configuration as modified
         self.app.data.mark_modified()

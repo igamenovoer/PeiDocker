@@ -17,9 +17,9 @@ import omegaconf as oc
 from omegaconf import DictConfig
 import copy
 
-from ..config_processor import PeiConfigProcessor
-from ..user_config import UserConfig
-from .models import ConfigurationState
+from pei_docker.config_processor import PeiConfigProcessor
+from pei_docker.user_config import UserConfig
+from pei_docker.webgui.legacy_models import ConfigurationState
 
 class ProjectManager:
     """Manages PeiDocker project operations."""

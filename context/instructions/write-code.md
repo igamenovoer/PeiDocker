@@ -7,6 +7,11 @@ you are tasked to write or modify source code, follow these guidelines
 - you CAN use unicode emojis in GUI code, like web-based applications, as they are generally well supported in modern browsers
 - NEVER modify pyproject.toml directly due to missing packages, use pixi installation commands instead
 
+## Python Code Guidelines
+
+- Avoid using relative imports in Python code, prefer to use absolute imports to ensure clarity and avoid import errors.
+
+
 # How to run code
 
 If you want to run something, you should follow these instructions.

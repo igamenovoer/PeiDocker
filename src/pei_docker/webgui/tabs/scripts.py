@@ -7,11 +7,11 @@ for Stage-1 and Stage-2 sequential image builds.
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Any, Tuple
 from nicegui import ui
-from .base import BaseTab
+from pei_docker.webgui.tabs.base import BaseTab
 import uuid
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class ScriptsTab(BaseTab):
     """Scripts configuration tab."""

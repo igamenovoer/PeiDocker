@@ -7,10 +7,10 @@ base Docker image selection, and generated image name preview.
 
 from typing import TYPE_CHECKING, Any, Optional
 from nicegui import ui
-from .base import BaseTab
+from pei_docker.webgui.tabs.base import BaseTab
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class ProjectTab(BaseTab):
     """Project configuration tab."""

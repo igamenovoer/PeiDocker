@@ -7,10 +7,10 @@ and SSH key setup for container access.
 
 from typing import TYPE_CHECKING, Optional, Dict, List, Any
 from nicegui import ui
-from .base import BaseTab
+from pei_docker.webgui.tabs.base import BaseTab
 
 if TYPE_CHECKING:
-    from ..app import PeiDockerWebGUI
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
 class SSHTab(BaseTab):
     """SSH configuration tab."""
