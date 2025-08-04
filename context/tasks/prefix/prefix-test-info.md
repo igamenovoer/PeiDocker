@@ -10,9 +10,12 @@
     - `pei-docker-gui`: This command starts the GUI, source code is in `src/pei_docker/webgui/cli_launcher.py`.
 - User configuration template: `src/pei_docker/templates/config-template-full.yml`, this is the master template for the project-specific `user_config.yml` file, which contains all the settings that can be configured in the GUI.
   
-## Example Project
+## Test Project
 
-Example project is given in `tmp/build-example`, you can load that project to debug. Note that, because your action in GUI may corrupt the project files, you should always work on a new copy of the example project, using `pei-docker-cli create -p ./tmp/build-example` command, and then load the project in the GUI. If that example project is not there, you can create it using `pei-docker-cli create -p ./tmp/build-example` command.
+- you can create test projects using `pei-docker-cli create -p <path>` command, this will create a new project in the specified path, you can then load it in the GUI.
+- normally, you will create a new project using `pei-docker-cli create -p <path>` to create temporary project for testing, avoiding corruption of the existing project files, unless you are testing project loading or saving functionality.
+- `pei-docker-gui start --project-dir <path>` command will start the GUI with the specified project directory, you can use it to load existing projects.
+- temporary projects can be created in `<workspace>/tmp`, or in the system temporary directory (python `tempfile.gettempdir()`).
 
 ## Difference between GUI and `user_config.yml`
 

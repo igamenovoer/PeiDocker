@@ -335,11 +335,11 @@ package "PeiDocker WebGUI" {
     package "Tab Components" {
         package "tabs/" {
             [base.py] <<Abstract Base>>
-            [environment_refactored.py] <<Reactive Example>>
-            package "Legacy Tabs" {
+            package "Current Tabs" {
                 [project.py]
                 [ssh.py]
                 [network.py]
+                [environment.py]
                 [storage.py]
                 [scripts.py]
                 [summary.py]
@@ -371,11 +371,8 @@ package "PeiDocker Core" {
 [bridge.py] --> [config.py] : validates with
 [bridge.py] --> [PyYAML] : serializes
 
-[environment_refactored.py] --> [ui_state.py] : binds to
-[environment_refactored.py] --> [base.py] : extends
-
-[Legacy Tabs] --> [legacy_models.py] : uses
-[Legacy Tabs] --> [base.py] : extends
+[Current Tabs] --> [legacy_models.py] : uses
+[Current Tabs] --> [base.py] : extends
 
 [cli_launcher.py] --> [app.py] : launches
 [bridge.py] --> [user_config.yml] : reads/writes
@@ -549,15 +546,18 @@ package "Tab Components" #LightCoral {
         #create_form_group(title: str, desc: str): ui.column
     }
     
-    class EnvironmentTab <<Refactored>> {
-        +state: AppUIState
-        +stage: int
-        +env_config: EnvironmentUI
+    class EnvironmentTab {
+        +app: PeiDockerWebGUI
+        +device_type_select: ui.select
+        +gpu_config_container: ui.column
+        +env_variables_data: List[Dict[str, Any]]
         --
         +render(): ui.element
-        +add_env_var()
-        +remove_env_var(key: str)
-        -{bind UI elements to env_config}
+        +validate(): Tuple[bool, List[str]]
+        +get_config_data(): Dict
+        +set_config_data(data: Dict)
+        +_add_env_variable()
+        +_on_device_type_change()
     }
 }
 
@@ -582,8 +582,6 @@ ConfigBridge ..> AppConfig : creates
 ConfigBridge ..> ProjectConfig : converts to
 ConfigBridge ..> EnvironmentConfig : converts to
 
-EnvironmentTab --> AppUIState : references
-EnvironmentTab --> EnvironmentUI : binds to
 EnvironmentTab --|> BaseTab
 
 AppConfig *-- ProjectConfig
@@ -605,10 +603,17 @@ note bottom of ConfigBridge
 end note
 
 note left of EnvironmentUI
-  @bindable_dataclass
+  @bindable_dataclass (Planned)
   - Two-way data binding
   - Automatic updates
   - No event handlers
+end note
+
+note right of EnvironmentTab
+  Current Implementation
+  - Manual event handling
+  - Direct UI updates
+  - Works with legacy models
 end note
 
 @enduml

@@ -84,7 +84,7 @@ These 3 storage entries are always present and default to 'image' type even when
         
         return container
     
-    def _create_storage_entry(self, storage_type: str, title: str, description: str):
+    def _create_storage_entry(self, storage_type: str, title: str, description: str) -> None:
         """Create a storage entry for the Stage-2 dynamic storage system."""
         with ui.card().classes('w-full p-4 mb-4'):
             ui.label(title).classes('text-lg font-semibold mb-2')
@@ -131,7 +131,7 @@ These 3 storage entries are always present and default to 'image' type even when
             # Add event handler
             type_select.on('change', lambda e, st=storage_type: self._on_storage_type_change(e, st))
     
-    def _on_storage_type_change(self, e, storage_type: str):
+    def _on_storage_type_change(self, e: Any, storage_type: str) -> None:
         """Handle storage type changes."""
         storage_config = self.storage_configs[storage_type]
         selected_type = e.value
@@ -168,11 +168,14 @@ These 3 storage entries are always present and default to 'image' type even when
         
         self.mark_modified()
     
-    def _add_mount(self, stage: str):
+    def _add_mount(self, stage: str) -> None:
         """Add a new mount configuration."""
         mount_id = f'mount-{stage}-{self.mount_count}'
         container = self.stage1_mounts_container if stage == 'stage1' else self.stage2_mounts_container
         
+        if container is None:
+            return
+            
         with container:
             with ui.card().classes('w-full p-4 mb-4') as mount_card:
                 # Mount header
@@ -246,7 +249,7 @@ These 3 storage entries are always present and default to 'image' type even when
         self.mount_count += 1
         self.mark_modified()
     
-    def _remove_mount(self, mount_card, mount_id: str, stage: str):
+    def _remove_mount(self, mount_card: Any, mount_id: str, stage: str) -> None:
         """Remove a mount configuration."""
         mount_card.delete()
         
@@ -265,7 +268,7 @@ These 3 storage entries are always present and default to 'image' type even when
         self._update_mounts_config()
         self.mark_modified()
     
-    def _on_mount_type_change(self, e, mount_data):
+    def _on_mount_type_change(self, e: Any, mount_data: Dict[str, Any]) -> None:
         """Handle mount type changes."""
         selected_type = e.value
         
@@ -283,12 +286,12 @@ These 3 storage entries are always present and default to 'image' type even when
         self._update_mounts_config()
         self.mark_modified()
     
-    def _on_mount_change(self, mount_data):
+    def _on_mount_change(self, mount_data: Dict[str, Any]) -> None:
         """Handle mount configuration changes."""
         self._update_mounts_config()
         self.mark_modified()
     
-    def _update_mounts_config(self):
+    def _update_mounts_config(self) -> None:
         """Update the mounts configuration."""
         # Update Stage-1 mounts
         stage1_mounts = []
@@ -403,7 +406,7 @@ These 3 storage entries are always present and default to 'image' type even when
             }
         }
     
-    def set_config_data(self, data: dict):
+    def set_config_data(self, data: dict) -> None:
         """Set storage configuration data."""
         stage_1_config = data.get('stage_1', {})
         stage_2_config = data.get('stage_2', {})
@@ -454,7 +457,7 @@ These 3 storage entries are always present and default to 'image' type even when
         for mount in stage2_mounts:
             self._add_mount_from_config('stage2', mount)
     
-    def _add_mount_from_config(self, stage: str, mount_config: dict):
+    def _add_mount_from_config(self, stage: str, mount_config: dict) -> None:
         """Add a mount from configuration data."""
         # Add the mount first
         self._add_mount(stage)

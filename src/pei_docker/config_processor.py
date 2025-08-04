@@ -299,7 +299,7 @@ class PeiConfigProcessor:
                 
         return True
     
-    def _apply_apt(self, apt_config : AptConfig, build_compose : DictConfig):
+    def _apply_apt(self, apt_config : AptConfig, build_compose : DictConfig) -> None:
         """
         Apply APT-related configurations to the Docker Compose build arguments.
 
@@ -346,7 +346,7 @@ class PeiConfigProcessor:
         keep_proxy = bool(apt_config.keep_proxy_after_build)
         oc_set(build_compose, 'apt.keep_proxy', keep_proxy)
     
-    def _apply_proxy(self, proxy_config : ProxyConfig, build_compose : DictConfig):
+    def _apply_proxy(self, proxy_config : ProxyConfig, build_compose : DictConfig) -> None:
         """
         Apply proxy settings to the Docker Compose build arguments.
 
@@ -385,7 +385,7 @@ class PeiConfigProcessor:
             else:
                 oc_set(build_compose, 'proxy.https_header', 'http')
     
-    def _apply_ssh_to_x_compose(self, ssh_config : Optional[SSHConfig], build_compose : DictConfig):
+    def _apply_ssh_to_x_compose(self, ssh_config : Optional[SSHConfig], build_compose : DictConfig) -> None:
         """
         Apply SSH configurations to the Docker Compose build arguments.
 
@@ -459,7 +459,7 @@ class PeiConfigProcessor:
         oc_set(build_compose, 'ssh.privkey_file', ','.join(_ssh_privkeys))
         oc_set(build_compose, 'ssh.uid', ','.join(_ssh_uids))
         
-    def _apply_device(self, device_config : DeviceConfig, run_compose : DictConfig):
+    def _apply_device(self, device_config : DeviceConfig, run_compose : DictConfig) -> None:
         """
         Apply device-related configurations to the Docker Compose run arguments.
 
@@ -480,7 +480,7 @@ class PeiConfigProcessor:
         # set to compose
         oc.OmegaConf.update(run_compose, 'run.device', device_name)
         
-    def _process_config_and_apply_x_compose(self, user_config : UserConfig, compose_template : DictConfig):
+    def _process_config_and_apply_x_compose(self, user_config : UserConfig, compose_template : DictConfig) -> None:
         """
         Process the main user config and apply settings to the pre-resolution compose template.
 
@@ -562,7 +562,7 @@ class PeiConfigProcessor:
             if _stage.device is not None and _stage.device.type is not None:
                 oc_set(run_compose, 'device', _stage.device.type)
         
-    def _apply_config_to_resolved_compose(self, user_config : UserConfig, compose_template : DictConfig):
+    def _apply_config_to_resolved_compose(self, user_config : UserConfig, compose_template : DictConfig) -> None:
         """
         Apply final configurations to the fully resolved Docker Compose object.
 
@@ -629,6 +629,8 @@ class PeiConfigProcessor:
                 if prefix in StoragePrefixes.get_all_prefixes():
                     vol_path = StoragePaths.HardVolume + '/' + prefix
                 else:
+                    if storage_opt.dst_path is None:
+                        raise ValueError(f"Storage '{prefix}' must have dst_path specified")
                     vol_path = storage_opt.dst_path
                     
                 # mapping
@@ -750,7 +752,7 @@ class PeiConfigProcessor:
             
         return '\n'.join(cmds)
     
-    def _generate_etc_environment(self, user_config : UserConfig):
+    def _generate_etc_environment(self, user_config : UserConfig) -> None:
         """
         Generate environment files for each stage.
 
@@ -804,7 +806,7 @@ class PeiConfigProcessor:
             with open(filename, 'w+') as f:
                 f.write('')
     
-    def _generate_script_files(self, user_config : UserConfig):
+    def _generate_script_files(self, user_config : UserConfig) -> None:
         """
         Generate all necessary wrapper and helper script files.
 
@@ -996,7 +998,7 @@ class PeiConfigProcessor:
         self.m_compose_output = compose_resolved
         return compose_resolved
     
-    def _process_public_key_sources(self, user_name: str, user_info) -> str:
+    def _process_public_key_sources(self, user_name: str, user_info: SSHUserConfig) -> str:
         """
         Process public key from file or text, return container path.
         Supports relative paths, absolute paths, and ~ syntax for system SSH keys.
@@ -1012,7 +1014,7 @@ class PeiConfigProcessor:
         
         # Handle pubkey_file
         if user_info.pubkey_file is not None and len(user_info.pubkey_file) > 0:
-            pubkey_file = user_info.pubkey_file
+            pubkey_file: str = user_info.pubkey_file
             
             # NEW: Check if absolute path or ~ syntax
             if os.path.isabs(pubkey_file) or pubkey_file == '~':
@@ -1050,7 +1052,7 @@ class PeiConfigProcessor:
         
         return ''
     
-    def _process_private_key_sources(self, user_name: str, user_info) -> str:
+    def _process_private_key_sources(self, user_name: str, user_info: SSHUserConfig) -> str:
         """
         Process private key from file or text, return container path.
         Supports relative paths, absolute paths, and ~ syntax for system SSH keys.
@@ -1067,7 +1069,7 @@ class PeiConfigProcessor:
         
         # Handle privkey_file
         if user_info.privkey_file is not None and len(user_info.privkey_file) > 0:
-            privkey_file = user_info.privkey_file
+            privkey_file: str = user_info.privkey_file
             
             # NEW: Check if absolute path or ~ syntax
             if os.path.isabs(privkey_file) or privkey_file == '~':

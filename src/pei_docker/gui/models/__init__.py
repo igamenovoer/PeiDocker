@@ -1,1 +1,0 @@
-"""GUI data models package."""

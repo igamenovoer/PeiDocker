@@ -126,14 +126,14 @@ def port_mapping_str_to_dict(port_mapping : list[str]) -> dict[int, int]:
         # are we mapping a range of ports? in the format 'host_start-host_end:container_start-container_end'
         if '-' in host_port:
             # find the range of host ports
-            host_port_start, host_port_end = host_port.split('-')
-            host_port_start = int(host_port_start)
-            host_port_end = int(host_port_end)
+            host_port_start_str, host_port_end_str = host_port.split('-')
+            host_port_start: int = int(host_port_start_str)
+            host_port_end: int = int(host_port_end_str)
             
             # find the range of container ports
-            container_port_start, container_port_end = container_port.split('-')
-            container_port_start = int(container_port_start)
-            container_port_end = int(container_port_end)
+            container_port_start_str, container_port_end_str = container_port.split('-')
+            container_port_start: int = int(container_port_start_str)
+            container_port_end: int = int(container_port_end_str)
             
             # check if the ranges are of the same length
             if host_port_end - host_port_start != container_port_end - container_port_start:
@@ -208,10 +208,10 @@ def port_mapping_dict_to_str(port_mapping: dict[int, int]) -> list[str]:
         else:
             # the previous range has ended, add it to the output
             if port_from_range_start == port_from_prev: # single port
-                port_mapping_entry : str = f'{port_from_range_start}:{port_to_range_start}'
+                port_mapping_entry = f'{port_from_range_start}:{port_to_range_start}'
                 output.append(port_mapping_entry)
             else:
-                port_mapping_entry : str = f'{port_from_range_start}-{port_from_prev}:{port_to_range_start}-{port_to_prev}'
+                port_mapping_entry = f'{port_from_range_start}-{port_from_prev}:{port_to_range_start}-{port_to_prev}'
                 output.append(port_mapping_entry)
             
             # start a new range
@@ -224,10 +224,10 @@ def port_mapping_dict_to_str(port_mapping: dict[int, int]) -> list[str]:
         
     # output the last range
     if port_from_range_start == port_from_prev: # single port
-        port_mapping_entry : str = f'{port_from_range_start}:{port_to_range_start}'
+        port_mapping_entry = f'{port_from_range_start}:{port_to_range_start}'
         output.append(port_mapping_entry)
     else:
-        port_mapping_entry : str = f'{port_from_range_start}-{port_from_prev}:{port_to_range_start}-{port_to_prev}'
+        port_mapping_entry = f'{port_from_range_start}-{port_from_prev}:{port_to_range_start}-{port_to_prev}'
         output.append(port_mapping_entry)
             
     return output
@@ -417,7 +417,7 @@ class SSHUserConfig:
     privkey_text : str | None = field(default=None)
     uid : int | None = field(default=None)
     
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         # Validate password format
         if self.password is not None:
             # password cannot contain space and comma
@@ -803,7 +803,7 @@ class CustomScriptConfig:
     on_user_login : list[str] = field(factory=list)
     on_entry : list[str] = field(factory=list)
     
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         # Validate on_entry constraints - should have at most one entry point
         if len(self.on_entry) > 1:
             raise ValueError(f'on_entry can have at most one entry point per stage, got {len(self.on_entry)}: {self.on_entry}')
@@ -959,7 +959,7 @@ class StorageOption:
     volume_name : str | None = field(default=None)
     dst_path : str | None = field(default=None)
     
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         if self.type == 'manual-volume' and self.volume_name is None:
             raise ValueError('volume_name must be provided for manual-volume storage')
         if self.type == 'host' and self.host_path is None:
@@ -1122,8 +1122,9 @@ class StageConfig:
         """
         if self.ports is not None:
             return port_mapping_str_to_dict(self.ports)
+        return None
         
-    def set_port_mapping_from_dict(self, port_mapping: dict[int, int]):
+    def set_port_mapping_from_dict(self, port_mapping: dict[int, int]) -> None:
         """
         Set port mappings from dictionary format.
         

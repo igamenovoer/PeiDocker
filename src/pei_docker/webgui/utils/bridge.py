@@ -6,8 +6,7 @@ and Pydantic validation models, handling data transformation, validation,
 and YAML serialization.
 """
 
-from typing import Dict, List, Tuple, Any, Optional
-from pathlib import Path
+from typing import Dict, List, Tuple, Any
 import yaml
 from pydantic import ValidationError
 from nicegui import ui
@@ -17,7 +16,7 @@ from pei_docker.webgui.models.ui_state import (
     StorageUI, ScriptsUI, ProjectUI
 )
 from pei_docker.webgui.models.config import (
-    AppConfig, StageConfig, EnvironmentConfig, NetworkConfig,
+    StageConfig, EnvironmentConfig, NetworkConfig,
     SSHConfig, StorageConfig, ScriptsConfig, ProjectConfig
 )
 
@@ -175,7 +174,7 @@ class ConfigBridge:
             return [f"{k}={v}" for k, v in env_vars.items()]
         
         # Build stage-1 configuration
-        stage_1 = {
+        stage_1: Dict[str, Any] = {
             'image': {
                 'base': ui_state.project.base_image,
                 'output': ui_state.project.image_output_name or ui_state.project.project_name
@@ -188,25 +187,28 @@ class ConfigBridge:
         
         # Add device configuration to stage-1
         if ui_state.stage_1.environment.device_type != 'cpu':
-            stage_1['device'] = {
+            device_config: Dict[str, Any] = {
                 'type': ui_state.stage_1.environment.device_type
             }
             if ui_state.stage_1.environment.device_type == 'gpu':
-                stage_1['device']['gpu'] = {
+                gpu_config: Dict[str, Any] = {
                     'all': ui_state.stage_1.environment.gpu_count == 'all'
                 }
                 if ui_state.stage_1.environment.gpu_memory_limit:
-                    stage_1['device']['gpu']['memory'] = ui_state.stage_1.environment.gpu_memory_limit
+                    gpu_config['memory'] = ui_state.stage_1.environment.gpu_memory_limit
+                device_config['gpu'] = gpu_config
+            stage_1['device'] = device_config
         
         # Add network configuration to stage-1
         if ui_state.stage_1.network.proxy_enabled:
-            stage_1['proxy'] = {}
+            proxy_config: Dict[str, Any] = {}
             if ui_state.stage_1.network.http_proxy:
-                stage_1['proxy']['http'] = ui_state.stage_1.network.http_proxy
+                proxy_config['http'] = ui_state.stage_1.network.http_proxy
             if ui_state.stage_1.network.https_proxy:
-                stage_1['proxy']['https'] = ui_state.stage_1.network.https_proxy
+                proxy_config['https'] = ui_state.stage_1.network.https_proxy
             if ui_state.stage_1.network.no_proxy:
-                stage_1['proxy']['no_proxy'] = ui_state.stage_1.network.no_proxy
+                proxy_config['no_proxy'] = ui_state.stage_1.network.no_proxy
+            stage_1['proxy'] = proxy_config
         
         if ui_state.stage_1.network.apt_mirror:
             stage_1['apt'] = {'mirror': ui_state.stage_1.network.apt_mirror}
@@ -228,7 +230,7 @@ class ConfigBridge:
             }
         
         # Build stage-2 configuration
-        stage_2 = {'image': {}}
+        stage_2: Dict[str, Any] = {'image': {}}
         
         # Add environment configuration to stage-2
         if ui_state.stage_2.environment.env_vars:
@@ -236,13 +238,14 @@ class ConfigBridge:
         
         # Add network configuration to stage-2 (inherits proxy from stage-1)
         if ui_state.stage_2.network.proxy_enabled:
-            stage_2['proxy'] = {}
+            stage2_proxy_config: Dict[str, Any] = {}
             if ui_state.stage_2.network.http_proxy:
-                stage_2['proxy']['http'] = ui_state.stage_2.network.http_proxy
+                stage2_proxy_config['http'] = ui_state.stage_2.network.http_proxy
             if ui_state.stage_2.network.https_proxy:
-                stage_2['proxy']['https'] = ui_state.stage_2.network.https_proxy
+                stage2_proxy_config['https'] = ui_state.stage_2.network.https_proxy
             if ui_state.stage_2.network.no_proxy:
-                stage_2['proxy']['no_proxy'] = ui_state.stage_2.network.no_proxy
+                stage2_proxy_config['no_proxy'] = ui_state.stage_2.network.no_proxy
+            stage_2['proxy'] = stage2_proxy_config
         
         # Add storage configuration to stage-2
         storage_config = ConfigBridge._build_storage_config(ui_state.stage_2.storage)
@@ -266,7 +269,7 @@ class ConfigBridge:
     @staticmethod
     def _build_storage_config(storage: StorageUI) -> Dict[str, Any]:
         """Build storage configuration from UI state"""
-        config = {}
+        config: Dict[str, Any] = {}
         
         # Fixed storage entries for stage-2
         for name, prefix in [('app', 'app'), ('data', 'data'), ('workspace', 'workspace')]:

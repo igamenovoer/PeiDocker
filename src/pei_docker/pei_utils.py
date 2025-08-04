@@ -72,6 +72,7 @@ import omegaconf as oc
 from omegaconf.omegaconf import DictConfig
 import os
 import re
+from typing import Any
 
 def remove_null_keys(cfg: DictConfig) -> DictConfig:
     """
@@ -107,7 +108,7 @@ def remove_null_keys(cfg: DictConfig) -> DictConfig:
     shadow = cfg.copy()
     for k, v in shadow.items():
         if v is None:
-            print(f'removing key {k}')
+            print(f'removing key {k!r}')
             cfg.pop(k)
         elif isinstance(v, DictConfig):
             remove_null_keys(cfg.get(k))
@@ -210,7 +211,7 @@ def substitute_env_vars(value: str) -> str:
     # Pattern to match ${VAR} or ${VAR:-default}
     pattern = r'\$\{([^}]+)\}'
     
-    def replacer(match):
+    def replacer(match: re.Match[str]) -> str:
         var_expr = match.group(1)
         
         # Check if it has fallback syntax (VAR:-default)
@@ -291,7 +292,7 @@ def process_config_env_substitution(cfg: DictConfig) -> DictConfig:
     else:
         raise ValueError("Configuration must be a dictionary structure")
 
-def _process_dict_env_substitution(data):
+def _process_dict_env_substitution(data: Any) -> Any:
     """
     Recursively process dictionary/list structure for environment variable substitution.
     

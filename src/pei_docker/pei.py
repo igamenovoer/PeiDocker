@@ -85,7 +85,7 @@ from pei_docker.config_processor import *
 from pei_docker.pei_utils import process_config_env_substitution
         
 @click.group()
-def cli():
+def cli() -> None:
     """
     PeiDocker CLI - Docker Container Configuration Made Easy.
     
@@ -102,7 +102,7 @@ def cli():
               type=click.Path(exists=False, file_okay=False))
 @click.option('--with-examples', '-e', is_flag=True, default=True, 
               help='copy example files to the project dir')
-def create(project_dir : str, with_examples : bool):
+def create(project_dir : str, with_examples : bool) -> None:
     """
     Create a new PeiDocker project with template files and directory structure.
     
@@ -192,7 +192,7 @@ def create(project_dir : str, with_examples : bool):
 @click.option('--config', '-c', default=f'{Defaults.OutputConfigName}', help='config file name, relative to the project dir', 
               type=click.Path(exists=False, file_okay=True, dir_okay=False))
 @click.option('--full-compose', '-f', is_flag=True, default=False, help='generate full compose file with x-??? sections')
-def configure(project_dir:str, config:str, full_compose:bool):
+def configure(project_dir:str, config:str, full_compose:bool) -> None:
     """
     Configure PeiDocker project by generating docker-compose.yml from user configuration.
     
@@ -268,6 +268,8 @@ def configure(project_dir:str, config:str, full_compose:bool):
         return
     
     in_config = oc.OmegaConf.load(config_path)
+    if not isinstance(in_config, oc.DictConfig):
+        raise ValueError("Configuration file must contain a dictionary, not a list")
     
     # Process environment variable substitution
     logging.info('Processing environment variable substitution')
@@ -276,6 +278,8 @@ def configure(project_dir:str, config:str, full_compose:bool):
     # read the compose template file
     compose_path : str = os.path.join(project_dir, Defaults.OutputComposeTemplateName)
     in_compose = oc.OmegaConf.load(compose_path)
+    if not isinstance(in_compose, oc.DictConfig):
+        raise ValueError("Compose template file must contain a dictionary, not a list")
     
     # process the config file
     proc : PeiConfigProcessor = PeiConfigProcessor.from_config(in_config, in_compose, project_dir=project_dir)
@@ -507,7 +511,7 @@ def remove_image(image_name: str, force_yes: bool = False) -> bool:
 @click.option('--project-dir', '-p', help='project directory', required=True, 
               type=click.Path(exists=True, file_okay=False))
 @click.option('--yes', '-y', is_flag=True, default=False, help='skip confirmation prompts')
-def remove(project_dir: str, yes: bool):
+def remove(project_dir: str, yes: bool) -> None:
     """
     Remove Docker images and containers created by PeiDocker project.
     
