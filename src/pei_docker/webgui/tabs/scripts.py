@@ -100,7 +100,8 @@ class ScriptsTab(BaseTab):
                         file_path_attr = f'{stage}_entry_file_path'
                         ui.input(
                             placeholder=f'{path_prefix}/custom/script-{self._generate_uuid()}.bash --param=value'
-                        ).bind_value(scripts_ui, file_path_attr).classes('w-full').on('input', lambda: self.mark_modified())
+                        ).bind_value(scripts_ui, file_path_attr).classes('w-full').on_value_change(lambda: self.mark_modified()) \
+                            .props(f'data-testid="{stage}-entry-file-path"')
                         
                         file_mode_container.bind_visibility_from(scripts_ui, entry_mode_attr, lambda v: v == 'file')
                     
@@ -111,12 +112,14 @@ class ScriptsTab(BaseTab):
                             inline_name_attr = f'{stage}_entry_inline_name'
                             ui.input(
                                 placeholder='entry-script.bash'
-                            ).bind_value(scripts_ui, inline_name_attr).classes('w-full rounded-l-none').on('input', lambda: self.mark_modified())
+                            ).bind_value(scripts_ui, inline_name_attr).classes('w-full rounded-l-none').on_value_change(lambda: self.mark_modified()) \
+                                .props(f'data-testid="{stage}-entry-inline-name"')
                         
                         inline_content_attr = f'{stage}_entry_inline_content'
                         ui.textarea(
                             placeholder='#!/bin/bash\necho \'Custom entry point\''
-                        ).bind_value(scripts_ui, inline_content_attr).classes('w-full').props('rows=4').on('input', lambda: self.mark_modified())
+                        ).bind_value(scripts_ui, inline_content_attr).classes('w-full').props('rows=4').on_value_change(lambda: self.mark_modified()) \
+                            .props(f'data-testid="{stage}-entry-inline-content"')
                         
                         inline_mode_container.bind_visibility_from(scripts_ui, entry_mode_attr, lambda v: v == 'inline')
             
@@ -131,10 +134,12 @@ class ScriptsTab(BaseTab):
                         with ui.row().classes('gap-2 mb-2 w-full'):
                             ui.button('📁 Add File', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix, sui=scripts_ui: self._add_lifecycle_script(s, lt, 'file', pp, sui)) \
-                                .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
+                                .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm') \
+                                .props(f'data-testid="{stage}-{lifecycle_type}-add-file-btn"')
                             ui.button('📝 Add Inline', 
                                     on_click=lambda lt=lifecycle_type, s=stage, pp=path_prefix, sui=scripts_ui: self._add_lifecycle_script(s, lt, 'inline', pp, sui)) \
-                                .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm')
+                                .classes('bg-gray-600 hover:bg-gray-700 text-white text-sm') \
+                                .props(f'data-testid="{stage}-{lifecycle_type}-add-inline-btn"')
                         
                         # Scripts container
                         with ui.column().classes('w-full') as scripts_container:
@@ -194,10 +199,10 @@ class ScriptsTab(BaseTab):
                         script_input = ui.input(
                             placeholder=f'{path_prefix}/custom/script-{self._generate_uuid()}.bash --param=value',
                             value=script_data.get('path', '')
-                        ).classes('w-full mb-2')
+                        ).classes('w-full mb-2').props(f'data-testid="{stage}-{lifecycle_type}-file-{script_data["id"]}"')
                         
                         # Bind input to update the model
-                        script_input.on('input', lambda e: self._update_script_path(stage, lifecycle_type, script_data['id'], e.value, scripts_ui))
+                        script_input.on_value_change(lambda e: self._update_script_path(stage, lifecycle_type, script_data['id'], e.value, scripts_ui))
                         
                         with ui.row().classes('gap-2 w-full'):
                             ui.button('✏️ Edit', on_click=lambda inp=script_input: self._edit_file_path(inp)) \
@@ -215,19 +220,19 @@ class ScriptsTab(BaseTab):
                             script_name_input = ui.input(
                                 value=script_name,
                                 placeholder='script-name.bash'
-                            ).classes('w-full rounded-l-none')
+                            ).classes('w-full rounded-l-none').props(f'data-testid="{stage}-{lifecycle_type}-inline-name-{script_data["id"]}"')
                         
                         # Script content
                         script_content_textarea = ui.textarea(
                             placeholder='#!/bin/bash\necho \'Inline script content\'',
                             value=script_data.get('content', '')
-                        ).classes('w-full mb-2').props('rows=3')
+                        ).classes('w-full mb-2').props('rows=3').props(f'data-testid="{stage}-{lifecycle_type}-inline-content-{script_data["id"]}"')
                         
                         # Bind inputs to update the model
-                        script_name_input.on('input', lambda e: self._update_inline_script(stage, lifecycle_type, script_data['id'], 
+                        script_name_input.on_value_change(lambda e: self._update_inline_script(stage, lifecycle_type, script_data['id'], 
                                                                                          f'{path_prefix}/custom/{e.value}', 
                                                                                          script_content_textarea.value, scripts_ui))
-                        script_content_textarea.on('input', lambda e: self._update_inline_script(stage, lifecycle_type, script_data['id'],
+                        script_content_textarea.on_value_change(lambda e: self._update_inline_script(stage, lifecycle_type, script_data['id'],
                                                                                                f'{path_prefix}/custom/{script_name_input.value}',
                                                                                                e.value, scripts_ui))
                         

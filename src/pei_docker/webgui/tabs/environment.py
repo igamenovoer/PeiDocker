@@ -48,7 +48,8 @@ class EnvironmentTab(BaseTab):
                             
                             # Add environment variable button
                             ui.button('➕ Add Environment Variable', on_click=self._add_env_variable) \
-                                .classes('bg-blue-600 hover:bg-blue-700 text-white')
+                                .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                                .props('data-testid="add-env-var-btn"')
                 
                 # Right column - Device Configuration
                 with ui.column().classes('w-full'):
@@ -61,7 +62,8 @@ class EnvironmentTab(BaseTab):
                                     'gpu': 'GPU Support'
                                 },
                                 value='cpu'
-                            ).classes('w-full').bind_value(stage_env, 'device_type')
+                            ).classes('w-full').bind_value(stage_env, 'device_type') \
+                                .props('data-testid="device-type-select"')
                         
                         # GPU Configuration (conditionally visible)
                         with ui.column().classes('mt-6 w-full') as gpu_config:
@@ -77,7 +79,8 @@ class EnvironmentTab(BaseTab):
                                     ui.select(
                                         options={'all': 'All GPUs', '1': '1 GPU', '2': '2 GPUs', '4': '4 GPUs'},
                                         value='all'
-                                    ).classes('w-32').bind_value(stage_env, 'gpu_count')
+                                    ).classes('w-32').bind_value(stage_env, 'gpu_count') \
+                                        .props('data-testid="gpu-count-select"')
                                 
                                 # CUDA version selection
                                 with ui.row().classes('items-center gap-4 mb-4'):
@@ -93,14 +96,16 @@ class EnvironmentTab(BaseTab):
                                             '11.7': 'CUDA 11.7'
                                         },
                                         value='12.4'
-                                    ).classes('w-48').bind_value(stage_env, 'cuda_version')
+                                    ).classes('w-48').bind_value(stage_env, 'cuda_version') \
+                                        .props('data-testid="cuda-version-select"')
                                 
                                 # GPU Memory Limit
                                 with self.create_form_group('GPU Memory Limit (optional)',
                                                           'Limit GPU memory usage (Docker 19.03+ required)'):
                                     ui.input(
                                         placeholder='e.g., 4GB or leave empty for no limit'
-                                    ).classes('w-full').bind_value(stage_env, 'gpu_memory_limit')
+                                    ).classes('w-full').bind_value(stage_env, 'gpu_memory_limit') \
+                                        .props('data-testid="gpu-memory-limit-input"')
         
         return container
     
@@ -136,7 +141,7 @@ class EnvironmentTab(BaseTab):
                     name_input = ui.input(
                         placeholder='VARIABLE_NAME',
                         value=key
-                    ).classes('flex-1')
+                    ).classes('flex-1').props(f'data-testid="env-var-name-{key}"')
                     
                     # Equals sign
                     ui.label('=').classes('font-bold text-lg text-gray-700')
@@ -145,13 +150,14 @@ class EnvironmentTab(BaseTab):
                     value_input = ui.input(
                         placeholder='value',
                         value=value
-                    ).classes('flex-1')
+                    ).classes('flex-1').props(f'data-testid="env-var-value-{key}"')
                     
                     # Remove button
                     remove_btn = ui.button(
                         '🗑️ Remove',
                         on_click=lambda k=key: self._remove_env_variable(k)
-                    ).classes('bg-red-600 hover:bg-red-700 text-white px-3 py-1')
+                    ).classes('bg-red-600 hover:bg-red-700 text-white px-3 py-1') \
+                        .props(f'data-testid="remove-env-var-{key}"')
                     
                     # Store row data
                     row_data = {
@@ -191,8 +197,8 @@ class EnvironmentTab(BaseTab):
                             stage_env.env_vars[key_name] = e.value
                             self.app.ui_state.mark_modified()
                     
-                    name_input.on('change', on_name_change)
-                    value_input.on('change', on_value_change)
+                    name_input.on_value_change(on_name_change)
+                    value_input.on_value_change(on_value_change)
     
     def _add_env_variable(self) -> None:
         """Add a new environment variable."""

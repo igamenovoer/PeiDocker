@@ -52,7 +52,8 @@ class NetworkTab(BaseTab):
                     with self.create_form_group('HTTP Proxy', 'HTTP proxy URL for network requests'):
                         http_input = ui.input(
                             placeholder='http://host.docker.internal:7890'
-                        ).classes('w-full').bind_value(network_1, 'http_proxy')
+                        ).classes('w-full').bind_value(network_1, 'http_proxy') \
+                        .props('data-testid="http-proxy-input"')
                         # Keep stage 2 in sync
                         http_input.bind_value(network_2, 'http_proxy')
                     
@@ -60,7 +61,8 @@ class NetworkTab(BaseTab):
                     with self.create_form_group('HTTPS Proxy', 'HTTPS proxy URL for secure requests'):
                         https_input = ui.input(
                             placeholder='http://host.docker.internal:7890'
-                        ).classes('w-full').bind_value(network_1, 'https_proxy')
+                        ).classes('w-full').bind_value(network_1, 'https_proxy') \
+                        .props('data-testid="https-proxy-input"')
                         # Keep stage 2 in sync
                         https_input.bind_value(network_2, 'https_proxy')
                     
@@ -68,7 +70,8 @@ class NetworkTab(BaseTab):
                     with self.create_form_group('No Proxy', 'Comma-separated list of hosts to bypass proxy'):
                         no_proxy_input = ui.input(
                             placeholder='localhost,127.0.0.1,.example.com'
-                        ).classes('w-full').bind_value(network_1, 'no_proxy')
+                        ).classes('w-full').bind_value(network_1, 'no_proxy') \
+                        .props('data-testid="no-proxy-input"')
                         # Keep stage 2 in sync
                         no_proxy_input.bind_value(network_2, 'no_proxy')
             
@@ -118,7 +121,8 @@ class NetworkTab(BaseTab):
                     
                     # Add port mapping button
                     ui.button('➕ Add Port Mapping', on_click=self._add_port_mapping) \
-                        .classes('bg-blue-600 hover:bg-blue-700 text-white')
+                        .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                        .props('data-testid="add-port-mapping-btn"')
                     
                     # Info note
                     with ui.card().classes('w-full p-3 mt-4 bg-blue-50 border-blue-200'):
@@ -169,7 +173,7 @@ class NetworkTab(BaseTab):
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         host_input = ui.input(
                             placeholder='Host port (e.g., 8080 or 9090-9099)'
-                        ).classes('w-full')
+                        ).classes('w-full').props(f'data-testid="port-mapping-host-{index}"')
                         host_input.set_value(mapping.get('host', ''))
                         host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                     
@@ -177,7 +181,7 @@ class NetworkTab(BaseTab):
                         ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
                         container_input = ui.input(
                             placeholder='Container port (e.g., 80 or 9090-9099)'
-                        ).classes('w-full')
+                        ).classes('w-full').props(f'data-testid="port-mapping-container-{index}"')
                         container_input.set_value(mapping.get('container', ''))
                         container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                 
@@ -206,8 +210,8 @@ class NetworkTab(BaseTab):
                         self.app.ui_state.stage_2.network.port_mappings[data['index']][field] = e.value
                     self.app.ui_state.mark_modified()
                 
-                host_input.on('change', lambda e: update_mapping(e, 'host'))
-                container_input.on('change', lambda e: update_mapping(e, 'container'))
+                host_input.on_value_change(lambda e: update_mapping(e, 'host'))
+                container_input.on_value_change(lambda e: update_mapping(e, 'container'))
                 
                 # Initial validation and preview
                 self._validate_and_update_preview(row_data)

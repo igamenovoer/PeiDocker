@@ -46,19 +46,22 @@ class ProjectTab(BaseTab):
                     with self.create_form_group('Project Name *', 'Used for Docker image naming and project identification'):
                         ui.input(
                             placeholder='Enter project name'
-                        ).bind_value(project_ui, 'project_name').classes('w-full').on('input', self._update_image_previews)
+                        ).bind_value(project_ui, 'project_name').classes('w-full').on_value_change(self._update_image_previews) \
+                            .props('data-testid="project-name-input"')
                     
                     # Project description with data binding
                     with self.create_form_group('Description', 'Brief description of your project'):
                         ui.textarea(
                             placeholder='Enter project description'
-                        ).bind_value(project_ui, 'description').classes('w-full').props('rows=3')
+                        ).bind_value(project_ui, 'description').classes('w-full').props('rows=3') \
+                            .props('data-testid="project-description-textarea"')
                     
                     # Base Docker image with data binding
                     with self.create_form_group('Base Docker Image', 'Docker Hub image to use as the base for your container (e.g., ubuntu:22.04, alpine:latest)'):
                         ui.input(
                             placeholder='ubuntu:22.04'
-                        ).bind_value(project_ui, 'base_image').classes('w-full')
+                        ).bind_value(project_ui, 'base_image').classes('w-full') \
+                            .props('data-testid="base-image-input"')
                 
                 # Right Column - Generated Docker Images
                 with ui.column().classes('w-full'):
