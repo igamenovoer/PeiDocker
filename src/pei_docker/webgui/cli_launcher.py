@@ -92,8 +92,7 @@ from contextlib import closing
 from nicegui import ui, app
 
 # Import the main app and models
-from pei_docker.webgui.app import create_app, PeiDockerWebGUI
-from pei_docker.webgui.legacy_models import TabName, AppState
+from pei_docker.webgui.app import create_app, PeiDockerWebGUI, TabName, AppState
 
 
 def check_port_available(port: int) -> bool:
@@ -314,7 +313,7 @@ async def setup_initial_state(gui_app: PeiDockerWebGUI, project_dir: Optional[Pa
                 print(f"Loading existing project from: {project_dir}")
                 await gui_app.load_project(str(project_dir))
                 # Check if project loaded successfully by checking app state
-                if gui_app.data.app_state != AppState.ACTIVE:
+                if gui_app.app_state != AppState.ACTIVE:
                     print("Failed to load project")
                     return
             else:
@@ -330,12 +329,12 @@ async def setup_initial_state(gui_app: PeiDockerWebGUI, project_dir: Optional[Pa
                 # Load the newly created project
                 await gui_app.load_project(str(project_dir))
                 # Check if project loaded successfully by checking app state
-                if gui_app.data.app_state != AppState.ACTIVE:
+                if gui_app.app_state != AppState.ACTIVE:
                     print("Failed to load created project")
                     return
             
             # Jump to specified page if project loaded successfully
-            if gui_app.data.app_state == AppState.ACTIVE and jump_to_page:
+            if gui_app.app_state == AppState.ACTIVE and jump_to_page:
                 if jump_to_page == "home":
                     # Special case - we're already at home after load
                     pass
@@ -407,9 +406,11 @@ def start_command(args: argparse.Namespace) -> None:
             sys.exit(1)
     
     # Create and configure the app
+    gui_app = PeiDockerWebGUI()
+    
     @ui.page('/')
     async def index() -> None:
-        gui_app = create_app()
+        gui_app.setup_ui()
         
         # Setup initial state if project directory or page specified
         if project_path or args.jump_to_page:

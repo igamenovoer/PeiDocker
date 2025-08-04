@@ -2,21 +2,14 @@
 Utilities package for PeiDocker Web GUI.
 
 This package contains utility modules including the bridge layer
-for converting between UI state and Pydantic models.
+for converting between UI state and configuration models.
 """
 
-# Import from existing utils.py (now legacy_utils.py) for backward compatibility
-from pei_docker.webgui.legacy_utils import ProjectManager, FileOperations, ValidationManager, RealTimeValidator
-
-# Import new utilities
-from pei_docker.webgui.utils.bridge import ConfigBridge
+# Import utilities
+from pei_docker.webgui.utils.utils import ProjectManager
+from pei_docker.webgui.utils.ui_state_bridge import UIStateBridge
 
 __all__ = [
-    # Old utilities
     'ProjectManager',
-    'FileOperations', 
-    'ValidationManager',
-    'RealTimeValidator',
-    # New utilities
-    'ConfigBridge'
+    'UIStateBridge'
 ]

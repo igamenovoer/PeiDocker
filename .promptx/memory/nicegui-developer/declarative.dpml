@@ -434,4 +434,40 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754329021476_iuvdy4zhy" time="2025/08/05 01:37">
+    <content>
+      PeiDocker WebGUI Refactoring - Legacy Code Separation (2025-08-04):
+    
+      COMPLETED REFACTORING:
+      - ✅ Created src/pei_docker/legacy_gui/ module for all legacy implementations
+      - ✅ Moved legacy files: app.py, legacy_models.py, legacy_utils.py, utils/bridge.py
+      - ✅ Moved legacy tabs: environment.py, network.py, ssh.py
+      - ✅ Renamed refactored files by removing &#x27;_refactored&#x27; suffix
+      - ✅ Updated all imports to remove legacy references
+      - ✅ Fixed cli_launcher.py to use refactored app imports
+    
+      ARCHITECTURE CHANGES:
+      - app.data → app.ui_state (UIStateBridge pattern)
+      - Manual state tracking → @binding.bindable_dataclass decorators
+      - FileOperations → UIStateBridge for save/load operations
+      - ProjectManager kept in new utils/utils.py
+    
+      REMAINING UNREFACTORED TABS:
+      - project.py - Still uses app.data and legacy models
+      - storage.py - Still uses app.data and legacy models
+      - summary.py - Still uses app.data and legacy models
+    
+      TYPE SAFETY STATUS:
+      - Refactored code passes mypy --strict (except for unrefactored dependencies)
+      - Unrefactored tabs cause most type errors (app.data references)
+      - Missing type parameters for generic dict types need fixing
+    
+      KEY PATTERNS FOR REMAINING REFACTORING:
+      - Replace app.data with app.ui_state
+      - Use bind_value(), bind_visibility_from() for UI elements
+      - Implement proper two-way data binding
+      - Follow patterns from refactored tabs (environment, network, ssh)
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

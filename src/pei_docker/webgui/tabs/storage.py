@@ -1,31 +1,26 @@
 """
-Storage tab for PeiDocker Web GUI.
+Storage tab for PeiDocker Web GUI - Refactored with data binding.
 
 This tab handles Storage (Stage-2's dynamic system) and Mounts (general volume mounts) 
-for both stages.
+for both stages using NiceGUI's data binding.
 """
 
 from typing import TYPE_CHECKING, Dict, List, Tuple, Optional, Any
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
+import uuid
 
 if TYPE_CHECKING:
     from pei_docker.webgui.app import PeiDockerWebGUI
 
 class StorageTab(BaseTab):
-    """Storage configuration tab."""
+    """Storage configuration tab with data binding."""
     
     def __init__(self, app: 'PeiDockerWebGUI'):
         super().__init__(app)
-        # Stage-2 Dynamic Storage (fixed entries)
-        self.storage_configs: Dict[str, Any] = {}  # Will hold app, data, workspace configs
-        
-        # Stage-1 and Stage-2 Mounts (dynamic entries)
+        # Containers for dynamic mount entries
         self.stage1_mounts_container: Optional[ui.column] = None
         self.stage2_mounts_container: Optional[ui.column] = None
-        self.stage1_mounts_data: List[Dict[str, Any]] = []
-        self.stage2_mounts_data: List[Dict[str, Any]] = []
-        self.mount_count: int = 0
     
     def render(self) -> ui.element:
         """Render the storage tab content."""
@@ -37,7 +32,7 @@ class StorageTab(BaseTab):
                 'Configure Storage (Stage-2\'s dynamic system) and Mounts (general volume mounts) for both stages'
             )
             
-            # Key concepts info - combined
+            # Key concepts info
             with ui.card().classes('w-full p-4 mb-6 bg-blue-50 border-blue-200'):
                 with ui.row().classes('items-start gap-2'):
                     ui.icon('info', color='blue').classes('mt-1')
@@ -53,10 +48,13 @@ These 3 storage entries are always present and default to 'image' type even when
                 ui.label('Stage-2\'s unique dynamic storage for predefined directories with smart linking: /soft/xxx → /hard/volume/xxx OR /hard/image/xxx') \
                     .classes('text-gray-600 mb-4')
                 
-                # Create the three fixed storage entries
-                self._create_storage_entry('app', '📱 App Storage (/soft/app)', 'Application files and dependencies - Fixed destination')
-                self._create_storage_entry('data', '💾 Data Storage (/soft/data)', 'User data and persistent files - Fixed destination')
-                self._create_storage_entry('workspace', '🛠️ Workspace Storage (/soft/workspace)', 'Development and workspace files - Fixed destination')
+                # Get storage UI state for stage-2
+                storage_ui = self.app.ui_state.stage_2.storage
+                
+                # Create the three fixed storage entries with data binding
+                self._create_storage_entry(storage_ui, 'app', '📱 App Storage (/soft/app)', 'Application files and dependencies - Fixed destination')
+                self._create_storage_entry(storage_ui, 'data', '💾 Data Storage (/soft/data)', 'User data and persistent files - Fixed destination')
+                self._create_storage_entry(storage_ui, 'workspace', '🛠️ Workspace Storage (/soft/workspace)', 'Development and workspace files - Fixed destination')
             
             # Stage-1 Mounts
             with self.create_card('🗂️ Stage-1 Mounts (General Volume Mounts)'):
@@ -65,6 +63,7 @@ These 3 storage entries are always present and default to 'image' type even when
                     # Mounts container
                     with ui.column().classes('w-full mb-4') as stage1_container:
                         self.stage1_mounts_container = stage1_container
+                        self._render_mounts('stage1')
                     
                     # Add mount button
                     ui.button('➕ Add mount', on_click=lambda: self._add_mount('stage1')) \
@@ -77,6 +76,7 @@ These 3 storage entries are always present and default to 'image' type even when
                     # Mounts container
                     with ui.column().classes('w-full mb-4') as stage2_container:
                         self.stage2_mounts_container = stage2_container
+                        self._render_mounts('stage2')
                     
                     # Add mount button
                     ui.button('➕ Add mount', on_click=lambda: self._add_mount('stage2')) \
@@ -84,11 +84,27 @@ These 3 storage entries are always present and default to 'image' type even when
         
         return container
     
-    def _create_storage_entry(self, storage_type: str, title: str, description: str) -> None:
-        """Create a storage entry for the Stage-2 dynamic storage system."""
+    def _create_storage_entry(self, storage_ui: Any, storage_type: str, title: str, description: str) -> None:
+        """Create a storage entry for the Stage-2 dynamic storage system with data binding."""
         with ui.card().classes('w-full p-4 mb-4'):
             ui.label(title).classes('text-lg font-semibold mb-2')
             ui.label(description).classes('text-gray-600 mb-4')
+            
+            # Storage type descriptions
+            type_descriptions = {
+                'auto-volume': 'Docker creates a volume automatically',
+                'manual-volume': 'Use an existing Docker volume',
+                'host': 'Bind mount from host filesystem',
+                'image': 'Store directly in the container image (not persistent)'
+            }
+            
+            # Create reactive description label
+            desc_label = ui.label('').classes('text-sm text-gray-600 italic')
+            
+            # Update description based on selected type
+            def update_description() -> None:
+                current_type = getattr(storage_ui, f'{storage_type}_storage_type')
+                desc_label.set_text(f"ℹ️ {type_descriptions.get(current_type, '')}")
             
             # Three-column grid for storage configuration
             with ui.row().classes('gap-4 w-full'):
@@ -98,387 +114,331 @@ These 3 storage entries are always present and default to 'image' type even when
                     type_select = ui.select(
                         options={
                             'auto-volume': 'auto-volume',
-                            'manual-volume': 'manual-volume', 
+                            'manual-volume': 'manual-volume',
                             'host': 'host',
-                            'image': 'image (default)'
+                            'image': 'image'
                         },
-                        value='image'
-                    ).classes('w-full')
+                        on_change=lambda: update_description()
+                    ).bind_value(storage_ui, f'{storage_type}_storage_type').classes('w-full')
                 
-                # Host Path
-                with ui.column().classes('w-full'):
-                    ui.label('Host path:').classes('font-medium text-gray-700 mb-1')
-                    host_path_input = ui.input(
-                        placeholder=f'/host/path/to/{storage_type}'
-                    ).classes('w-full').props('disabled')
-                    ui.label('Only editable when type is \'host\'').classes('text-xs text-gray-500 mt-1')
-                
-                # Volume Name
+                # Volume Name (conditional)
                 with ui.column().classes('w-full'):
                     ui.label('Volume name:').classes('font-medium text-gray-700 mb-1')
-                    volume_name_input = ui.input(
-                        placeholder=f'my-{storage_type}-volume'
-                    ).classes('w-full').props('disabled')
-                    ui.label('Only editable when type is \'manual-volume\'').classes('text-xs text-gray-500 mt-1')
+                    volume_input = ui.input(
+                        placeholder=f'Volume name for {storage_type}'
+                    ).bind_value(storage_ui, f'{storage_type}_volume_name').classes('w-full')
+                    # Show only when manual-volume is selected
+                    volume_input.bind_visibility_from(
+                        storage_ui, 
+                        f'{storage_type}_storage_type',
+                        lambda t: t == 'manual-volume'
+                    )
+                
+                # Host Path (conditional)
+                with ui.column().classes('w-full'):
+                    ui.label('Host path:').classes('font-medium text-gray-700 mb-1')
+                    host_input = ui.input(
+                        placeholder=f'Host path for {storage_type}'
+                    ).bind_value(storage_ui, f'{storage_type}_host_path').classes('w-full')
+                    # Show only when host is selected
+                    host_input.bind_visibility_from(
+                        storage_ui,
+                        f'{storage_type}_storage_type', 
+                        lambda t: t == 'host'
+                    )
             
-            # Store configuration references
-            self.storage_configs[storage_type] = {
-                'type_select': type_select,
-                'host_path_input': host_path_input,
-                'volume_name_input': volume_name_input
-            }
-            
-            # Add event handler
-            type_select.on('change', lambda e, st=storage_type: self._on_storage_type_change(e, st))
+            # Display description below the form
+            with ui.row().classes('mt-3'):
+                desc_label
+                
+            # Initial update
+            update_description()
     
-    def _on_storage_type_change(self, e: Any, storage_type: str) -> None:
-        """Handle storage type changes."""
-        storage_config = self.storage_configs[storage_type]
-        selected_type = e.value
-        
-        # Update field states based on storage type
-        if selected_type == 'host':
-            storage_config['host_path_input'].props(remove='disabled')
-            storage_config['volume_name_input'].props('disabled')
-        elif selected_type == 'manual-volume':
-            storage_config['host_path_input'].props('disabled')
-            storage_config['volume_name_input'].props(remove='disabled')
-        else:  # auto-volume or image
-            storage_config['host_path_input'].props('disabled')
-            storage_config['volume_name_input'].props('disabled')
-        
-        # Update configuration
-        if 'storage' not in self.app.data.config.stage_2:
-            self.app.data.config.stage_2['storage'] = {}
-        if storage_type not in self.app.data.config.stage_2['storage']:
-            self.app.data.config.stage_2['storage'][storage_type] = {}
-        
-        storage_entry = self.app.data.config.stage_2['storage'][storage_type]
-        storage_entry['type'] = selected_type
-        
-        # Update related fields
-        if selected_type == 'host':
-            host_path = storage_config['host_path_input'].value.strip()
-            if host_path:
-                storage_entry['host_path'] = host_path
-        elif selected_type == 'manual-volume':
-            volume_name = storage_config['volume_name_input'].value.strip()
-            if volume_name:
-                storage_entry['volume_name'] = volume_name
-        
-        self.mark_modified()
-    
-    def _add_mount(self, stage: str) -> None:
-        """Add a new mount configuration."""
-        mount_id = f'mount-{stage}-{self.mount_count}'
+    def _render_mounts(self, stage: str) -> None:
+        """Render mount entries for a specific stage."""
+        # Get the appropriate storage UI and container
+        storage_ui = self.app.ui_state.stage_1.storage if stage == 'stage1' else self.app.ui_state.stage_2.storage
         container = self.stage1_mounts_container if stage == 'stage1' else self.stage2_mounts_container
         
-        if container is None:
-            return
+        if container:
+            container.clear()
             
+            # Render existing mounts
+            for i, mount in enumerate(storage_ui.mounts):
+                self._create_mount_row(storage_ui, i, mount, container)
+    
+    def _create_mount_row(self, storage_ui: Any, index: int, mount: Dict[str, str], container: ui.column) -> None:
+        """Create a single mount row with data binding."""
+        mount_id = mount.get('id', str(uuid.uuid4()))
+        
         with container:
-            with ui.card().classes('w-full p-4 mb-4') as mount_card:
-                # Mount header
-                with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'📁 {stage.upper()} Mount {self.mount_count + 1}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda: self._remove_mount(mount_card, mount_id, stage)) \
-                        .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
+            with ui.card().classes('w-full p-4 mb-3'):
+                # Mount header with remove button
+                with ui.row().classes('items-center justify-between mb-3'):
+                    ui.label(f'Mount {index + 1}').classes('font-semibold')
+                    ui.button(icon='delete', on_click=lambda: self._remove_mount(storage_ui, index)) \
+                        .classes('text-red-600 hover:text-red-700').props('flat')
                 
-                # Mount configuration - First row
-                with ui.row().classes('gap-4 mb-4'):
-                    # Container Path
-                    with ui.column().classes('w-full'):
-                        ui.label('Container path:').classes('font-medium text-gray-700 mb-1')
-                        container_path_input = ui.input(
-                            placeholder='/container/path'
-                        ).classes('w-full')
-                    
+                # Mount configuration
+                with ui.grid(columns=3).classes('gap-4 w-full'):
                     # Mount Type
-                    with ui.column().classes('w-full'):
-                        ui.label('Mount type:').classes('font-medium text-gray-700 mb-1')
-                        mount_type_select = ui.select(
+                    with ui.column():
+                        ui.label('Type:').classes('font-medium text-gray-700 mb-1')
+                        ui.select(
                             options={
-                                'auto-volume': 'auto-volume',
-                                'manual-volume': 'manual-volume',
-                                'host': 'host'
+                                'volume': 'Docker Volume',
+                                'host': 'Host Path',
+                                'tmpfs': 'Temporary Filesystem'
                             },
-                            value='auto-volume'
-                        ).classes('w-full')
-                
-                # Mount configuration - Second row
-                with ui.row().classes('gap-4'):
-                    # Host Path
-                    with ui.column().classes('w-full'):
-                        ui.label('Host path:').classes('font-medium text-gray-700 mb-1')
-                        host_path_input = ui.input(
-                            placeholder='/host/path'
-                        ).classes('w-full').props('disabled')
-                        ui.label('Only editable when type is \'host\'').classes('text-xs text-gray-500 mt-1')
+                            value=mount.get('type', 'volume')
+                        ).classes('w-full').on('value-change', 
+                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'type', e.value))
                     
-                    # Volume Name
-                    with ui.column().classes('w-full'):
-                        ui.label('Volume name:').classes('font-medium text-gray-700 mb-1')
-                        volume_name_input = ui.input(
-                            placeholder='my-volume'
-                        ).classes('w-full').props('disabled')
-                        ui.label('Only editable when type is \'manual-volume\'').classes('text-xs text-gray-500 mt-1')
-                
-                # Store mount data
-                mount_data = {
-                    'id': mount_id,
-                    'stage': stage,
-                    'container_path_input': container_path_input,
-                    'mount_type_select': mount_type_select,
-                    'host_path_input': host_path_input,
-                    'volume_name_input': volume_name_input,
-                    'card': mount_card
-                }
-                
-                # Add event handlers
-                mount_type_select.on('change', lambda e, data=mount_data: self._on_mount_type_change(e, data))
-                container_path_input.on('input', lambda e, data=mount_data: self._on_mount_change(data))
-                host_path_input.on('input', lambda e, data=mount_data: self._on_mount_change(data))
-                volume_name_input.on('input', lambda e, data=mount_data: self._on_mount_change(data))
-                
-                # Add to appropriate list
-                if stage == 'stage1':
-                    self.stage1_mounts_data.append(mount_data)
-                else:
-                    self.stage2_mounts_data.append(mount_data)
-        
-        self.mount_count += 1
-        self.mark_modified()
+                    # Container Path
+                    with ui.column():
+                        ui.label('Container path:').classes('font-medium text-gray-700 mb-1')
+                        ui.input(
+                            placeholder='/path/in/container',
+                            value=mount.get('container_path', '')
+                        ).classes('w-full').on('value-change',
+                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'container_path', e.value))
+                    
+                    # Source (volume name or host path)
+                    with ui.column():
+                        mount_type = mount.get('type', 'volume')
+                        label = 'Volume name:' if mount_type == 'volume' else 'Host path:' if mount_type == 'host' else 'Size:'
+                        placeholder = 'volume-name' if mount_type == 'volume' else '/host/path' if mount_type == 'host' else '100M'
+                        
+                        ui.label(label).classes('font-medium text-gray-700 mb-1')
+                        source_input = ui.input(
+                            placeholder=placeholder,
+                            value=mount.get('source', '')
+                        ).classes('w-full').on('value-change',
+                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'source', e.value))
+                        
+                        # Hide source input for tmpfs type
+                        if mount_type == 'tmpfs':
+                            source_input.visible = True  # For tmpfs, this becomes size
+                        else:
+                            source_input.visible = True
     
-    def _remove_mount(self, mount_card: Any, mount_id: str, stage: str) -> None:
-        """Remove a mount configuration."""
-        mount_card.delete()
+    def _add_mount(self, stage: str) -> None:
+        """Add a new mount entry."""
+        storage_ui = self.app.ui_state.stage_1.storage if stage == 'stage1' else self.app.ui_state.stage_2.storage
         
-        # Remove from appropriate data list
-        if stage == 'stage1':
-            self.stage1_mounts_data = [
-                data for data in self.stage1_mounts_data 
-                if data['id'] != mount_id
-            ]
-        else:
-            self.stage2_mounts_data = [
-                data for data in self.stage2_mounts_data 
-                if data['id'] != mount_id
-            ]
+        # Add new mount
+        new_mount = {
+            'id': str(uuid.uuid4()),
+            'type': 'volume',
+            'container_path': '',
+            'source': ''
+        }
+        storage_ui.mounts.append(new_mount)
         
-        self._update_mounts_config()
-        self.mark_modified()
+        # Mark as modified
+        self.app.ui_state.mark_modified()
+        
+        # Re-render mounts
+        self._render_mounts(stage)
     
-    def _on_mount_type_change(self, e: Any, mount_data: Dict[str, Any]) -> None:
-        """Handle mount type changes."""
-        selected_type = e.value
-        
-        # Update field states based on mount type
-        if selected_type == 'host':
-            mount_data['host_path_input'].props(remove='disabled')
-            mount_data['volume_name_input'].props('disabled')
-        elif selected_type == 'manual-volume':
-            mount_data['host_path_input'].props('disabled')
-            mount_data['volume_name_input'].props(remove='disabled')
-        else:  # auto-volume
-            mount_data['host_path_input'].props('disabled')
-            mount_data['volume_name_input'].props('disabled')
-        
-        self._update_mounts_config()
-        self.mark_modified()
-    
-    def _on_mount_change(self, mount_data: Dict[str, Any]) -> None:
-        """Handle mount configuration changes."""
-        self._update_mounts_config()
-        self.mark_modified()
-    
-    def _update_mounts_config(self) -> None:
-        """Update the mounts configuration."""
-        # Update Stage-1 mounts
-        stage1_mounts = []
-        for mount_data in self.stage1_mounts_data:
-            container_path = mount_data['container_path_input'].value.strip()
-            mount_type = mount_data['mount_type_select'].value
-            host_path = mount_data['host_path_input'].value.strip()
-            volume_name = mount_data['volume_name_input'].value.strip()
+    def _remove_mount(self, storage_ui: Any, index: int) -> None:
+        """Remove a mount entry."""
+        if 0 <= index < len(storage_ui.mounts):
+            storage_ui.mounts.pop(index)
+            self.app.ui_state.mark_modified()
             
-            if container_path:  # Only add if container path is specified
-                mount_entry = {
-                    'container_path': container_path,
-                    'type': mount_type
-                }
-                
-                if mount_type == 'host' and host_path:
-                    mount_entry['host_path'] = host_path
-                elif mount_type == 'manual-volume' and volume_name:
-                    mount_entry['volume_name'] = volume_name
-                
-                stage1_mounts.append(mount_entry)
-        
-        # Update Stage-2 mounts
-        stage2_mounts = []
-        for mount_data in self.stage2_mounts_data:
-            container_path = mount_data['container_path_input'].value.strip()
-            mount_type = mount_data['mount_type_select'].value
-            host_path = mount_data['host_path_input'].value.strip()
-            volume_name = mount_data['volume_name_input'].value.strip()
-            
-            if container_path:  # Only add if container path is specified
-                mount_entry = {
-                    'container_path': container_path,
-                    'type': mount_type
-                }
-                
-                if mount_type == 'host' and host_path:
-                    mount_entry['host_path'] = host_path
-                elif mount_type == 'manual-volume' and volume_name:
-                    mount_entry['volume_name'] = volume_name
-                
-                stage2_mounts.append(mount_entry)
-        
-        # Update configuration
-        self.app.data.config.stage_1['mounts'] = stage1_mounts
-        self.app.data.config.stage_2['mounts'] = stage2_mounts
+            # Re-render mounts
+            stage = 'stage1' if storage_ui == self.app.ui_state.stage_1.storage else 'stage2'
+            self._render_mounts(stage)
     
-    def validate(self) -> tuple[bool, list[str]]:
+    def _update_mount_field(self, storage_ui: Any, index: int, field: str, value: str) -> None:
+        """Update a specific field in a mount entry."""
+        if 0 <= index < len(storage_ui.mounts):
+            storage_ui.mounts[index][field] = value
+            self.app.ui_state.mark_modified()
+            
+            # If type changed, re-render to update labels
+            if field == 'type':
+                stage = 'stage1' if storage_ui == self.app.ui_state.stage_1.storage else 'stage2'
+                self._render_mounts(stage)
+    
+    def validate(self) -> Tuple[bool, List[str]]:
         """Validate storage configuration."""
         errors = []
         
-        # Validate storage configurations
-        for storage_type, config in self.storage_configs.items():
-            selected_type = config['type_select'].value
-            
-            if selected_type == 'host':
-                host_path = config['host_path_input'].value.strip()
-                if not host_path:
-                    errors.append(f"{storage_type.title()} storage: Host path is required when type is 'host'")
-                elif not host_path.startswith('/'):
-                    errors.append(f"{storage_type.title()} storage: Host path must be an absolute path")
-            
-            elif selected_type == 'manual-volume':
-                volume_name = config['volume_name_input'].value.strip()
-                if not volume_name:
-                    errors.append(f"{storage_type.title()} storage: Volume name is required when type is 'manual-volume'")
+        # Validate Stage-2 dynamic storage
+        storage_ui = self.app.ui_state.stage_2.storage
         
-        # Validate mounts
-        for stage, mounts_data in [('Stage-1', self.stage1_mounts_data), ('Stage-2', self.stage2_mounts_data)]:
-            container_paths = set()
+        for storage_type in ['app', 'data', 'workspace']:
+            type_value = getattr(storage_ui, f'{storage_type}_storage_type')
             
-            for i, mount_data in enumerate(mounts_data):
-                container_path = mount_data['container_path_input'].value.strip()
-                mount_type = mount_data['mount_type_select'].value
-                host_path = mount_data['host_path_input'].value.strip()
-                volume_name = mount_data['volume_name_input'].value.strip()
+            if type_value == 'manual-volume':
+                volume_name = getattr(storage_ui, f'{storage_type}_volume_name')
+                if not volume_name:
+                    errors.append(f"❌ {storage_type.title()} storage: Volume name is required for manual-volume type")
+            
+            elif type_value == 'host':
+                host_path = getattr(storage_ui, f'{storage_type}_host_path')
+                if not host_path:
+                    errors.append(f"❌ {storage_type.title()} storage: Host path is required for host type")
+                elif not host_path.startswith('/'):
+                    errors.append(f"❌ {storage_type.title()} storage: Host path must be absolute (start with /)")
+        
+        # Validate mounts for both stages
+        for stage_name, stage_ui in [('Stage-1', self.app.ui_state.stage_1), ('Stage-2', self.app.ui_state.stage_2)]:
+            for i, mount in enumerate(stage_ui.storage.mounts):
+                mount_num = i + 1
                 
-                if not container_path:
-                    errors.append(f"{stage} mount {i+1}: Container path is required")
-                    continue
+                # Container path is required
+                if not mount.get('container_path'):
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: Container path is required")
+                elif not mount['container_path'].startswith('/'):
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: Container path must be absolute")
                 
-                if not container_path.startswith('/'):
-                    errors.append(f"{stage} mount {i+1}: Container path must be an absolute path")
+                # Source validation based on type
+                mount_type = mount.get('type', 'volume')
+                source = mount.get('source', '')
                 
-                # Check for duplicate container paths
-                if container_path in container_paths:
-                    errors.append(f"{stage} mount {i+1}: Duplicate container path '{container_path}'")
-                else:
-                    container_paths.add(container_path)
+                if mount_type in ['volume', 'host'] and not source:
+                    source_type = 'Volume name' if mount_type == 'volume' else 'Host path'
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: {source_type} is required")
                 
-                if mount_type == 'host':
-                    if not host_path:
-                        errors.append(f"{stage} mount {i+1}: Host path is required when type is 'host'")
-                    elif not host_path.startswith('/'):
-                        errors.append(f"{stage} mount {i+1}: Host path must be an absolute path")
-                
-                elif mount_type == 'manual-volume':
-                    if not volume_name:
-                        errors.append(f"{stage} mount {i+1}: Volume name is required when type is 'manual-volume'")
+                if mount_type == 'host' and source and not source.startswith('/'):
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: Host path must be absolute")
         
         return len(errors) == 0, errors
     
-    def get_config_data(self) -> dict:
-        """Get storage configuration data."""
-        return {
-            'stage_1': {
-                'mounts': self.app.data.config.stage_1.get('mounts', [])
-            },
-            'stage_2': {
-                'storage': self.app.data.config.stage_2.get('storage', {}),
-                'mounts': self.app.data.config.stage_2.get('mounts', [])
-            }
-        }
-    
-    def set_config_data(self, data: dict) -> None:
-        """Set storage configuration data."""
-        stage_1_config = data.get('stage_1', {})
-        stage_2_config = data.get('stage_2', {})
+    def get_config_data(self) -> Dict[str, Any]:
+        """Get configuration data for this tab."""
+        # Stage-2 dynamic storage
+        storage_ui = self.app.ui_state.stage_2.storage
+        stage2_storage = {}
         
-        # Set storage configuration
-        storage_config = stage_2_config.get('storage', {})
         for storage_type in ['app', 'data', 'workspace']:
-            if storage_type in storage_config and storage_type in self.storage_configs:
-                storage_entry = storage_config[storage_type]
-                config = self.storage_configs[storage_type]
+            type_value = getattr(storage_ui, f'{storage_type}_storage_type')
+            config = {'type': type_value}
+            
+            if type_value == 'manual-volume':
+                config['volume_name'] = getattr(storage_ui, f'{storage_type}_volume_name')
+            elif type_value == 'host':
+                config['host_path'] = getattr(storage_ui, f'{storage_type}_host_path')
+            
+            stage2_storage[storage_type] = config
+        
+        # Mounts for both stages
+        stage1_mounts = []
+        stage2_mounts = []
+        
+        for mount in self.app.ui_state.stage_1.storage.mounts:
+            if mount.get('container_path'):
+                mount_config = {
+                    'type': mount.get('type', 'volume'),
+                    'dst_path': mount['container_path']
+                }
                 
-                # Set storage type
-                config['type_select'].set_value(storage_entry.get('type', 'image'))
+                if mount['type'] == 'volume':
+                    mount_config['volume_name'] = mount.get('source', '')
+                elif mount['type'] == 'host':
+                    mount_config['host_path'] = mount.get('source', '')
+                elif mount['type'] == 'tmpfs':
+                    mount_config['size'] = mount.get('source', '100M')
                 
-                # Set host path if available
-                if 'host_path' in storage_entry:
-                    config['host_path_input'].set_value(storage_entry['host_path'])
+                stage1_mounts.append(mount_config)
+        
+        for mount in self.app.ui_state.stage_2.storage.mounts:
+            if mount.get('container_path'):
+                mount_config = {
+                    'type': mount.get('type', 'volume'),
+                    'dst_path': mount['container_path']
+                }
                 
-                # Set volume name if available
-                if 'volume_name' in storage_entry:
-                    config['volume_name_input'].set_value(storage_entry['volume_name'])
+                if mount['type'] == 'volume':
+                    mount_config['volume_name'] = mount.get('source', '')
+                elif mount['type'] == 'host':
+                    mount_config['host_path'] = mount.get('source', '')
+                elif mount['type'] == 'tmpfs':
+                    mount_config['size'] = mount.get('source', '100M')
                 
-                # Trigger field updates
-                self._on_storage_type_change(
-                    type('Event', (), {'value': storage_entry.get('type', 'image')})(),
-                    storage_type
-                )
+                stage2_mounts.append(mount_config)
         
-        # Set mounts
-        # Clear existing mounts
-        if self.stage1_mounts_container:
-            self.stage1_mounts_container.clear()
-            self.stage1_mounts_data = []
+        config = {
+            'stage_1': {},
+            'stage_2': {'storage': stage2_storage}
+        }
         
-        if self.stage2_mounts_container:
-            self.stage2_mounts_container.clear()
-            self.stage2_mounts_data = []
+        if stage1_mounts:
+            config['stage_1']['mounts'] = stage1_mounts
         
-        self.mount_count = 0
+        if stage2_mounts:
+            config['stage_2']['mounts'] = stage2_mounts
         
-        # Add Stage-1 mounts
-        stage1_mounts = stage_1_config.get('mounts', [])
-        for mount in stage1_mounts:
-            self._add_mount_from_config('stage1', mount)
-        
-        # Add Stage-2 mounts
-        stage2_mounts = stage_2_config.get('mounts', [])
-        for mount in stage2_mounts:
-            self._add_mount_from_config('stage2', mount)
+        return config
     
-    def _add_mount_from_config(self, stage: str, mount_config: dict) -> None:
-        """Add a mount from configuration data."""
-        # Add the mount first
-        self._add_mount(stage)
+    def set_config_data(self, data: Dict[str, Any]) -> None:
+        """Set configuration data for this tab."""
+        # Stage-2 dynamic storage
+        stage2_storage = data.get('stage_2', {}).get('storage', {})
+        storage_ui = self.app.ui_state.stage_2.storage
         
-        # Get the last added mount data
-        mounts_data = self.stage1_mounts_data if stage == 'stage1' else self.stage2_mounts_data
-        if mounts_data:
-            mount_data = mounts_data[-1]
+        for storage_type in ['app', 'data', 'workspace']:
+            if storage_type in stage2_storage:
+                config = stage2_storage[storage_type]
+                setattr(storage_ui, f'{storage_type}_storage_type', config.get('type', 'auto-volume'))
+                
+                if config.get('type') == 'manual-volume' and 'volume_name' in config:
+                    setattr(storage_ui, f'{storage_type}_volume_name', config['volume_name'])
+                elif config.get('type') == 'host' and 'host_path' in config:
+                    setattr(storage_ui, f'{storage_type}_host_path', config['host_path'])
+        
+        # Clear existing mounts
+        self.app.ui_state.stage_1.storage.mounts.clear()
+        self.app.ui_state.stage_2.storage.mounts.clear()
+        
+        # Load Stage-1 mounts
+        stage1_mounts = data.get('stage_1', {}).get('mounts', [])
+        for mount in stage1_mounts:
+            mount_data = {
+                'id': str(uuid.uuid4()),
+                'type': mount.get('type', 'volume'),
+                'container_path': mount.get('dst_path', ''),
+                'source': ''
+            }
             
-            # Set the configuration values
-            mount_data['container_path_input'].set_value(mount_config.get('container_path', ''))
-            mount_data['mount_type_select'].set_value(mount_config.get('type', 'auto-volume'))
+            if mount['type'] == 'volume':
+                mount_data['source'] = mount.get('volume_name', '')
+            elif mount['type'] == 'host':
+                mount_data['source'] = mount.get('host_path', '')
+            elif mount['type'] == 'tmpfs':
+                mount_data['source'] = mount.get('size', '100M')
             
-            if 'host_path' in mount_config:
-                mount_data['host_path_input'].set_value(mount_config['host_path'])
+            self.app.ui_state.stage_1.storage.mounts.append(mount_data)
+        
+        # Load Stage-2 mounts
+        stage2_mounts = data.get('stage_2', {}).get('mounts', [])
+        for mount in stage2_mounts:
+            mount_data = {
+                'id': str(uuid.uuid4()),
+                'type': mount.get('type', 'volume'),
+                'container_path': mount.get('dst_path', ''),
+                'source': ''
+            }
             
-            if 'volume_name' in mount_config:
-                mount_data['volume_name_input'].set_value(mount_config['volume_name'])
+            if mount['type'] == 'volume':
+                mount_data['source'] = mount.get('volume_name', '')
+            elif mount['type'] == 'host':
+                mount_data['source'] = mount.get('host_path', '')
+            elif mount['type'] == 'tmpfs':
+                mount_data['source'] = mount.get('size', '100M')
             
-            # Trigger field updates
-            self._on_mount_type_change(
-                type('Event', (), {'value': mount_config.get('type', 'auto-volume')})(),
-                mount_data
-            )
+            self.app.ui_state.stage_2.storage.mounts.append(mount_data)
+        
+        # Re-render mounts
+        self._render_mounts('stage1')
+        self._render_mounts('stage2')
+    
+    def create_card(self, title: Optional[str] = None) -> ui.element:
+        """Create a consistent card container."""
+        with ui.card().classes('w-full p-6 mb-6') as card:
+            if title:
+                ui.label(title).classes('text-xl font-bold text-gray-800 mb-4')
+        return card

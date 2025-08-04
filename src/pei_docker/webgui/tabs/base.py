@@ -42,10 +42,8 @@ class BaseTab(ABC):
     
     def mark_modified(self) -> None:
         """Mark this tab as modified."""
-        from pei_docker.webgui.legacy_models import TabName
-        # This would need to be implemented based on which tab this is
-        # For now, just mark the general configuration as modified
-        self.app.data.mark_modified()
+        # Mark the UI state as modified
+        self.app.ui_state.mark_modified()
     
     def create_section_header(self, title: str, description: Optional[str] = None) -> ui.element:
         """Create a consistent section header."""

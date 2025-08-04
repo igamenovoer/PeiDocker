@@ -12,31 +12,52 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any, Literal
 from datetime import datetime
 import copy
+from enum import Enum
 
 from nicegui import ui, app
 from nicegui.events import ValueChangeEventArguments
 
-from pei_docker.webgui.legacy_models import AppData, AppState, TabName, ProjectState
-from pei_docker.webgui.legacy_utils import ProjectManager, FileOperations, ValidationManager, RealTimeValidator
+from pei_docker.webgui.models.ui_state import AppUIState
+from pei_docker.webgui.utils.ui_state_bridge import UIStateBridge
+from pei_docker.webgui.utils.utils import ProjectManager
 from pei_docker.webgui.tabs import (
     ProjectTab, SSHTab, NetworkTab, EnvironmentTab, 
     StorageTab, ScriptsTab, SummaryTab
 )
 
+# Keep TabName enum for navigation
+class TabName(Enum):
+    """Tab names for navigation."""
+    PROJECT = "project"
+    SSH = "ssh"
+    NETWORK = "network"
+    ENVIRONMENT = "environment"
+    STORAGE = "storage"
+    SCRIPTS = "scripts"
+    SUMMARY = "summary"
+
+# App states
+class AppState(Enum):
+    """Application state enumeration."""
+    INITIAL = "initial"  # No active project
+    ACTIVE = "active"    # Project loaded and active
+
 class PeiDockerWebGUI:
     """Main PeiDocker Web GUI Application using NiceGUI."""
     
     def __init__(self) -> None:
-        self.data = AppData()
-        self.project_manager = ProjectManager()
-        self.file_ops = FileOperations()
+        # Use new UI state instead of legacy AppData
+        self.ui_state = AppUIState()
+        self.bridge = UIStateBridge()
         
-        # Validation system
-        self.validation_manager = ValidationManager()
-        self.real_time_validator = RealTimeValidator(self.data, self.validation_manager)
+        # Keep utility classes for now
+        self.project_manager = ProjectManager()
+        
+        # App state management
+        self.app_state: AppState = AppState.INITIAL
         
         # Tab implementations
-        self.tabs = {
+        self.tabs: Dict[TabName, Any] = {
             TabName.PROJECT: ProjectTab(self),
             TabName.SSH: SSHTab(self),
             TabName.NETWORK: NetworkTab(self),
@@ -70,8 +91,9 @@ class PeiDockerWebGUI:
         # Initialize UI state
         self.update_ui_state()
         
-        # Render initial active tab since we start in ACTIVE state
-        self.render_active_tab()
+        # Render initial active tab if in active state
+        if self.app_state == AppState.ACTIVE:
+            self.render_active_tab()
     
     def create_header(self) -> None:
         """Create the header with logo and action buttons."""
@@ -83,20 +105,19 @@ class PeiDockerWebGUI:
             
             # Action buttons (only shown in active state)
             with ui.row().classes('gap-2') as actions:
-                ui.button('💾 Save', on_click=self.save_configuration) \
-                    .classes('bg-green-600 hover:bg-green-700') \
-                    .bind_visibility_from(self.data, 'app_state', 
-                                        lambda state: state == AppState.ACTIVE)
+                save_btn = ui.button('💾 Save', on_click=lambda: asyncio.create_task(self.save_configuration())) \
+                    .classes('bg-green-600 hover:bg-green-700')
                 
-                ui.button('⚙️ Configure', on_click=self.configure_project) \
-                    .classes('bg-yellow-600 hover:bg-yellow-700') \
-                    .bind_visibility_from(self.data, 'app_state', 
-                                        lambda state: state == AppState.ACTIVE)
+                configure_btn = ui.button('⚙️ Configure', on_click=lambda: asyncio.create_task(self.configure_project())) \
+                    .classes('bg-yellow-600 hover:bg-yellow-700')
                 
-                ui.button('📦 Download', on_click=self.download_project) \
-                    .classes('bg-blue-500 hover:bg-blue-600') \
-                    .bind_visibility_from(self.data, 'app_state', 
-                                        lambda state: state == AppState.ACTIVE)
+                download_btn = ui.button('📦 Download', on_click=lambda: asyncio.create_task(self.download_project())) \
+                    .classes('bg-blue-500 hover:bg-blue-600')
+                
+                # Bind visibility manually since we track app_state separately
+                self._bind_to_active_state(save_btn)
+                self._bind_to_active_state(configure_btn)
+                self._bind_to_active_state(download_btn)
     
     def create_project_info_bar(self) -> None:
         """Create the project info bar (shown only in active state)."""
@@ -104,29 +125,28 @@ class PeiDockerWebGUI:
             self.project_info_bar = info_bar
             
             ui.label('📁 Project:').classes('font-medium')
-            ui.label().bind_text_from(self.data.project, 'directory', 
-                                    lambda d: str(d) if d else '')
+            self.project_dir_label = ui.label('')
+            self._update_project_dir_label()
             
             # Status indicator
             with ui.row().classes('ml-auto items-center gap-2'):
-                ui.icon('circle', size='sm').classes('text-orange-500') \
-                    .bind_visibility_from(self.data.config, 'modified')
-                ui.label('⚠️ Unsaved changes') \
-                    .bind_visibility_from(self.data.config, 'modified')
+                # Modified indicator
+                self.modified_icon = ui.icon('circle', size='sm').classes('text-orange-500')
+                self.modified_label = ui.label('⚠️ Unsaved changes')
                 
-                ui.icon('circle', size='sm').classes('text-green-500') \
-                    .bind_visibility_from(self.data.config, 'modified', lambda m: not m)
-                ui.label().bind_text_from(self.data.config, 'last_saved',
-                                        lambda t: f'✅ Last saved: {t}' if t else '✅ All saved') \
-                    .bind_visibility_from(self.data.config, 'modified', lambda m: not m)
+                # Saved indicator
+                self.saved_icon = ui.icon('circle', size='sm').classes('text-green-500')
+                self.saved_label = ui.label('✅ All saved')
+                
+                # Update visibility based on modified state
+                self._update_modified_indicators()
                 
                 # Change Project button
                 ui.button('🔄 Change Project', on_click=self.change_project) \
                     .classes('bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1 ml-2')
             
             # Bind visibility to active state
-            info_bar.bind_visibility_from(self.data, 'app_state', 
-                                        lambda state: state == AppState.ACTIVE)
+            self._bind_to_active_state(info_bar)
     
     def create_tab_navigation(self) -> None:
         """Create the tab navigation bar."""
@@ -134,6 +154,7 @@ class PeiDockerWebGUI:
             self.tab_nav_container = nav
             
             # Tab buttons
+            self.tab_buttons: Dict[TabName, ui.button] = {}
             for tab_name in TabName:
                 icon_map = {
                     TabName.PROJECT: '🏗️',
@@ -149,13 +170,13 @@ class PeiDockerWebGUI:
                                  on_click=lambda t=tab_name: self.switch_tab(t)) \
                     .classes('px-4 py-2 border-b-2 border-transparent hover:border-blue-500')
                 
-                # Note: bind_classes_from not available in this NiceGUI version
-                # TODO: Implement class binding when NiceGUI API supports it
-                # For now, styling will be static
+                self.tab_buttons[tab_name] = button
+            
+            # Update active tab styling
+            self._update_tab_styling()
             
             # Bind visibility to active state
-            nav.bind_visibility_from(self.data, 'app_state', 
-                                   lambda state: state == AppState.ACTIVE)
+            self._bind_to_active_state(nav)
     
     def create_main_content(self) -> None:
         """Create the main content area."""
@@ -164,6 +185,7 @@ class PeiDockerWebGUI:
             
             # Initial state content (project selection)
             with ui.column().classes('max-w-md mx-auto mt-20') as initial_content:
+                self.initial_content = initial_content
                 ui.label('🐳 Welcome to PeiDocker Web GUI').classes('text-2xl font-bold text-center mb-8')
                 
                 # Project directory input
@@ -193,412 +215,403 @@ class PeiDockerWebGUI:
                                  on_click=lambda: self.load_project(project_dir_input.value)) \
                             .classes('flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2')
                 
-                # Bind visibility to initial state
-                initial_content.bind_visibility_from(self.data, 'app_state', 
-                                                   lambda state: state == AppState.INITIAL)
+                # Show only in initial state
+                self._update_initial_content_visibility()
             
             # Active project content (tabs)
             with ui.column().classes('w-full') as active_content:
-                # Tab content container - will be populated by render_active_tab()
+                self.active_content = active_content
                 self.active_tab_container = ui.column().classes('w-full')
                 
-                # Bind visibility to active state
-                active_content.bind_visibility_from(self.data, 'app_state', 
-                                                  lambda state: state == AppState.ACTIVE)
+                # Hide in initial state
+                self._update_active_content_visibility()
     
     def create_status_bar(self) -> None:
         """Create the status bar."""
-        with ui.row().classes('w-full bg-gray-800 text-white p-2 items-center justify-between') as status:
-            self.status_bar_container = status
+        with ui.row().classes('w-full bg-gray-200 p-2 items-center text-sm') as status_bar:
+            self.status_bar_container = status_bar
             
-            # Left side - status info
+            # Stage selector
             with ui.row().classes('items-center gap-2'):
-                ui.icon('info', size='sm')
-                ui.label('Ready').bind_text_from(self.data, 'app_state',
-                                               lambda state: '🟢 Project Active' if state == AppState.ACTIVE else '⚪ No Project')
+                ui.label('🏗️ Stage:').classes('font-medium')
+                
+                # Bind to ui_state.active_stage
+                stage_select = ui.select(
+                    options={1: 'Stage-1', 2: 'Stage-2'},
+                    value=self.ui_state.active_stage,
+                    on_change=lambda e: self._on_stage_change(e)
+                ).classes('w-32')
             
-            # Right side - version
-            ui.label('🐳 PeiDocker v0.8.0').classes('text-sm text-gray-300')
+            # Error indicator
+            with ui.row().classes('ml-auto items-center gap-2'):
+                self.error_icon = ui.icon('error', size='sm').classes('text-red-500')
+                self.error_label = ui.label('')
+                self._update_error_indicators()
+            
+            # Bind visibility to active state
+            self._bind_to_active_state(status_bar)
     
-    def update_ui_state(self) -> None:
-        """Update UI components based on current state."""
-        # This will be called reactively through NiceGUI's binding system
-        pass
+    # Helper methods for state management
+    def _bind_to_active_state(self, element: ui.element) -> None:
+        """Bind element visibility to active app state."""
+        element.visible = self.app_state == AppState.ACTIVE
     
-    def _safe_notify(self, message: str, type: Literal['positive', 'negative', 'warning', 'info'] = 'info', timeout: int = 3000) -> None:
-        """Safely notify user, handling cases where UI context might not be available."""
-        try:
-            ui.notify(message, type=type, timeout=timeout)
-        except RuntimeError:
-            # No UI context available, just print to console
-            print(f"[{type.upper()}] {message}")
+    def _update_project_dir_label(self) -> None:
+        """Update project directory label."""
+        if hasattr(self, 'project_dir_label'):
+            self.project_dir_label.text = self.ui_state.project.project_directory
     
-    def _load_config_into_tabs(self) -> None:
-        """Load configuration data into all tabs."""
-        try:
-            # Get configuration data from the loaded config
-            config_data = {
-                'stage_1': dict(self.data.config.stage_1),
-                'stage_2': dict(self.data.config.stage_2)
-            }
+    def _update_modified_indicators(self) -> None:
+        """Update modified/saved indicators."""
+        if hasattr(self, 'modified_icon'):
+            self.modified_icon.visible = self.ui_state.modified
+            self.modified_label.visible = self.ui_state.modified
+            self.saved_icon.visible = not self.ui_state.modified
+            self.saved_label.visible = not self.ui_state.modified
             
-            # Load configuration into each tab
-            for tab_name, tab in self.tabs.items():
-                try:
-                    tab.set_config_data(config_data)
-                except Exception as e:
-                    self._safe_notify(f'⚠️ Warning: Failed to load config for {tab_name.value} tab: {str(e)}', 
-                                     type='warning', timeout=3000)
-                    
-        except Exception as e:
-            self._safe_notify(f'❌ Error loading configuration into tabs: {str(e)}', type='negative')
+            if self.ui_state.last_saved:
+                self.saved_label.text = f'✅ Last saved: {self.ui_state.last_saved}'
+            else:
+                self.saved_label.text = '✅ All saved'
     
-    def run_real_time_validation(self) -> None:
-        """Run real-time validation and update UI indicators."""
-        try:
-            # Get validation errors from the real-time validator
-            validation_errors = self.real_time_validator.validate_all_tabs()
-            
-            # Clear existing validation errors
-            self.data.clear_validation_errors()
-            
-            # Update validation errors in data model
-            for tab_name, errors in validation_errors.items():
-                tab_enum = TabName(tab_name)
-                for error in errors:
-                    self.data.add_validation_error(tab_enum, error)
-            
-            # Update tab button styling based on validation state
-            self._update_tab_validation_indicators()
-            
-            # If summary tab is active, refresh it
-            if self.data.tabs.active_tab == TabName.SUMMARY:
+    def _update_error_indicators(self) -> None:
+        """Update error indicators."""
+        if hasattr(self, 'error_icon'):
+            self.error_icon.visible = self.ui_state.has_errors
+            self.error_label.visible = self.ui_state.has_errors
+            if self.ui_state.has_errors:
+                self.error_label.text = f'❌ {self.ui_state.error_count} errors'
+    
+    def _refresh_validation(self) -> None:
+        """Refresh validation state and update error indicators."""
+        # Validate the entire UI state
+        is_valid, errors = self.bridge.validate_ui_state(self.ui_state)
+        
+        # Update validation state
+        self.ui_state.has_errors = not is_valid
+        self.ui_state.error_count = len(errors)
+        
+        # Update error indicators
+        self._update_error_indicators()
+        
+        # If on summary tab, refresh it to show validation
+        if self.ui_state.active_tab == TabName.SUMMARY.value:
+            if TabName.SUMMARY in self.tabs:
                 summary_tab = self.tabs[TabName.SUMMARY]
                 if hasattr(summary_tab, 'refresh_summary'):
                     summary_tab.refresh_summary()
-                    
-        except Exception as e:
-            print(f"Error in real-time validation: {e}")
     
-    def _update_tab_validation_indicators(self) -> None:
-        """Update tab button indicators based on validation state."""
-        # This would update the visual indicators on tab buttons
-        # The actual implementation depends on the UI binding system
-        pass
+    def _update_tab_styling(self) -> None:
+        """Update tab button styling based on active tab."""
+        if hasattr(self, 'tab_buttons'):
+            active_tab = TabName(self.ui_state.active_tab)
+            for tab_name, button in self.tab_buttons.items():
+                if tab_name == active_tab:
+                    button.classes('px-4 py-2 border-b-2 border-blue-500 text-blue-600')
+                else:
+                    button.classes('px-4 py-2 border-b-2 border-transparent hover:border-blue-500')
     
-    def _collect_config_from_tabs(self) -> None:
-        """Collect configuration data from all tabs and update self.data.config."""
-        try:
-            # Collect data from each tab and merge into config
-            for tab_name, tab in self.tabs.items():
-                try:
-                    tab_config = tab.get_config_data()
-                    
-                    # Merge stage_1 data
-                    if 'stage_1' in tab_config:
-                        for key, value in tab_config['stage_1'].items():
-                            # Special handling for _inline_scripts from Scripts tab
-                            if key == '_inline_scripts' and tab_name == TabName.SCRIPTS:
-                                self.data.config.stage_1[key] = copy.deepcopy(value)
-                            # Skip other internal metadata keys
-                            elif key.startswith('_'):
-                                continue
-                            elif value is not None:  # Only update if value is not None
-                                # Deep copy to avoid references
-                                self.data.config.stage_1[key] = copy.deepcopy(value)
-                    
-                    # Merge stage_2 data
-                    if 'stage_2' in tab_config:
-                        for key, value in tab_config['stage_2'].items():
-                            # Special handling for _inline_scripts from Scripts tab
-                            if key == '_inline_scripts' and tab_name == TabName.SCRIPTS:
-                                self.data.config.stage_2[key] = copy.deepcopy(value)
-                            # Skip other internal metadata keys
-                            elif key.startswith('_'):
-                                continue
-                            elif value is not None:  # Only update if value is not None
-                                # Deep copy to avoid references
-                                self.data.config.stage_2[key] = copy.deepcopy(value)
-                                
-                except Exception as e:
-                    print(f"Error collecting config from {tab_name.value} tab: {e}")
-                    
-        except Exception as e:
-            print(f"Error in _collect_config_from_tabs: {e}")
+    def _update_initial_content_visibility(self) -> None:
+        """Update initial content visibility."""
+        if hasattr(self, 'initial_content'):
+            self.initial_content.visible = self.app_state == AppState.INITIAL
     
-    # Event handlers
-    def switch_tab(self, tab: TabName) -> None:
-        """Switch to a different tab."""
-        # If there are unsaved changes, show a warning dialog
-        if self.data.config.modified:
-            # Create dialog for unsaved changes warning
-            with ui.dialog() as dialog, ui.card():
-                ui.label('⚠️ Unsaved Changes').classes('text-lg font-bold mb-2')
-                ui.label('You have unsaved changes. Switch tabs without saving?').classes('mb-4')
-                ui.label('Your changes will be lost if you do not save.').classes('text-sm text-red-600 mb-4')
-                
-                with ui.row().classes('gap-2'):
-                    ui.button('Cancel', on_click=dialog.close).classes('bg-gray-500 hover:bg-gray-600')
-                    ui.button('🔄 Switch Anyway', 
-                             on_click=lambda: self._do_switch_tab(tab, dialog)) \
-                        .classes('bg-red-600 hover:bg-red-700')
-            dialog.open()
-        else:
-            # No unsaved changes, just switch
-            self._do_switch_tab_direct(tab)
+    def _update_active_content_visibility(self) -> None:
+        """Update active content visibility."""
+        if hasattr(self, 'active_content'):
+            self.active_content.visible = self.app_state == AppState.ACTIVE
     
-    def _do_switch_tab(self, tab: TabName, dialog: ui.dialog) -> None:
-        """Handle tab switch after user confirms discarding changes."""
-        dialog.close()
-        
-        # Create async task to reload configuration and switch tabs
-        async def reload_and_switch() -> None:
-            try:
-                if self.data.project.directory:
-                    # Load the saved user_config.yml
-                    success = await self.file_ops.load_configuration(
-                        self.data.project.directory,
-                        self.data.config
-                    )
-                    if success:
-                        # Load configuration into all tabs
-                        self._load_config_into_tabs()
-                        
-                        # Now switch to the new tab
-                        self._do_switch_tab_direct(tab)
-                    else:
-                        ui.notify('⚠️ Could not reload saved configuration', type='warning')
-            except Exception as e:
-                ui.notify(f'❌ Error reloading configuration: {str(e)}', type='negative')
-        
-        # Schedule the async task
-        asyncio.create_task(reload_and_switch())
-    
-    def _do_switch_tab_direct(self, tab: TabName) -> None:
-        """Directly switch to a tab without any checks."""
-        self.data.tabs.active_tab = tab
+    def _on_stage_change(self, e: ValueChangeEventArguments) -> None:
+        """Handle stage selection change."""
+        self.ui_state.active_stage = e.value
         self.render_active_tab()
-    
-    def render_active_tab(self) -> None:
-        """Render the content of the currently active tab."""
-        # Clear current content and render active tab
-        if (self.data.app_state == AppState.ACTIVE and 
-            hasattr(self, 'active_tab_container') and 
-            self.active_tab_container is not None):
-            self.active_tab_container.clear()
-            
-            # Get the active tab implementation and render it
-            active_tab = self.tabs[self.data.tabs.active_tab]
-            
-            with self.active_tab_container:
-                # Center the tab content
-                with ui.row().classes('w-full justify-center'):
-                    # Render the tab content
-                    active_tab.render()
-            
-            # If this is the summary tab, refresh its data
-            if self.data.tabs.active_tab == TabName.SUMMARY:
-                if hasattr(active_tab, 'refresh_summary'):
-                    active_tab.refresh_summary()
-    
-    async def create_project(self, directory_path: str) -> None:
-        """Create a new project."""
-        if not directory_path.strip():
-            ui.notify('❌ Please enter a project directory path', type='negative')
-            return
-        
-        try:
-            project_dir = Path(directory_path).resolve()
-            success = await self.project_manager.create_project(project_dir)
-            
-            if success:
-                # Set project data
-                self.data.project.directory = project_dir
-                self.data.project.name = project_dir.name
-                self.data.app_state = AppState.ACTIVE
-                
-                # Initialize first tab
-                self.data.tabs.active_tab = TabName.PROJECT
-                self.render_active_tab()
-                
-                ui.notify(f'✅ Project created successfully at {project_dir}', type='positive')
-            else:
-                ui.notify('❌ Failed to create project', type='negative')
-                
-        except Exception as e:
-            ui.notify(f'❌ Error creating project: {str(e)}', type='negative')
-    
-    async def load_project(self, directory_path: str) -> None:
-        """Load an existing project."""
-        if not directory_path.strip():
-            self._safe_notify('❌ Please enter a project directory path', type='negative')
-            return
-        
-        try:
-            project_dir = Path(directory_path).resolve()
-            
-            if not project_dir.exists():
-                self._safe_notify('❌ Project directory does not exist', type='negative')
-                return
-            
-            # Check if this looks like a PeiDocker project
-            config_file = project_dir / 'user_config.yml'
-            if not config_file.exists():
-                self._safe_notify('⚠️ No user_config.yml found in directory. Not a PeiDocker project?', type='warning')
-                return
-            
-            # Load configuration
-            success = await self.file_ops.load_configuration(project_dir, self.data.config)
-            
-            if success:
-                # Set project data
-                self.data.project.directory = project_dir
-                self.data.project.name = project_dir.name
-                self.data.app_state = AppState.ACTIVE
-                
-                # Load configuration into tabs
-                self._load_config_into_tabs()
-                
-                # Initialize first tab
-                self.data.tabs.active_tab = TabName.PROJECT
-                self.render_active_tab()
-                
-                self._safe_notify(f'✅ Project loaded successfully from {project_dir}', type='positive')
-            else:
-                self._safe_notify('❌ Failed to load project configuration', type='negative')
-                
-        except Exception as e:
-            self._safe_notify(f'❌ Error loading project: {str(e)}', type='negative')
-    
-    def browse_directory(self) -> None:
-        """Open directory browser."""
-        ui.notify('🔄 Directory browser coming soon', type='info')
     
     def _generate_default_project_dir(self) -> str:
-        """Generate a default project directory path."""
-        temp_dir = Path(tempfile.gettempdir()) / f"peidocker-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        return str(temp_dir)
+        """Generate a default project directory with timestamp."""
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        temp_dir = tempfile.gettempdir()
+        return str(Path(temp_dir) / f"peidocker-{timestamp}")
     
-    def generate_temp_directory(self, input_field: ui.input) -> None:
-        """Generate a temporary directory path."""
-        temp_dir = self._generate_default_project_dir()
-        input_field.set_value(temp_dir)
-        ui.notify('🎲 Generated new temporary directory path', type='info', timeout=2000)
-    
-    def change_project(self) -> None:
-        """Switch to a different project (return to initial state)."""
-        if self.data.config.modified:
-            # Show confirmation dialog for unsaved changes
-            with ui.dialog() as dialog, ui.card():
-                ui.label('⚠️ Unsaved Changes').classes('text-lg font-bold mb-2')
-                ui.label('You have unsaved changes. Switch to a different project?').classes('mb-4')
-                ui.label('Any unsaved changes will be lost.').classes('text-sm text-red-600 mb-4')
-                
-                with ui.row().classes('gap-2'):
-                    ui.button('Cancel', on_click=dialog.close).classes('bg-gray-500 hover:bg-gray-600')
-                    ui.button('🔄 Switch Project', 
-                             on_click=lambda: self._do_switch_project(dialog)) \
-                        .classes('bg-red-600 hover:bg-red-700')
-            dialog.open()
-        else:
-            self._do_change_project()
-    
-    def _do_switch_project(self, dialog: ui.dialog) -> None:
-        """Close dialog and switch project."""
-        dialog.close()
-        self._do_change_project()
-    
-    def _do_change_project(self) -> None:
-        """Actually perform the project change."""
-        # Reset to initial state
-        self.data.app_state = AppState.INITIAL
-        self.data.project.directory = None
-        self.data.project.name = None
-        self.data.project.is_configured = False
+    # Navigation methods
+    def switch_tab(self, tab_name: TabName) -> None:
+        """Switch to a different tab."""
+        # Update active tab
+        self.ui_state.active_tab = tab_name.value
+        self._update_tab_styling()
         
-        # Clear configuration
-        self.data.config.modified = False
-        self.data.config.last_saved = None
-        
-        # Re-render the UI to show initial state
+        # Render the new tab
         self.render_active_tab()
         
-        ui.notify('✅ Switched to project selection', type='positive')
+        # Refresh validation state
+        self._refresh_validation()
+    
+    def render_active_tab(self) -> None:
+        """Render the active tab content."""
+        if self.active_tab_container:
+            self.active_tab_container.clear()
+            
+            active_tab = TabName(self.ui_state.active_tab)
+            if active_tab in self.tabs:
+                with self.active_tab_container:
+                    self.tabs[active_tab].render()
+            
+            # Refresh validation after rendering
+            self._refresh_validation()
+    
+    # Project management methods
+    async def create_project(self, project_dir: str) -> None:
+        """Create a new project."""
+        try:
+            # Create project directory
+            Path(project_dir).mkdir(parents=True, exist_ok=True)
+            
+            # Set up new UI state
+            self.ui_state = AppUIState()
+            self.ui_state.project.project_directory = project_dir
+            self.ui_state.project.project_name = Path(project_dir).name
+            
+            # Switch to active state
+            self.app_state = AppState.ACTIVE
+            self.update_ui_state()
+            
+            ui.notify(f'✅ Project created: {project_dir}', type='positive')
+            
+            # Render first tab
+            self.render_active_tab()
+            
+        except Exception as e:
+            ui.notify(f'❌ Failed to create project: {str(e)}', type='negative')
+    
+    async def load_project(self, project_dir: str) -> None:
+        """Load an existing project."""
+        try:
+            config_path = Path(project_dir) / 'user_config.yml'
+            
+            if config_path.exists():
+                # Load configuration into UI state
+                success, errors = self.bridge.load_from_yaml(str(config_path), self.ui_state)
+                
+                if success:
+                    self.ui_state.project.project_directory = project_dir
+                    self.ui_state.project.project_name = Path(project_dir).name
+                    
+                    # Switch to active state
+                    self.app_state = AppState.ACTIVE
+                    self.update_ui_state()
+                    
+                    ui.notify(f'✅ Project loaded: {project_dir}', type='positive')
+                    
+                    # Render first tab
+                    self.render_active_tab()
+                else:
+                    ui.notify(f'❌ Failed to load project: {", ".join(errors)}', type='negative')
+            else:
+                ui.notify(f'❌ No configuration found in: {project_dir}', type='negative')
+                
+        except Exception as e:
+            ui.notify(f'❌ Failed to load project: {str(e)}', type='negative')
     
     async def save_configuration(self) -> None:
         """Save the current configuration."""
-        if self.data.app_state != AppState.ACTIVE:
-            return
-        
         try:
-            if self.data.project.directory is None:
-                ui.notify('❌ No active project directory', type='negative')
+            # Get project directory
+            project_dir = self.ui_state.project.project_directory
+            if not project_dir:
+                ui.notify('Please set a project directory first', type='negative')
                 return
             
-            # Collect configuration data from all tabs before saving
-            self._collect_config_from_tabs()
+            # Ensure directory exists
+            project_path = Path(project_dir)
+            project_path.mkdir(parents=True, exist_ok=True)
             
-            success = await self.file_ops.save_configuration(
-                self.data.project.directory, 
-                self.data.config
-            )
+            # Save configuration using UIStateBridge
+            config_file = project_path / 'user_config.yml'
+            success, errors = self.bridge.save_to_yaml(self.ui_state, str(config_file))
             
             if success:
-                self.data.mark_saved()
-                ui.notify('✅ Configuration saved successfully', type='positive')
+                # Save inline scripts
+                await self._save_inline_scripts(project_path)
+                
+                # Mark as saved
+                self.ui_state.mark_saved()
+                self._update_modified_indicators()
+                ui.notify('Configuration saved successfully!', type='positive')
+                
+                # Refresh summary tab if it's active
+                if self.ui_state.active_tab == TabName.SUMMARY.value:
+                    self.render_active_tab()
             else:
-                ui.notify('❌ Failed to save configuration', type='negative')
+                error_msg = '\n'.join(errors) if errors else 'Unknown error'
+                ui.notify(f'Save failed: {error_msg}', type='negative', timeout=10000)
                 
         except Exception as e:
-            ui.notify(f'❌ Error saving configuration: {str(e)}', type='negative')
+            ui.notify(f'Error saving configuration: {str(e)}', type='negative', timeout=10000)
+    
+    async def _save_inline_scripts(self, project_path: Path) -> None:
+        """Save inline scripts from the Scripts tab to files."""
+        installation_dir = project_path / 'installation'
+        installation_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Process inline scripts for both stages
+        for stage_num, stage_ui in [(1, self.ui_state.stage_1), (2, self.ui_state.stage_2)]:
+            scripts_ui = stage_ui.scripts
+            
+            # Entry point inline scripts
+            entry_mode = getattr(scripts_ui, f'stage{stage_num}_entry_mode')
+            if entry_mode == 'inline':
+                entry_name = getattr(scripts_ui, f'stage{stage_num}_entry_inline_name')
+                entry_content = getattr(scripts_ui, f'stage{stage_num}_entry_inline_content')
+                
+                if entry_name and entry_content:
+                    script_path = installation_dir / entry_name
+                    script_path.parent.mkdir(parents=True, exist_ok=True)
+                    
+                    # Write script with proper shebang if missing
+                    with open(script_path, 'w') as f:
+                        if not entry_content.startswith('#!'):
+                            f.write('#!/bin/bash\n')
+                        f.write(entry_content)
+                    
+                    # Make executable
+                    script_path.chmod(0o755)
+            
+            # Lifecycle inline scripts
+            lifecycle_scripts = getattr(scripts_ui, f'stage{stage_num}_lifecycle_scripts', {})
+            for lifecycle_type, scripts in lifecycle_scripts.items():
+                for script in scripts:
+                    if script.get('type') == 'inline':
+                        script_name = script.get('name', '')
+                        script_content = script.get('content', '')
+                        
+                        if script_name and script_content:
+                            script_path = installation_dir / script_name
+                            script_path.parent.mkdir(parents=True, exist_ok=True)
+                            
+                            with open(script_path, 'w') as f:
+                                if not script_content.startswith('#!'):
+                                    f.write('#!/bin/bash\n')
+                                f.write(script_content)
+                            
+                            script_path.chmod(0o755)
     
     async def configure_project(self) -> None:
-        """Run pei-docker-cli configure on the project."""
-        if self.data.app_state != AppState.ACTIVE:
+        """Configure the project (run pei-docker-cli configure)."""
+        # First save the configuration
+        await self.save_configuration()
+        
+        # Get project directory
+        project_dir = self.ui_state.project.project_directory
+        if not project_dir:
+            ui.notify('No project directory set', type='negative')
             return
         
         try:
-            if self.data.project.directory is None:
-                ui.notify('❌ No active project directory', type='negative')
-                return
-            
-            success = await self.project_manager.configure_project(self.data.project.directory)
+            # Run pei-docker-cli configure
+            success = await self.project_manager.configure_project(Path(project_dir))
             
             if success:
-                self.data.project.is_configured = True
-                self.data.project.last_configure_success = True
-                ui.notify('✅ Project configured successfully', type='positive')
+                ui.notify('Project configured successfully!', type='positive')
             else:
-                self.data.project.last_configure_success = False
-                ui.notify('❌ Project configuration failed', type='negative')
+                ui.notify('Configuration failed. Check the console for details.', type='negative')
                 
         except Exception as e:
-            ui.notify(f'❌ Error configuring project: {str(e)}', type='negative')
+            ui.notify(f'Error configuring project: {str(e)}', type='negative', timeout=10000)
     
     async def download_project(self) -> None:
-        """Create and download project ZIP file."""
-        if self.data.app_state != AppState.ACTIVE:
+        """Download project as archive."""
+        import zipfile
+        
+        # Get project directory
+        project_dir = self.ui_state.project.project_directory
+        if not project_dir:
+            ui.notify('Please set a project directory first', type='negative')
+            return
+        
+        project_path = Path(project_dir)
+        if not project_path.exists():
+            ui.notify('Project directory does not exist', type='negative')
             return
         
         try:
-            if self.data.project.directory is None:
-                ui.notify('❌ No active project directory', type='negative')
-                return
+            # Create ZIP file
+            project_name = self.ui_state.project.project_name or 'peidocker-project'
+            temp_dir = Path(tempfile.gettempdir())
+            zip_path = temp_dir / f"{project_name}.zip"
             
-            zip_path = await self.file_ops.create_project_zip(self.data.project.directory)
-            if zip_path:
-                # Serve the ZIP file for download
-                url_path = app.add_static_file(local_file=str(zip_path), single_use=True)
-                ui.download(url_path, f'{self.data.project.name}.zip')
-                ui.notify('✅ Project download started', type='positive')
-            else:
-                ui.notify('❌ Failed to create project ZIP', type='negative')
-                
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in project_path.rglob('*'):
+                    if file_path.is_file():
+                        arcname = file_path.relative_to(project_path)
+                        zipf.write(file_path, arcname)
+            
+            # Serve the file for download
+            @app.get(f'/download/{project_name}.zip')
+            async def download():  # type: ignore
+                return ui.download(str(zip_path), f'{project_name}.zip')
+            
+            # Trigger download
+            ui.run_javascript(f'window.open("/download/{project_name}.zip", "_self")')
+            
+            ui.notify('Project exported successfully!', type='positive')
+            
         except Exception as e:
-            ui.notify(f'❌ Error creating download: {str(e)}', type='negative')
+            ui.notify(f'Error exporting project: {str(e)}', type='negative', timeout=10000)
+    
+    def change_project(self) -> None:
+        """Change to a different project."""
+        # Reset to initial state
+        self.app_state = AppState.INITIAL
+        self.ui_state = AppUIState()
+        self.update_ui_state()
+    
+    def browse_directory(self) -> None:
+        """Browse for directory (placeholder)."""
+        ui.notify('📂 Directory browser not yet implemented', type='warning')
+    
+    def generate_temp_directory(self, input_field: ui.input) -> None:
+        """Generate a new temporary directory."""
+        new_dir = self._generate_default_project_dir()
+        input_field.set_value(new_dir)
+    
+    def update_ui_state(self) -> None:
+        """Update all UI elements based on current state."""
+        # Update visibility of major sections
+        self._update_initial_content_visibility()
+        self._update_active_content_visibility()
+        
+        # Update all bound elements
+        if self.app_state == AppState.ACTIVE:
+            self._update_project_dir_label()
+            self._update_modified_indicators()
+            self._update_error_indicators()
+            self._update_tab_styling()
+            
+            # Update visibility of state-dependent elements
+            if self.header_container:
+                for child in self.header_container.default_slot.children:
+                    self._bind_to_active_state(child)
+            
+            if self.project_info_bar:
+                self._bind_to_active_state(self.project_info_bar)
+            
+            if self.tab_nav_container:
+                self._bind_to_active_state(self.tab_nav_container)
+            
+            if self.status_bar_container:
+                self._bind_to_active_state(self.status_bar_container)
 
-def create_app(host: str = '0.0.0.0', port: int = 8080, **kwargs: Any) -> PeiDockerWebGUI:
-    """Create and configure the PeiDocker Web GUI application."""
+
+# Main entry point
+def create_app() -> None:
+    """Create and setup the PeiDocker Web GUI application."""
     gui = PeiDockerWebGUI()
-    gui.setup_ui()
-    return gui
+    
+    @ui.page('/')
+    def index() -> None:
+        gui.setup_ui()
+    
+    ui.run(title='PeiDocker Web GUI', port=8080)
+
+
+if __name__ == '__main__':
+    create_app()

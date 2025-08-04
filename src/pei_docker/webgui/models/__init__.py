@@ -5,10 +5,6 @@ This package contains both UI state models (bindable dataclasses)
 and validation models (Pydantic) for the refactored data architecture.
 """
 
-# Import old models for backward compatibility during migration
-# These are from the legacy_models.py file in the parent webgui directory
-from pei_docker.webgui.legacy_models import AppData, AppState, TabName, ProjectState
-
 # Export bindable UI state models
 from pei_docker.webgui.models.ui_state import (
     AppUIState,
@@ -34,12 +30,6 @@ from pei_docker.webgui.models.config import (
 )
 
 __all__ = [
-    # Old models for compatibility
-    'AppData',
-    'AppState',
-    'TabName',
-    'ProjectState',
-    
     # UI State models
     'AppUIState',
     'StageUI',
