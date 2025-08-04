@@ -132,7 +132,7 @@ package "Tab Components" #LightCoral {
         #create_form_group(title: str, desc: str): ui.column
     }
     
-    class EnvironmentTab <<Legacy>> {
+    class EnvironmentTab {
         +app: PeiDockerWebGUI
         +device_type_select: ui.select
         +gpu_config_container: ui.column
@@ -189,10 +189,17 @@ note bottom of ConfigBridge
 end note
 
 note left of EnvironmentUI
-  @bindable_dataclass
+  @bindable_dataclass (Planned)
   - Two-way data binding
   - Automatic updates
   - No event handlers
+end note
+
+note right of EnvironmentTab
+  Current Implementation
+  - Manual event handling
+  - Direct UI updates
+  - Works with legacy models
 end note
 
 @enduml
