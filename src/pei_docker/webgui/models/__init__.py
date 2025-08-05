@@ -2,7 +2,7 @@
 Models package for PeiDocker Web GUI.
 
 This package contains both UI state models (bindable dataclasses)
-and validation models (Pydantic) for the refactored data architecture.
+and configuration adapters for the refactored data architecture.
 """
 
 # Export bindable UI state models
@@ -17,16 +17,16 @@ from pei_docker.webgui.models.ui_state import (
     ScriptsUI
 )
 
-# Export Pydantic validation models
-from pei_docker.webgui.models.config import (
-    AppConfig,
-    StageConfig,
-    ProjectConfig,
-    EnvironmentConfig,
-    NetworkConfig,
-    SSHConfig,
-    StorageConfig,
-    ScriptsConfig
+# Export adapter types that replace Pydantic models
+from pei_docker.webgui.models.config_adapter import (
+    AppConfigAdapter as AppConfig,
+    StageConfigAdapter as StageConfig,
+    ProjectConfigAdapter as ProjectConfig,
+    EnvironmentConfigAdapter as EnvironmentConfig,
+    NetworkConfigAdapter as NetworkConfig,
+    SSHConfigAdapter as SSHConfig,
+    StorageConfigAdapter as StorageConfig,
+    ScriptsConfigAdapter as ScriptsConfig
 )
 
 __all__ = [
@@ -40,7 +40,7 @@ __all__ = [
     'StorageUI',
     'ScriptsUI',
     
-    # Validation models
+    # Configuration models (now using adapters)
     'AppConfig',
     'StageConfig',
     'ProjectConfig',

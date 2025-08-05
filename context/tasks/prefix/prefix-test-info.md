@@ -2,6 +2,7 @@
 
 ## Useful Files
 
+- readme: `README.md`, this file contains the overview of the PeiDocker project, its purpose and basic usage.
 - terminology: `context/tasks/prefix/prefix-terminology.md`, this includes the terminology that is useful for many tasks.
 - GUI design document: `context/plans/web-gui/webgui-general-design.md`, this includes the design of the GUI, which is useful for understanding how to use the GUI and what features it supports.
 - GUI source code: `src/pei_docker/webgui/`, this is the source code of the GUI, which is useful for understanding how the GUI works and how to extend it.

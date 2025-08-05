@@ -1,0 +1,94 @@
+@startuml package_structure
+
+package "pei_docker.webgui" {
+    package "models" {
+        rectangle ui_state [
+            ui_state.py
+            ----
+            AppUIState
+            StageUI
+            EnvironmentUI
+            NetworkUI
+            SSHTabUI
+            StorageUI
+            ScriptsUI
+            ProjectUI
+        ]
+        
+        rectangle config [
+            config.py
+            ----
+            AppConfig
+            StageConfig
+            EnvironmentConfig
+            NetworkConfig
+            SSHConfig
+            StorageConfig
+            ScriptsConfig
+            ProjectConfig
+        ]
+    }
+    
+    package "utils" {
+        rectangle ui_state_bridge [
+            ui_state_bridge.py
+            ----
+            UIStateBridge
+        ]
+    }
+    
+    package "tabs" {
+        rectangle base [
+            base.py
+            ----
+            BaseTab
+        ]
+        
+        rectangle project_tab [
+            project.py
+            ----
+            ProjectTab
+        ]
+        
+        rectangle other_tabs [
+            ssh.py
+            network.py
+            environment.py
+            storage.py
+            scripts.py
+            summary.py
+        ]
+    }
+    
+    rectangle app [
+        app.py
+        ----
+        PeiDockerWebGUI
+        TabName
+        AppState
+    ]
+}
+
+package "pei_docker.templates" {
+    rectangle config_template [
+        config-template-full.yml
+        ----
+        Master template for
+        user_config.yml
+    ]
+}
+
+ui_state_bridge --> ui_state : transforms
+ui_state_bridge --> config : validates
+ui_state_bridge --> config_template : generates YAML
+
+app --> ui_state : manages
+app --> ui_state_bridge : uses
+app --> project_tab : contains
+app --> other_tabs : contains
+
+project_tab --|> base
+other_tabs --|> base
+
+base --> app : references
+@enduml

@@ -2,51 +2,63 @@
 Bridge layer for converting between UI state and configuration models.
 
 This module provides the UIStateBridge class that handles conversions between
-NiceGUI bindable dataclasses (UI state) and Pydantic validation models,
-as well as YAML serialization/deserialization.
+NiceGUI bindable dataclasses (UI state) and attrs-based configuration models
+through the adapter layer, as well as YAML serialization/deserialization.
 """
 
 from typing import Dict, List, Tuple, Any, Optional
 import yaml
 from pathlib import Path
 from datetime import datetime
-from pydantic import ValidationError
+import attrs
 
 from pei_docker.webgui.models.ui_state import (
     AppUIState, StageUI, EnvironmentUI, NetworkUI, SSHTabUI,
     StorageUI, ScriptsUI, ProjectUI
 )
-from pei_docker.webgui.models.config import (
-    AppConfig, StageConfig, EnvironmentConfig, NetworkConfig,
-    SSHConfig, StorageConfig, ScriptsConfig, ProjectConfig
+from pei_docker.webgui.models.config_adapter import (
+    create_attrs_config_from_dict,
+    create_app_config_adapter,
+    AppConfigAdapter,
+    ProjectConfigAdapter
+)
+from pei_docker.user_config import (
+    UserConfig as AttrsUserConfig,
+    StageConfig as AttrsStageConfig,
+    ImageConfig as AttrsImageConfig,
+    SSHConfig as AttrsSSHConfig,
+    SSHUserConfig as AttrsSSHUserConfig,
+    ProxyConfig as AttrsProxyConfig,
+    AptConfig as AttrsAptConfig,
+    DeviceConfig as AttrsDeviceConfig,
+    CustomScriptConfig as AttrsCustomScriptConfig,
+    StorageOption as AttrsStorageOption,
+    StorageTypes,
+    env_dict_to_str,
+    port_mapping_dict_to_str,
 )
 
 
 class UIStateBridge:
-    """Converts between UI state models and validated config models."""
+    """Converts between UI state models and attrs configuration models."""
     
     def validate_ui_state(self, ui_state: AppUIState) -> Tuple[bool, List[str]]:
         """Validate current UI state without modifying it."""
         errors = []
         
         try:
-            # Validate project configuration
-            self._ui_project_to_pydantic(ui_state.project)
+            # Convert UI state to attrs config for validation
+            attrs_config = self._ui_to_attrs_config(ui_state)
             
-            # Validate stage configurations
-            self._ui_stage_to_pydantic(ui_state.stage_1)
-            self._ui_stage_to_pydantic(ui_state.stage_2)
-            
+            # attrs validation happens during object construction
+            # If we get here, validation passed
             return True, []
             
-        except ValidationError as e:
-            for error in e.errors():
-                field = " → ".join(str(loc) for loc in error['loc'])
-                errors.append(f"{field}: {error['msg']}")
-            
+        except (TypeError, ValueError, attrs.exceptions.NotAnAttrsClassError) as e:
+            errors.append(f"Validation error: {str(e)}")
             return False, errors
         except Exception as e:
-            errors.append(f"Validation error: {str(e)}")
+            errors.append(f"Unexpected error: {str(e)}")
             return False, errors
     
     def save_to_yaml(self, ui_state: AppUIState, file_path: str) -> Tuple[bool, List[str]]:
@@ -103,132 +115,303 @@ class UIStateBridge:
             errors.append(f"Load failed: {str(e)}")
             return False, errors
     
-    def ui_to_config(self, ui_state: AppUIState) -> AppConfig:
-        """Convert UI state to validated Pydantic config."""
-        return AppConfig(
-            project=self._ui_project_to_pydantic(ui_state.project),
-            stage_1=self._ui_stage_to_pydantic(ui_state.stage_1),
-            stage_2=self._ui_stage_to_pydantic(ui_state.stage_2)
-        )
+    def ui_to_config(self, ui_state: AppUIState) -> AppConfigAdapter:
+        """Convert UI state to attrs-based config through adapter."""
+        attrs_config = self._ui_to_attrs_config(ui_state)
+        project_info = self._extract_project_info(ui_state.project)
+        return create_app_config_adapter(attrs_config, project_info)
     
     # Private conversion methods
     
-    def _ui_project_to_pydantic(self, ui_project: ProjectUI) -> ProjectConfig:
-        """Convert UI project state to Pydantic model."""
-        # Use project_name from directory if not set
-        project_name = ui_project.project_name
-        if not project_name and ui_project.project_directory:
-            project_name = Path(ui_project.project_directory).name
+    def _ui_to_attrs_config(self, ui_state: AppUIState) -> AttrsUserConfig:
+        """Convert UI state to attrs UserConfig."""
+        stage_1 = self._ui_stage_to_attrs(ui_state.stage_1, ui_state.project, 1)
+        stage_2 = self._ui_stage_to_attrs(ui_state.stage_2, ui_state.project, 2)
         
-        return ProjectConfig(
-            project_name=project_name or "untitled",
-            project_directory=ui_project.project_directory or "",
-            description=ui_project.description,
-            base_image=ui_project.base_image,
-            image_output_name=ui_project.image_output_name,
-            template=ui_project.template
+        return AttrsUserConfig(
+            stage_1=stage_1,
+            stage_2=stage_2
         )
     
-    def _ui_environment_to_pydantic(self, ui_env: EnvironmentUI) -> EnvironmentConfig:
-        """Convert UI environment state to Pydantic model."""
-        return EnvironmentConfig(
-            gpu_enabled=ui_env.gpu_enabled,
-            gpu_count=ui_env.gpu_count,
-            cuda_version=ui_env.cuda_version,
-            env_vars=dict(ui_env.env_vars),
-            device_type=ui_env.device_type,
-            gpu_memory_limit=ui_env.gpu_memory_limit
-        )
-    
-    def _ui_network_to_pydantic(self, ui_net: NetworkUI) -> NetworkConfig:
-        """Convert UI network state to Pydantic model."""
-        return NetworkConfig(
-            proxy_enabled=ui_net.proxy_enabled,
-            http_proxy=ui_net.http_proxy,
-            https_proxy=ui_net.https_proxy,
-            no_proxy=ui_net.no_proxy,
-            apt_mirror=ui_net.apt_mirror,
-            port_mappings=list(ui_net.port_mappings)
-        )
-    
-    def _ui_ssh_to_pydantic(self, ui_ssh: SSHTabUI) -> SSHConfig:
-        """Convert UI SSH state to Pydantic model."""
-        return SSHConfig(
-            enabled=ui_ssh.enabled,
-            port=int(ui_ssh.port) if ui_ssh.port.isdigit() else 22,
-            host_port=int(ui_ssh.host_port) if ui_ssh.host_port.isdigit() else 2222,
-            users=list(ui_ssh.users)
-        )
-    
-    def _ui_storage_to_pydantic(self, ui_storage: StorageUI) -> StorageConfig:
-        """Convert UI storage state to Pydantic model."""
-        return StorageConfig(
-            app_storage_type=ui_storage.app_storage_type,
-            app_volume_name=ui_storage.app_volume_name,
-            app_host_path=ui_storage.app_host_path,
-            data_storage_type=ui_storage.data_storage_type,
-            data_volume_name=ui_storage.data_volume_name,
-            data_host_path=ui_storage.data_host_path,
-            workspace_storage_type=ui_storage.workspace_storage_type,
-            workspace_volume_name=ui_storage.workspace_volume_name,
-            workspace_host_path=ui_storage.workspace_host_path,
-            volumes=list(ui_storage.volumes),
-            mounts=list(ui_storage.mounts)
-        )
-    
-    def _ui_scripts_to_pydantic(self, ui_scripts: ScriptsUI, stage_num: int) -> ScriptsConfig:
-        """Convert UI scripts state to Pydantic model."""
-        config = ScriptsConfig()
-        
-        # Map entry modes from UI to config format
+    def _ui_stage_to_attrs(self, ui_stage: StageUI, ui_project: ProjectUI, stage_num: int) -> Optional[AttrsStageConfig]:
+        """Convert UI stage to attrs StageConfig."""
+        # Build image config
+        image = None
         if stage_num == 1:
-            entry_mode = ui_scripts.stage1_entry_mode
-            if entry_mode == "file":
-                config.stage1_entry_mode = "custom"
-                config.stage1_entry_command = ui_scripts.stage1_entry_file_path
-            elif entry_mode == "inline":
-                config.stage1_entry_mode = "custom"
-                # For inline scripts, we'll need to handle this specially in YAML generation
-                config.stage1_entry_command = f"_inline_{ui_scripts.stage1_entry_inline_name}"
+            image = AttrsImageConfig(
+                base=ui_project.base_image,
+                output=ui_project.image_output_name or ui_project.project_name or "pei-image"
+            )
         else:
-            entry_mode = ui_scripts.stage2_entry_mode
-            if entry_mode == "file":
-                config.stage2_entry_mode = "custom"
-                config.stage2_entry_command = ui_scripts.stage2_entry_file_path
-            elif entry_mode == "inline":
-                config.stage2_entry_mode = "custom"
-                config.stage2_entry_command = f"_inline_{ui_scripts.stage2_entry_inline_name}"
+            # Stage 2 only needs output name
+            output_name = ui_project.image_output_name or ui_project.project_name or "pei-image"
+            image = AttrsImageConfig(
+                output=f"{output_name}:stage-2"
+            )
         
-        # Extract lifecycle scripts from stored metadata
+        # Build SSH config (stage 1 only)
+        ssh = None
+        if stage_num == 1 and ui_stage.ssh.enabled:
+            users = {}
+            for user_data in ui_stage.ssh.users:
+                username = user_data.get('name', '')
+                if username:
+                    user_config = AttrsSSHUserConfig(
+                        password=user_data.get('password'),
+                        uid=user_data.get('uid'),
+                        pubkey_text=user_data.get('ssh_keys', [None])[0] if user_data.get('ssh_keys') else None
+                    )
+                    users[username] = user_config
+            
+            ssh = AttrsSSHConfig(
+                enable=ui_stage.ssh.enabled,
+                port=int(ui_stage.ssh.port) if ui_stage.ssh.port.isdigit() else 22,
+                host_port=int(ui_stage.ssh.host_port) if ui_stage.ssh.host_port.isdigit() else 2222,
+                users=users
+            )
+        
+        # Build proxy config
+        proxy = None
+        if ui_stage.network.proxy_enabled and ui_stage.network.http_proxy:
+            # Extract address and port from proxy URL
+            proxy_url = ui_stage.network.http_proxy
+            if '://' in proxy_url:
+                scheme, rest = proxy_url.split('://', 1)
+                use_https = scheme == 'https'
+            else:
+                rest = proxy_url
+                use_https = False
+            
+            if ':' in rest:
+                address, port_str = rest.rsplit(':', 1)
+                try:
+                    port = int(port_str)
+                except ValueError:
+                    port = 8080
+            else:
+                address = rest
+                port = 8080
+            
+            proxy = AttrsProxyConfig(
+                address=address,
+                port=port,
+                enable_globally=True,
+                remove_after_build=False,
+                use_https=use_https
+            )
+        
+        # Build APT config (stage 1 only)
+        apt = None
+        if stage_num == 1 and ui_stage.network.apt_mirror:
+            apt = AttrsAptConfig(
+                repo_source=ui_stage.network.apt_mirror,
+                keep_repo_after_build=True,
+                use_proxy=proxy is not None,
+                keep_proxy_after_build=False
+            )
+        
+        # Build device config
+        device = None
+        if ui_stage.environment.device_type != 'cpu':
+            device = AttrsDeviceConfig(type=ui_stage.environment.device_type)
+        
+        # Convert environment variables
+        environment = ui_stage.environment.env_vars if ui_stage.environment.env_vars else None
+        
+        # Convert port mappings
+        ports = None
+        if ui_stage.network.port_mappings:
+            ports = [
+                f"{m['host']}:{m['container']}" 
+                for m in ui_stage.network.port_mappings
+            ]
+        
+        # Build custom scripts config
+        custom = self._build_custom_scripts(ui_stage.scripts, stage_num)
+        
+        # Build storage config (stage 2 only)
+        storage = None
+        if stage_num == 2:
+            storage = self._build_storage_config(ui_stage.storage)
+        
+        # Build mount config
+        mount = self._build_mount_config(ui_stage.storage)
+        
+        return AttrsStageConfig(
+            image=image,
+            ssh=ssh,
+            proxy=proxy,
+            apt=apt,
+            environment=environment,
+            ports=ports,
+            device=device,
+            custom=custom,
+            storage=storage,
+            mount=mount
+        )
+    
+    def _build_custom_scripts(self, ui_scripts: ScriptsUI, stage_num: int) -> Optional[AttrsCustomScriptConfig]:
+        """Build custom scripts configuration from UI state."""
+        on_entry = []
+        
+        # Handle entry point
+        if stage_num == 1:
+            if ui_scripts.stage1_entry_mode == "file" and ui_scripts.stage1_entry_file_path:
+                on_entry.append(ui_scripts.stage1_entry_file_path)
+            elif ui_scripts.stage1_entry_mode == "inline" and ui_scripts.stage1_entry_inline_name:
+                # For inline scripts, we'll handle this in YAML generation
+                on_entry.append(f"_inline_{ui_scripts.stage1_entry_inline_name}")
+        else:
+            if ui_scripts.stage2_entry_mode == "file" and ui_scripts.stage2_entry_file_path:
+                on_entry.append(ui_scripts.stage2_entry_file_path)
+            elif ui_scripts.stage2_entry_mode == "inline" and ui_scripts.stage2_entry_inline_name:
+                on_entry.append(f"_inline_{ui_scripts.stage2_entry_inline_name}")
+        
+        # Extract lifecycle scripts
         lifecycle_scripts = ui_scripts.stage1_lifecycle_scripts if stage_num == 1 else ui_scripts.stage2_lifecycle_scripts
         
-        for script_type in ['pre_build', 'post_build', 'first_run', 'every_run', 'user_login']:
-            if script_type in lifecycle_scripts:
-                script_list = []
-                for script_data in lifecycle_scripts[script_type]:
-                    if isinstance(script_data, dict) and 'path' in script_data:
-                        script_list.append(script_data['path'])
-                    elif isinstance(script_data, str):
-                        script_list.append(script_data)
-                setattr(config, script_type, script_list)
+        on_build = []
+        on_first_run = []
+        on_every_run = []
+        on_user_login = []
         
-        return config
+        # Note: attrs model uses on_build, not pre_build/post_build
+        if 'pre_build' in lifecycle_scripts:
+            for script_data in lifecycle_scripts['pre_build']:
+                if isinstance(script_data, dict) and 'path' in script_data:
+                    on_build.append(script_data['path'])
+                elif isinstance(script_data, str):
+                    on_build.append(script_data)
+        
+        if 'first_run' in lifecycle_scripts:
+            for script_data in lifecycle_scripts['first_run']:
+                if isinstance(script_data, dict) and 'path' in script_data:
+                    on_first_run.append(script_data['path'])
+                elif isinstance(script_data, str):
+                    on_first_run.append(script_data)
+        
+        if 'every_run' in lifecycle_scripts:
+            for script_data in lifecycle_scripts['every_run']:
+                if isinstance(script_data, dict) and 'path' in script_data:
+                    on_every_run.append(script_data['path'])
+                elif isinstance(script_data, str):
+                    on_every_run.append(script_data)
+        
+        if 'user_login' in lifecycle_scripts:
+            for script_data in lifecycle_scripts['user_login']:
+                if isinstance(script_data, dict) and 'path' in script_data:
+                    on_user_login.append(script_data['path'])
+                elif isinstance(script_data, str):
+                    on_user_login.append(script_data)
+        
+        # Only create CustomScriptConfig if we have any scripts
+        if any([on_entry, on_build, on_first_run, on_every_run, on_user_login]):
+            return AttrsCustomScriptConfig(
+                on_build=on_build,
+                on_first_run=on_first_run,
+                on_every_run=on_every_run,
+                on_user_login=on_user_login,
+                on_entry=on_entry
+            )
+        
+        return None
     
-    def _ui_stage_to_pydantic(self, ui_stage: StageUI) -> StageConfig:
-        """Convert UI stage state to Pydantic model."""
-        # Determine stage number based on which stage this is
-        stage_num = 1  # Default, will be overridden in actual usage
+    def _build_storage_config(self, ui_storage: StorageUI) -> Dict[str, AttrsStorageOption]:
+        """Build storage configuration from UI state."""
+        storage = {}
         
-        return StageConfig(
-            environment=self._ui_environment_to_pydantic(ui_stage.environment),
-            network=self._ui_network_to_pydantic(ui_stage.network),
-            ssh=self._ui_ssh_to_pydantic(ui_stage.ssh),
-            storage=self._ui_storage_to_pydantic(ui_stage.storage),
-            scripts=self._ui_scripts_to_pydantic(ui_stage.scripts, stage_num)
-        )
+        # Fixed storage entries for stage-2
+        for name, prefix in [('app', 'app'), ('data', 'data'), ('workspace', 'workspace')]:
+            storage_type = getattr(ui_storage, f'{prefix}_storage_type')
+            
+            if storage_type == 'auto-volume':
+                storage[name] = AttrsStorageOption(type=StorageTypes.AutoVolume)
+            elif storage_type == 'manual-volume':
+                volume_name = getattr(ui_storage, f'{prefix}_volume_name')
+                if volume_name:
+                    storage[name] = AttrsStorageOption(
+                        type=StorageTypes.ManualVolume,
+                        volume_name=volume_name
+                    )
+            elif storage_type == 'host':
+                host_path = getattr(ui_storage, f'{prefix}_host_path')
+                if host_path:
+                    storage[name] = AttrsStorageOption(
+                        type=StorageTypes.Host,
+                        host_path=host_path
+                    )
+            elif storage_type == 'image':
+                storage[name] = AttrsStorageOption(type=StorageTypes.Image)
+        
+        # Additional volumes
+        for volume in ui_storage.volumes:
+            name = volume.get('name', '')
+            if name and name not in ['app', 'data', 'workspace']:
+                storage_type = volume.get('type', 'auto-volume')
+                source = volume.get('source', '')
+                target = volume.get('target', '')
+                
+                if storage_type == 'auto-volume':
+                    storage[name] = AttrsStorageOption(
+                        type=StorageTypes.AutoVolume,
+                        dst_path=target
+                    )
+                elif storage_type == 'manual-volume' and source:
+                    storage[name] = AttrsStorageOption(
+                        type=StorageTypes.ManualVolume,
+                        volume_name=source,
+                        dst_path=target
+                    )
+                elif storage_type == 'host' and source:
+                    storage[name] = AttrsStorageOption(
+                        type=StorageTypes.Host,
+                        host_path=source,
+                        dst_path=target
+                    )
+        
+        return storage
+    
+    def _build_mount_config(self, ui_storage: StorageUI) -> Dict[str, AttrsStorageOption]:
+        """Build mount configuration from UI state."""
+        mounts = {}
+        
+        for mount in ui_storage.mounts:
+            name = mount.get('name', '')
+            source = mount.get('source', '')
+            target = mount.get('target', '')
+            mount_type = mount.get('type', 'host')
+            
+            if name and source and target:
+                if mount_type == 'host':
+                    mounts[name] = AttrsStorageOption(
+                        type=StorageTypes.Host,
+                        host_path=source,
+                        dst_path=target
+                    )
+                elif mount_type == 'manual-volume':
+                    mounts[name] = AttrsStorageOption(
+                        type=StorageTypes.ManualVolume,
+                        volume_name=source,
+                        dst_path=target
+                    )
+        
+        return mounts
+    
+    def _extract_project_info(self, ui_project: ProjectUI) -> Dict[str, Any]:
+        """Extract project information for adapter."""
+        return {
+            'project_name': ui_project.project_name or "untitled",
+            'project_directory': ui_project.project_directory or "",
+            'description': ui_project.description,
+            'base_image': ui_project.base_image,
+            'image_output_name': ui_project.image_output_name,
+            'template': ui_project.template
+        }
     
     def _ui_to_user_config_format(self, ui_state: AppUIState) -> Dict[str, Any]:
         """Convert UI state to user_config.yml format."""
+        # This method remains largely the same as it's converting to YAML format
+        # The previous implementation already handles the conversion correctly
         
         # Convert environment variables to list format
         def env_vars_to_list(env_vars: Dict[str, str]) -> List[str]:
@@ -262,33 +445,46 @@ class UIStateBridge:
         
         # Add device configuration to stage-1
         if ui_state.stage_1.environment.device_type != 'cpu':
-            device_config: Dict[str, Any] = {
+            stage_1['device'] = {
                 'type': ui_state.stage_1.environment.device_type
             }
-            if ui_state.stage_1.environment.device_type == 'gpu':
-                gpu_config: Dict[str, Any] = {}
-                if ui_state.stage_1.environment.gpu_count == 'all':
-                    gpu_config['all'] = True
-                else:
-                    gpu_config['count'] = int(ui_state.stage_1.environment.gpu_count)
-                if ui_state.stage_1.environment.gpu_memory_limit:
-                    gpu_config['memory'] = ui_state.stage_1.environment.gpu_memory_limit
-                device_config['gpu'] = gpu_config
-            stage_1['device'] = device_config
         
         # Add network configuration to stage-1
         if ui_state.stage_1.network.proxy_enabled:
             proxy_config: Dict[str, Any] = {}
             if ui_state.stage_1.network.http_proxy:
-                proxy_config['http'] = ui_state.stage_1.network.http_proxy
-            if ui_state.stage_1.network.https_proxy:
-                proxy_config['https'] = ui_state.stage_1.network.https_proxy
-            if ui_state.stage_1.network.no_proxy:
-                proxy_config['no_proxy'] = ui_state.stage_1.network.no_proxy
+                # Extract components from proxy URL
+                proxy_url = ui_state.stage_1.network.http_proxy
+                if '://' in proxy_url:
+                    scheme, rest = proxy_url.split('://', 1)
+                    use_https = scheme == 'https'
+                else:
+                    rest = proxy_url
+                    use_https = False
+                
+                if ':' in rest:
+                    address, port_str = rest.rsplit(':', 1)
+                    try:
+                        port = int(port_str)
+                    except ValueError:
+                        port = 8080
+                else:
+                    address = rest
+                    port = 8080
+                
+                proxy_config['address'] = address
+                proxy_config['port'] = port
+                proxy_config['enable_globally'] = True
+                if use_https:
+                    proxy_config['use_https'] = True
+                
             stage_1['proxy'] = proxy_config
         
         if ui_state.stage_1.network.apt_mirror:
-            stage_1['apt'] = {'mirror': ui_state.stage_1.network.apt_mirror}
+            stage_1['apt'] = {
+                'repo_source': ui_state.stage_1.network.apt_mirror,
+                'use_proxy': ui_state.stage_1.network.proxy_enabled
+            }
         
         # Add port mappings to stage-1
         if ui_state.stage_1.network.port_mappings:
@@ -299,18 +495,56 @@ class UIStateBridge:
         
         # Add SSH configuration to stage-1
         if ui_state.stage_1.ssh.enabled:
+            # Convert users list to dict format expected by attrs
+            users_dict = {}
+            for user_data in ui_state.stage_1.ssh.users:
+                username = user_data.get('name', '')
+                if username:
+                    user_config = {
+                        'password': user_data.get('password'),
+                        'uid': user_data.get('uid')
+                    }
+                    # Handle SSH keys
+                    ssh_keys = user_data.get('ssh_keys', [])
+                    if ssh_keys and ssh_keys[0]:
+                        user_config['pubkey_text'] = ssh_keys[0]
+                    users_dict[username] = user_config
+            
             stage_1['ssh'] = {
                 'enable': True,
                 'port': int(ui_state.stage_1.ssh.port),
                 'host_port': int(ui_state.stage_1.ssh.host_port),
-                'users': ui_state.stage_1.ssh.users
+                'users': users_dict
             }
+        
+        # Process stage-1 custom scripts
+        custom_scripts_1 = {}
+        lifecycle_1 = ui_state.stage_1.scripts.stage1_lifecycle_scripts
+        
+        for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+            ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
+            if ui_key in lifecycle_1 and lifecycle_1[ui_key]:
+                script_list = []
+                for script_data in lifecycle_1[ui_key]:
+                    if isinstance(script_data, dict):
+                        if script_data.get('type') == 'file':
+                            script_list.append(script_data['path'])
+                        elif script_data.get('type') == 'inline':
+                            inline_name = script_data.get('name', '')
+                            if inline_name:
+                                script_list.append(f"/pei-docker/scripts/{inline_name}")
+                                inline_scripts_1[inline_name] = script_data.get('content', '')
+                if script_list:
+                    custom_scripts_1[script_type] = script_list
+        
+        if custom_scripts_1:
+            stage_1['custom'] = custom_scripts_1
         
         # Add stage-1 inline scripts to metadata
         if inline_scripts_1:
             stage_1['_inline_scripts'] = inline_scripts_1
         
-        # Process stage-1 lifecycle scripts metadata
+        # Process stage-1 inline scripts metadata
         if ui_state.stage_1.scripts._inline_scripts_metadata:
             if '_inline_scripts' not in stage_1:
                 stage_1['_inline_scripts'] = {}
@@ -337,28 +571,46 @@ class UIStateBridge:
         if ui_state.stage_2.network.proxy_enabled:
             stage2_proxy_config: Dict[str, Any] = {}
             if ui_state.stage_2.network.http_proxy:
-                stage2_proxy_config['http'] = ui_state.stage_2.network.http_proxy
-            if ui_state.stage_2.network.https_proxy:
-                stage2_proxy_config['https'] = ui_state.stage_2.network.https_proxy
-            if ui_state.stage_2.network.no_proxy:
-                stage2_proxy_config['no_proxy'] = ui_state.stage_2.network.no_proxy
-            if stage2_proxy_config:
-                stage_2['proxy'] = stage2_proxy_config
+                proxy_url = ui_state.stage_2.network.http_proxy
+                if '://' in proxy_url:
+                    scheme, rest = proxy_url.split('://', 1)
+                    use_https = scheme == 'https'
+                else:
+                    rest = proxy_url
+                    use_https = False
+                
+                if ':' in rest:
+                    address, port_str = rest.rsplit(':', 1)
+                    try:
+                        port = int(port_str)
+                    except ValueError:
+                        port = 8080
+                else:
+                    address = rest
+                    port = 8080
+                
+                stage2_proxy_config['address'] = address
+                stage2_proxy_config['port'] = port
+                stage2_proxy_config['enable_globally'] = True
+                if use_https:
+                    stage2_proxy_config['use_https'] = True
+                
+            stage_2['proxy'] = stage2_proxy_config
         
         # Add storage configuration to stage-2
-        storage_config = self._build_storage_config(ui_state.stage_2.storage)
+        storage_config = self._build_yaml_storage_config(ui_state.stage_2.storage)
         if storage_config:
             stage_2['storage'] = storage_config
         
-        # Add lifecycle scripts to stage-2
-        lifecycle_scripts = {}
-        scripts_meta = ui_state.stage_2.scripts.stage2_lifecycle_scripts
+        # Process stage-2 custom scripts
+        custom_scripts_2 = {}
+        lifecycle_2 = ui_state.stage_2.scripts.stage2_lifecycle_scripts
         
-        for script_type in ['pre_build', 'post_build', 'first_run', 'every_run', 'user_login']:
-            yaml_key = script_type.replace('_', '-')
-            if script_type in scripts_meta and scripts_meta[script_type]:
+        for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+            ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
+            if ui_key in lifecycle_2 and lifecycle_2[ui_key]:
                 script_list = []
-                for script_data in scripts_meta[script_type]:
+                for script_data in lifecycle_2[ui_key]:
                     if isinstance(script_data, dict):
                         if script_data.get('type') == 'file':
                             script_list.append(script_data['path'])
@@ -366,28 +618,30 @@ class UIStateBridge:
                             inline_name = script_data.get('name', '')
                             if inline_name:
                                 script_list.append(f"/pei-docker/scripts/{inline_name}")
-                lifecycle_scripts[yaml_key] = script_list
+                                inline_scripts_2[inline_name] = script_data.get('content', '')
+                if script_list:
+                    custom_scripts_2[script_type] = script_list
         
-        if lifecycle_scripts:
-            stage_2['scripts'] = lifecycle_scripts
+        if custom_scripts_2:
+            stage_2['custom'] = custom_scripts_2
         
         # Add stage-2 inline scripts to metadata
         if inline_scripts_2:
             stage_2['_inline_scripts'] = inline_scripts_2
         
-        # Process stage-2 lifecycle scripts metadata
+        # Process stage-2 inline scripts metadata
         if ui_state.stage_2.scripts._inline_scripts_metadata:
             if '_inline_scripts' not in stage_2:
                 stage_2['_inline_scripts'] = {}
             stage_2['_inline_scripts'].update(ui_state.stage_2.scripts._inline_scripts_metadata)
         
         return {
-            'stage-1': stage_1,
-            'stage-2': stage_2
+            'stage_1': stage_1,
+            'stage_2': stage_2
         }
     
-    def _build_storage_config(self, storage: StorageUI) -> Dict[str, Any]:
-        """Build storage configuration from UI state."""
+    def _build_yaml_storage_config(self, storage: StorageUI) -> Dict[str, Any]:
+        """Build storage configuration for YAML format."""
         config: Dict[str, Any] = {}
         
         # Fixed storage entries for stage-2
@@ -395,31 +649,50 @@ class UIStateBridge:
             storage_type = getattr(storage, f'{prefix}_storage_type')
             
             if storage_type == 'auto-volume':
-                config[name] = 'auto-volume'
+                config[name] = {'type': 'auto-volume'}
             elif storage_type == 'manual-volume':
                 volume_name = getattr(storage, f'{prefix}_volume_name')
                 if volume_name:
-                    config[name] = f"volume:{volume_name}"
+                    config[name] = {'type': 'manual-volume', 'volume_name': volume_name}
             elif storage_type == 'host':
                 host_path = getattr(storage, f'{prefix}_host_path')
                 if host_path:
-                    config[name] = f"host:{host_path}"
+                    config[name] = {'type': 'host', 'host_path': host_path}
             elif storage_type == 'image':
-                config[name] = 'image'
+                config[name] = {'type': 'image'}
         
         # Additional mounts
         if storage.mounts:
-            config['mounts'] = [
-                f"{m['source']}:{m['target']}" 
-                for m in storage.mounts
-            ]
+            mount_config = {}
+            for mount in storage.mounts:
+                name = mount.get('name', '')
+                source = mount.get('source', '')
+                target = mount.get('target', '')
+                mount_type = mount.get('type', 'host')
+                
+                if name and source and target:
+                    if mount_type == 'host':
+                        mount_config[name] = {
+                            'type': 'host',
+                            'host_path': source,
+                            'dst_path': target
+                        }
+                    elif mount_type == 'manual-volume':
+                        mount_config[name] = {
+                            'type': 'manual-volume',
+                            'volume_name': source,
+                            'dst_path': target
+                        }
+            
+            if mount_config:
+                config['mount'] = mount_config
         
         return config
     
     def _load_into_ui(self, config_data: Dict[str, Any], ui_state: AppUIState) -> None:
         """Load YAML configuration into UI state."""
-        stage_1_data = config_data.get('stage-1', {})
-        stage_2_data = config_data.get('stage-2', {})
+        stage_1_data = config_data.get('stage_1', config_data.get('stage-1', {}))
+        stage_2_data = config_data.get('stage_2', config_data.get('stage-2', {}))
         
         # Load project configuration
         self._load_project_config(stage_1_data, ui_state.project)
@@ -462,19 +735,11 @@ class UIStateBridge:
                 key, value = env_str.split('=', 1)
                 env.env_vars[key.strip()] = value.strip()
         
-        # Load device configuration (stage-1 only)
+        # Load device configuration
         device_config = stage_data.get('device', {})
         if device_config:
             env.device_type = device_config.get('type', 'cpu')
-            
-            if env.device_type == 'gpu':
-                gpu_config = device_config.get('gpu', {})
-                env.gpu_enabled = True
-                if gpu_config.get('all', False):
-                    env.gpu_count = 'all'
-                else:
-                    env.gpu_count = str(gpu_config.get('count', 1))
-                env.gpu_memory_limit = gpu_config.get('memory', '')
+            env.gpu_enabled = env.device_type == 'gpu'
     
     def _load_network_config(self, stage_data: Dict[str, Any], network: NetworkUI) -> None:
         """Load network configuration from YAML data."""
@@ -482,13 +747,18 @@ class UIStateBridge:
         proxy_config = stage_data.get('proxy', {})
         if proxy_config:
             network.proxy_enabled = True
-            network.http_proxy = proxy_config.get('http', '')
-            network.https_proxy = proxy_config.get('https', '')
-            network.no_proxy = proxy_config.get('no_proxy', '')
+            address = proxy_config.get('address', '')
+            port = proxy_config.get('port', 8080)
+            scheme = 'https' if proxy_config.get('use_https', False) else 'http'
+            
+            if address:
+                network.http_proxy = f"{scheme}://{address}:{port}"
+                network.https_proxy = network.http_proxy
         
-        # Load APT mirror
+        # Load APT configuration
         apt_config = stage_data.get('apt', {})
-        network.apt_mirror = apt_config.get('mirror', '')
+        if apt_config:
+            network.apt_mirror = apt_config.get('repo_source', '')
         
         # Load port mappings
         ports = stage_data.get('ports', [])
@@ -510,9 +780,28 @@ class UIStateBridge:
             ssh.port = str(ssh_config.get('port', 22))
             ssh.host_port = str(ssh_config.get('host_port', 2222))
             
-            users = ssh_config.get('users', [])
+            # Convert users dict to list format
+            users_dict = ssh_config.get('users', {})
             ssh.users.clear()
-            ssh.users.extend(users)
+            
+            for username, user_config in users_dict.items():
+                user_data = {
+                    'name': username,
+                    'password': user_config.get('password'),
+                    'uid': user_config.get('uid')
+                }
+                
+                # Extract SSH keys
+                ssh_keys = []
+                if user_config.get('pubkey_text'):
+                    ssh_keys.append(user_config['pubkey_text'])
+                elif user_config.get('pubkey_file'):
+                    ssh_keys.append(f"file:{user_config['pubkey_file']}")
+                
+                if ssh_keys:
+                    user_data['ssh_keys'] = ssh_keys
+                
+                ssh.users.append(user_data)
     
     def _load_storage_config(self, stage_data: Dict[str, Any], storage: StorageUI) -> None:
         """Load storage configuration from YAML data."""
@@ -520,30 +809,48 @@ class UIStateBridge:
         
         # Load fixed storage entries
         for name, prefix in [('app', 'app'), ('data', 'data'), ('workspace', 'workspace')]:
-            value = storage_config.get(name, 'auto-volume')
+            config = storage_config.get(name, {})
             
-            if value == 'auto-volume':
-                setattr(storage, f'{prefix}_storage_type', 'auto-volume')
-            elif value == 'image':
-                setattr(storage, f'{prefix}_storage_type', 'image')
-            elif value.startswith('volume:'):
-                setattr(storage, f'{prefix}_storage_type', 'manual-volume')
-                setattr(storage, f'{prefix}_volume_name', value[7:])
-            elif value.startswith('host:'):
-                setattr(storage, f'{prefix}_storage_type', 'host')
-                setattr(storage, f'{prefix}_host_path', value[5:])
+            if isinstance(config, dict):
+                storage_type = config.get('type', 'auto-volume')
+                setattr(storage, f'{prefix}_storage_type', storage_type)
+                
+                if storage_type == 'manual-volume':
+                    setattr(storage, f'{prefix}_volume_name', config.get('volume_name', ''))
+                elif storage_type == 'host':
+                    setattr(storage, f'{prefix}_host_path', config.get('host_path', ''))
+            elif isinstance(config, str):
+                # Legacy format compatibility
+                if config == 'auto-volume':
+                    setattr(storage, f'{prefix}_storage_type', 'auto-volume')
+                elif config == 'image':
+                    setattr(storage, f'{prefix}_storage_type', 'image')
+                elif config.startswith('volume:'):
+                    setattr(storage, f'{prefix}_storage_type', 'manual-volume')
+                    setattr(storage, f'{prefix}_volume_name', config[7:])
+                elif config.startswith('host:'):
+                    setattr(storage, f'{prefix}_storage_type', 'host')
+                    setattr(storage, f'{prefix}_host_path', config[5:])
         
         # Load additional mounts
-        mounts = storage_config.get('mounts', [])
+        mount_config = storage_config.get('mount', {})
         storage.mounts.clear()
         
-        for mount_str in mounts:
-            if ':' in mount_str:
-                source, target = mount_str.split(':', 1)
-                storage.mounts.append({
-                    'source': source.strip(),
-                    'target': target.strip()
-                })
+        for name, config in mount_config.items():
+            if isinstance(config, dict):
+                mount_type = config.get('type', 'host')
+                mount_data = {
+                    'name': name,
+                    'type': mount_type,
+                    'target': config.get('dst_path', f'/mnt/{name}')
+                }
+                
+                if mount_type == 'host':
+                    mount_data['source'] = config.get('host_path', '')
+                elif mount_type == 'manual-volume':
+                    mount_data['source'] = config.get('volume_name', '')
+                
+                storage.mounts.append(mount_data)
     
     def _load_scripts_config(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any],
                            scripts1: ScriptsUI, scripts2: ScriptsUI) -> None:
@@ -555,8 +862,10 @@ class UIStateBridge:
         scripts1._inline_scripts_metadata.update(inline_scripts_1)
         
         # Load stage-1 entry point
-        entry_point_1 = stage_1_data.get('entry_point', '')
-        if entry_point_1:
+        custom_1 = stage_1_data.get('custom', {})
+        entry_points_1 = custom_1.get('on_entry', [])
+        if entry_points_1:
+            entry_point_1 = entry_points_1[0]
             if entry_point_1.startswith('/pei-docker/scripts/'):
                 # This is an inline script
                 script_name = entry_point_1.replace('/pei-docker/scripts/', '')
@@ -575,8 +884,10 @@ class UIStateBridge:
         scripts2._inline_scripts_metadata.update(inline_scripts_2)
         
         # Load stage-2 entry point
-        entry_point_2 = stage_2_data.get('entry_point', '')
-        if entry_point_2:
+        custom_2 = stage_2_data.get('custom', {})
+        entry_points_2 = custom_2.get('on_entry', [])
+        if entry_points_2:
+            entry_point_2 = entry_points_2[0]
             if entry_point_2.startswith('/pei-docker/scripts/'):
                 script_name = entry_point_2.replace('/pei-docker/scripts/', '')
                 if script_name in inline_scripts_2:
@@ -587,17 +898,47 @@ class UIStateBridge:
                 scripts2.stage2_entry_mode = "file"
                 scripts2.stage2_entry_file_path = entry_point_2
         
-        # Load lifecycle scripts (stage-2 only)
-        scripts_config = stage_2_data.get('scripts', {})
+        # Load lifecycle scripts
+        scripts1.stage1_lifecycle_scripts.clear()
         scripts2.stage2_lifecycle_scripts.clear()
         
-        for script_type in ['pre_build', 'post_build', 'first_run', 'every_run', 'user_login']:
-            yaml_key = script_type.replace('_', '-')
-            if yaml_key in scripts_config:
+        # Map between UI keys and YAML keys
+        script_mappings = {
+            'pre_build': 'on_build',
+            'first_run': 'on_first_run',
+            'every_run': 'on_every_run',
+            'user_login': 'on_user_login'
+        }
+        
+        # Load stage-1 lifecycle scripts
+        for ui_key, yaml_key in script_mappings.items():
+            if yaml_key in custom_1:
                 scripts_list = []
-                for script_path in scripts_config[yaml_key]:
+                for script_path in custom_1[yaml_key]:
                     if script_path.startswith('/pei-docker/scripts/'):
                         # This is an inline script
+                        script_name = script_path.replace('/pei-docker/scripts/', '')
+                        if script_name in inline_scripts_1:
+                            scripts_list.append({
+                                'type': 'inline',
+                                'name': script_name,
+                                'content': inline_scripts_1[script_name],
+                                'path': script_path
+                            })
+                    else:
+                        # This is a file path
+                        scripts_list.append({
+                            'type': 'file',
+                            'path': script_path
+                        })
+                scripts1.stage1_lifecycle_scripts[ui_key] = scripts_list
+        
+        # Load stage-2 lifecycle scripts
+        for ui_key, yaml_key in script_mappings.items():
+            if yaml_key in custom_2:
+                scripts_list = []
+                for script_path in custom_2[yaml_key]:
+                    if script_path.startswith('/pei-docker/scripts/'):
                         script_name = script_path.replace('/pei-docker/scripts/', '')
                         if script_name in inline_scripts_2:
                             scripts_list.append({
@@ -607,9 +948,8 @@ class UIStateBridge:
                                 'path': script_path
                             })
                     else:
-                        # This is a file path
                         scripts_list.append({
                             'type': 'file',
                             'path': script_path
                         })
-                scripts2.stage2_lifecycle_scripts[script_type] = scripts_list
+                scripts2.stage2_lifecycle_scripts[ui_key] = scripts_list

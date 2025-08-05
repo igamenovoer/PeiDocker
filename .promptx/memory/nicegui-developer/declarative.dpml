@@ -434,39 +434,34 @@
     </content>
     <tags>#其他</tags>
   </item>
-  <item id="mem_1754329021476_iuvdy4zhy" time="2025/08/05 01:37">
+  <item id="mem_1754375321134_ytw2j4v2g" time="2025/08/05 14:28">
     <content>
-      PeiDocker WebGUI Refactoring - Legacy Code Separation (2025-08-04):
+      PeiDocker Data Model Refactoring Challenge (2025-08-05):
     
-      COMPLETED REFACTORING:
-      - ✅ Created src/pei_docker/legacy_gui/ module for all legacy implementations
-      - ✅ Moved legacy files: app.py, legacy_models.py, legacy_utils.py, utils/bridge.py
-      - ✅ Moved legacy tabs: environment.py, network.py, ssh.py
-      - ✅ Renamed refactored files by removing &#x27;_refactored&#x27; suffix
-      - ✅ Updated all imports to remove legacy references
-      - ✅ Fixed cli_launcher.py to use refactored app imports
+      IDENTIFIED DUPLICATION PROBLEM:
+      - peidocker-data-model: CLI models using attrs library (@define) in user_config.py
+      - business-data-model: GUI models using pydantic (BaseModel) in webgui/models/config.py
+      - Both represent same user_config.yml but with different validation libraries
     
-      ARCHITECTURE CHANGES:
-      - app.data → app.ui_state (UIStateBridge pattern)
-      - Manual state tracking → @binding.bindable_dataclass decorators
-      - FileOperations → UIStateBridge for save/load operations
-      - ProjectManager kept in new utils/utils.py
+      KEY INCOMPATIBILITIES:
+      - attrs vs pydantic have incompatible metaclasses (cannot inherit directly)
+      - Field name differences: enable vs enabled, different structure for users
+      - Validation approach: __attrs_post_init__ vs @field_validator
+      - Type representations: dict[str, SSHUserConfig] vs List[Dict[str, Any]]
     
-      REMAINING UNREFACTORED TABS:
-      - project.py - Still uses app.data and legacy models
-      - storage.py - Still uses app.data and legacy models
-      - summary.py - Still uses app.data and legacy models
+      PROPOSED SOLUTION - ADAPTER PATTERN:
+      1. Create Protocol interfaces defining expected behavior
+      2. Build adapter classes wrapping attrs models for pydantic compatibility
+      3. Map field differences in adapters (enable→enabled, dict→list transforms)
+      4. Delegate validation to existing attrs validators
+      5. Gradual migration maintaining backward compatibility
     
-      TYPE SAFETY STATUS:
-      - Refactored code passes mypy --strict (except for unrefactored dependencies)
-      - Unrefactored tabs cause most type errors (app.data references)
-      - Missing type parameters for generic dict types need fixing
-    
-      KEY PATTERNS FOR REMAINING REFACTORING:
-      - Replace app.data with app.ui_state
-      - Use bind_value(), bind_visibility_from() for UI elements
-      - Implement proper two-way data binding
-      - Follow patterns from refactored tabs (environment, network, ssh)
+      BENEFITS:
+      - Single source of truth for schema
+      - Eliminate ~300 lines duplicate code
+      - Consistent validation between CLI and GUI
+      - Simplified maintenance (one place for changes)
+      - Type safety preserved throughout
     </content>
     <tags>#其他</tags>
   </item>

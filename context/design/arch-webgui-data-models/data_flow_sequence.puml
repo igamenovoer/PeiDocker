@@ -1,0 +1,50 @@
+@startuml data_flow_sequence
+participant "User" as U
+participant "NiceGUI Components" as UI
+participant "AppUIState" as UIS
+participant "UIStateBridge" as Bridge
+participant "AppConfig" as BC
+participant "user_config.yml" as YAML
+
+== User Configuration Flow ==
+U -> UI: Edit configuration
+UI -> UIS: Update bindable data
+note right: NiceGUI's binding system\nautomatically syncs UI and data
+UIS -> UIS: mark_modified()
+
+== Validation Flow ==
+U -> UI: Save configuration
+UI -> Bridge: validate_ui_state(ui_state)
+Bridge -> BC: Create Pydantic models
+BC -> BC: Validate data constraints
+BC -> Bridge: Return validation results
+Bridge -> UI: Return (is_valid, errors)
+
+alt Validation Success
+    UI -> Bridge: save_to_yaml(ui_state, file_path)
+    Bridge -> Bridge: _ui_to_user_config_format()
+    Bridge -> YAML: Write YAML file
+    Bridge -> UIS: mark_saved()
+    Bridge -> UI: Return success
+else Validation Failure
+    UI -> U: Show error messages
+end
+
+== Load Configuration Flow ==
+U -> UI: Load existing project
+UI -> Bridge: load_from_yaml(file_path, ui_state)
+Bridge -> YAML: Read YAML file
+Bridge -> Bridge: _load_into_ui()
+Bridge -> UIS: Update all UI state
+UIS -> UI: Trigger UI updates
+note right: NiceGUI binding system\nautomatically updates UI
+Bridge -> UI: Return success
+
+== Stage Merging Flow ==
+U -> UI: Switch between stages
+UI -> UIS: set active_stage
+UIS -> UIS: get_active_stage()
+UI -> Bridge: Generate merged config
+Bridge -> Bridge: _ui_to_user_config_format()
+Bridge -> UI: Return merged YAML structure
+@enduml
