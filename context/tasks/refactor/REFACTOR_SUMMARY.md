@@ -69,21 +69,27 @@ All integration tests passing:
 
 ## Migration Path
 
-1. **Current State**: Adapters in place, old pydantic models archived
-2. **Next Steps**: 
-   - Monitor for any edge cases in production
-   - Eventually remove `config_legacy.py` once stable
-   - Consider migrating more GUI-specific logic into adapters
+1. **Phase 1 Complete**: Adapters in place, old pydantic models archived ✓
+2. **Phase 2 Complete**: Legacy code moved to dedicated directory ✓
+   - Created `src/pei_docker/legacy_model/` package
+   - Moved all legacy files to isolated location
+   - No active code references legacy models
+3. **Current State**: 
+   - Clean separation between active and legacy code
+   - All tests passing with adapter-based implementation
+   - Type checking passes with mypy --strict
 
 ## Files Changed
 
 - **Created**: 
   - `src/pei_docker/webgui/models/config_adapter.py` (642 lines)
+  - `src/pei_docker/legacy_model/__init__.py` (package marker)
 - **Modified**:
   - `src/pei_docker/webgui/utils/ui_state_bridge.py` (updated imports and logic)
   - `src/pei_docker/webgui/models/__init__.py` (updated exports)
-- **Archived**:
-  - `src/pei_docker/webgui/models/config.py` → `config_legacy.py`
+- **Moved to Legacy**:
+  - `src/pei_docker/webgui/models/config.py` → `src/pei_docker/legacy_model/config_legacy.py`
+  - `src/pei_docker/webgui/utils/ui_state_bridge_old.py` → `src/pei_docker/legacy_model/ui_state_bridge_old.py`
 
 ## Conclusion
 
