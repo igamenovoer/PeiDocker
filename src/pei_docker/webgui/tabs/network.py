@@ -149,10 +149,7 @@ class NetworkTab(BaseTab):
         for i, mapping in enumerate(network.port_mappings):
             self._create_port_mapping_row(i, mapping)
         
-        # Add example if no mappings
-        if not network.port_mappings:
-            network.port_mappings.append({'host': '8080', 'container': '80'})
-            self._create_port_mapping_row(0, network.port_mappings[0])
+        # Don't add any default mappings - let the user add them as needed
     
     def _create_port_mapping_row(self, index: int, mapping: Dict[str, str]) -> None:
         """Create a single port mapping row with data binding."""

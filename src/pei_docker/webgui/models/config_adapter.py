@@ -469,7 +469,6 @@ class ProjectConfigAdapter:
     """Adapter for project configuration."""
     project_name: str = ""
     project_directory: str = ""
-    description: str = ""
     base_image: str = "ubuntu:22.04"
     image_output_name: str = ""
     template: str = "basic"
@@ -514,7 +513,6 @@ def create_app_config_adapter(
     if project_info:
         project_config.project_name = project_info.get('project_name', '')
         project_config.project_directory = project_info.get('project_directory', '')
-        project_config.description = project_info.get('description', '')
         project_config.base_image = project_info.get('base_image', 'ubuntu:22.04')
         project_config.image_output_name = project_info.get('image_output_name', '')
         project_config.template = project_info.get('template', 'basic')

@@ -24,7 +24,7 @@ stage_1:
   environment:
   - NEW_VAR=xxxx
   apt:
-    repo_source: https://mirrors.tuna.tsinghua.edu.cn/ubuntu/
+    repo_source: https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ [Note: this is not correct, it should be `tuna`, see the "docs/" or the `user_config.yml` template]
     use_proxy: false
   ports:
   - 8080:80

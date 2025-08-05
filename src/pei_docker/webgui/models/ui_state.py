@@ -103,7 +103,6 @@ class ProjectUI:
     # Basic project info
     project_name: str = ""
     project_directory: str = ""
-    description: str = ""
     
     # Docker image configuration
     base_image: str = "ubuntu:22.04"

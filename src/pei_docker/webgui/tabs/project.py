@@ -30,17 +30,25 @@ class ProjectTab(BaseTab):
             # Get project UI state
             project_ui = self.app.ui_state.project
             
-            # Tab header
-            self.create_section_header(
-                '🏗️ Project Information',
-                'Configure basic project settings and Docker image information. This forms the foundation of your containerized development environment.'
-            )
+            # Tab header with horizontally aligned sections
+            with ui.row().classes('w-full items-start gap-6'):
+                # Left section header
+                with ui.column().classes('flex-1'):
+                    self.create_section_header(
+                        '🏗️ Project Information',
+                        'Configure basic project settings and Docker image information.'
+                    )
+                
+                # Right section header  
+                with ui.column().classes('flex-1'):
+                    with ui.column().classes('mb-2'):
+                        ui.label('🐳 Generated Docker Images').classes('text-xl font-bold text-gray-800')
+                        ui.label('Images are automatically named based on your project name').classes('text-sm text-gray-600')
             
             # Two-column grid layout
             with ui.row().classes('w-full gap-6'):
                 # Left Column - Basic Settings
                 with ui.column().classes('w-full'):
-                    ui.label('Basic Settings').classes('text-lg font-semibold mb-4')
                     
                     # Project name with data binding
                     with self.create_form_group('Project Name *', 'Used for Docker image naming and project identification'):
@@ -48,13 +56,6 @@ class ProjectTab(BaseTab):
                             placeholder='Enter project name'
                         ).bind_value(project_ui, 'project_name').classes('w-full').on_value_change(self._update_image_previews) \
                             .props('data-testid="project-name-input"')
-                    
-                    # Project description with data binding
-                    with self.create_form_group('Description', 'Brief description of your project'):
-                        ui.textarea(
-                            placeholder='Enter project description'
-                        ).bind_value(project_ui, 'description').classes('w-full').props('rows=3') \
-                            .props('data-testid="project-description-textarea"')
                     
                     # Base Docker image with data binding
                     with self.create_form_group('Base Docker Image', 'Docker Hub image to use as the base for your container (e.g., ubuntu:22.04, alpine:latest)'):
@@ -65,10 +66,8 @@ class ProjectTab(BaseTab):
                 
                 # Right Column - Generated Docker Images
                 with ui.column().classes('w-full'):
-                    ui.label('Generated Docker Images').classes('text-lg font-semibold mb-4')
-                    
                     # Preview panel with stage images
-                    with ui.column().classes('bg-gray-50 p-4 rounded-lg border'):
+                    with ui.column().classes('bg-gray-50 p-4 rounded-lg border mt-8'):
                         with ui.column().classes('gap-3'):
                             # Stage-1 image
                             with ui.row().classes('items-center gap-2'):
@@ -83,10 +82,6 @@ class ProjectTab(BaseTab):
                                 ui.label('Stage-2:').classes('text-sm font-medium text-green-800')
                                 self.stage2_image_label = ui.label('') \
                                     .classes('font-mono text-sm text-green-900 bg-green-100 px-2 py-1 rounded')
-                            
-                            # Note about image naming
-                            ui.label('Images are automatically named based on your project name') \
-                                .classes('text-xs text-gray-600 mt-2 italic')
             
             # Architecture Information Section
             with ui.column().classes('mt-8'):

@@ -402,7 +402,6 @@ class UIStateBridge:
         return {
             'project_name': ui_project.project_name or "untitled",
             'project_directory': ui_project.project_directory or "",
-            'description': ui_project.description,
             'base_image': ui_project.base_image,
             'image_output_name': ui_project.image_output_name,
             'template': ui_project.template
@@ -418,10 +417,11 @@ class UIStateBridge:
             return [f"{k}={v}" for k, v in env_vars.items()]
         
         # Build stage-1 configuration
+        output_name = ui_state.project.image_output_name or ui_state.project.project_name or "pei-image"
         stage_1: Dict[str, Any] = {
             'image': {
                 'base': ui_state.project.base_image,
-                'output': ui_state.project.image_output_name or ui_state.project.project_name
+                'output': f"{output_name}:stage-1"
             }
         }
         
@@ -440,8 +440,13 @@ class UIStateBridge:
             stage_1['entry_point'] = ui_state.stage_1.scripts.stage1_entry_file_path
         
         # Add environment configuration to stage-1
-        if ui_state.stage_1.environment.env_vars:
-            stage_1['environment'] = env_vars_to_list(ui_state.stage_1.environment.env_vars)
+        # According to the mapping guide, environment variables should be written to both stages
+        all_env_vars = {}
+        all_env_vars.update(ui_state.stage_1.environment.env_vars)
+        all_env_vars.update(ui_state.stage_2.environment.env_vars)
+        
+        if all_env_vars:
+            stage_1['environment'] = env_vars_to_list(all_env_vars)
         
         # Add device configuration to stage-1
         if ui_state.stage_1.environment.device_type != 'cpu':
@@ -552,7 +557,11 @@ class UIStateBridge:
             stage_1['_inline_scripts'].update(ui_state.stage_1.scripts._inline_scripts_metadata)
         
         # Build stage-2 configuration
-        stage_2: Dict[str, Any] = {}
+        stage_2: Dict[str, Any] = {
+            'image': {
+                'output': f"{output_name}:stage-2"
+            }
+        }
         
         # Process stage-2 inline entry point
         if ui_state.stage_2.scripts.stage2_entry_mode == "inline":
@@ -565,8 +574,9 @@ class UIStateBridge:
             stage_2['entry_point'] = ui_state.stage_2.scripts.stage2_entry_file_path
         
         # Add environment configuration to stage-2
-        if ui_state.stage_2.environment.env_vars:
-            stage_2['environment'] = env_vars_to_list(ui_state.stage_2.environment.env_vars)
+        # According to the mapping guide, environment variables should be written to both stages
+        if all_env_vars:  # Using the same all_env_vars from above
+            stage_2['environment'] = env_vars_to_list(all_env_vars)
         
         # Add device configuration to stage-2 (copy from GUI's single device setting)
         # Following the principle: if GUI has single section, map to both stages

@@ -366,10 +366,13 @@ class PeiDockerWebGUI:
             # Create project directory
             Path(project_dir).mkdir(parents=True, exist_ok=True)
             
-            # Set up new UI state
+            # Set up new UI state with defaults
             self.ui_state = AppUIState()
             self.ui_state.project.project_directory = project_dir
             self.ui_state.project.project_name = Path(project_dir).name
+            
+            # Load default values from template
+            self._load_default_configuration()
             
             # Switch to active state
             self.app_state = AppState.ACTIVE
@@ -573,6 +576,34 @@ class PeiDockerWebGUI:
         """Generate a new temporary directory."""
         new_dir = self._generate_default_project_dir()
         input_field.set_value(new_dir)
+    
+    def _load_default_configuration(self) -> None:
+        """Load default configuration values based on template."""
+        # SSH defaults - enabled with one user
+        self.ui_state.stage_1.ssh.enabled = True
+        self.ui_state.stage_1.ssh.port = "22"
+        self.ui_state.stage_1.ssh.host_port = "2222"
+        self.ui_state.stage_1.ssh.users = [{
+            'name': 'me',
+            'password': '123456',
+            'uid': 1000,
+            'ssh_keys': []
+        }]
+        
+        # Environment defaults - one example variable
+        self.ui_state.stage_1.environment.env_vars = {
+            'EXAMPLE_VAR_STAGE_1': 'example env var'
+        }
+        self.ui_state.stage_2.environment.env_vars = {
+            'EXAMPLE_VAR_STAGE_2': 'example env var'
+        }
+        
+        # APT mirror default
+        self.ui_state.stage_1.network.apt_mirror = 'tuna'
+        
+        # No default port mappings - list should be empty
+        self.ui_state.stage_1.network.port_mappings = []
+        self.ui_state.stage_2.network.port_mappings = []
     
     def update_ui_state(self) -> None:
         """Update all UI elements based on current state."""
