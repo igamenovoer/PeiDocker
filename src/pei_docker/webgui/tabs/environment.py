@@ -56,7 +56,7 @@ class EnvironmentTab(BaseTab):
                     with self.create_card('🖥️ Device Configuration'):
                         with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
                             # Bind device type select to UI state
-                            ui.select(
+                            device_select = ui.select(
                                 options={
                                     'cpu': 'CPU Only',
                                     'gpu': 'GPU Support'
@@ -64,6 +64,13 @@ class EnvironmentTab(BaseTab):
                                 value='cpu'
                             ).classes('w-full').bind_value(stage_env, 'device_type') \
                                 .props('data-testid="device-type-select"')
+                            
+                            # Update gpu_enabled when device_type changes
+                            def on_device_change(e: Any) -> None:
+                                stage_env.gpu_enabled = (e.value == 'gpu')
+                                self.app.ui_state.mark_modified()
+                            
+                            device_select.on_value_change(on_device_change)
                         
                         # GPU Configuration (conditionally visible)
                         with ui.column().classes('mt-6 w-full') as gpu_config:
@@ -71,7 +78,7 @@ class EnvironmentTab(BaseTab):
                             
                             with self.create_form_group('GPU Configuration'):
                                 # GPU enabled switch (automatically enabled when device_type is gpu)
-                                stage_env.gpu_enabled = stage_env.device_type == 'gpu'
+                                # Note: gpu_enabled is managed through device_type selection
                                 
                                 # GPU count selection
                                 with ui.row().classes('items-center gap-4 mb-4'):

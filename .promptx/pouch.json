@@ -1,5 +1,5 @@
 {
-  "currentState": "memory_saved",
+  "currentState": "role_activated_with_memory",
   "stateHistory": [
     {
       "from": "initial",
@@ -86,7 +86,34 @@
         "--tags",
         "terminology peidocker architecture gui"
       ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "remember",
+      "timestamp": "2025-08-05T11:49:31.318Z",
+      "args": [
+        "nicegui-developer",
+        "GUI-to-Core Data Mapping Rules (from context/design/gui-to-core-data-mapping.md):\n\n**Core Principle**: The GUI presents a simplified single-section view for configurations that can be split between stage-1 and stage-2 in user_config.yml.\n\n**Default Mapping Behavior**:\n- Writing: Copy simplified field values to BOTH stages in user_config.yml\n- Reading: \n  - If field exists in only one stage → load from that stage\n  - If field exists in both stages → load from stage-2 (most recent)\n\n**Tab-Specific Mapping Rules**:\n\n1. **SSH Tab** (EXCEPTION):\n   - Writing: Map to stage-1 ONLY\n   - Reading: Follow default behavior\n   - Rationale: SSH is a system-level feature needed during stage-1\n\n2. **Device Tab**: \n   - Follow default behavior (both stages)\n   - GPU/CPU configuration applies to entire container lifecycle\n\n3. **Environment Tab** (SPECIAL MERGE):\n   - Writing: Follow default behavior (both stages)\n   - Reading: MERGE variables from both stages, with stage-2 overriding stage-1 for duplicates\n   - Rationale: Allows accumulation of env vars with stage-specific overrides\n\n4. **Network Tab**:\n   - Follow default behavior (both stages)\n   - Includes proxy settings and APT configuration\n\n5. **Script Tab**:\n   - GUI already has separate sections for stage-1 and stage-2\n   - No special mapping needed\n\n6. **Storage Tab**:\n   - GUI already has separate sections for stage-1 and stage-2\n   - No special mapping needed\n\n**Implementation Location**: \n- ui_state_bridge.py handles these mappings\n- Methods like _load_environment_config_merged, _load_device_config_default implement the rules\n\nThis mapping design allows users to work with a simplified GUI while maintaining the power and flexibility of PeiDocker's two-stage architecture.",
+        "--tags",
+        "gui mapping architecture nicegui peidocker"
+      ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "action",
+      "timestamp": "2025-08-05T11:51:22.131Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "action",
+      "timestamp": "2025-08-05T14:29:34.927Z",
+      "args": [
+        "nicegui-developer"
+      ]
     }
   ],
-  "lastUpdated": "2025-08-05T11:37:08.756Z"
+  "lastUpdated": "2025-08-05T14:29:34.949Z"
 }

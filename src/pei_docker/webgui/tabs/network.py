@@ -345,13 +345,13 @@ class NetworkTab(BaseTab):
         
         return len(errors) == 0, errors
     
-    def get_config_data(self) -> dict:
+    def get_config_data(self) -> Dict[str, Any]:
         """Get network configuration data from UI state."""
         # This is now handled by the UIStateBridge
         # Keeping method for compatibility
         return {}
     
-    def set_config_data(self, data: dict) -> None:
+    def set_config_data(self, data: Dict[str, Any]) -> None:
         """Set network configuration data."""
         # This is now handled by the UIStateBridge during load
         # UI state is automatically bound, so we just need to refresh the view

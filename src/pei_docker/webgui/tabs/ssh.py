@@ -39,7 +39,8 @@ class SSHTab(BaseTab):
             with self.create_card('🔐 SSH Service'):
                 # Enable SSH toggle
                 with ui.row().classes('items-center gap-4 mb-4'):
-                    ui.switch('✅ Enable SSH Server').bind_value(ssh_ui, 'enabled')
+                    ui.switch('✅ Enable SSH Server').bind_value(ssh_ui, 'enabled') \
+                        .props('data-testid="ssh-enabled-switch"')
                 
                 # Port configuration
                 with ui.row().classes('gap-4 mb-4') as port_config:
@@ -50,14 +51,16 @@ class SSHTab(BaseTab):
                         ui.input(
                             placeholder='22',
                             value='22'
-                        ).classes('w-full').bind_value(ssh_ui, 'port')
+                        ).classes('w-full').bind_value(ssh_ui, 'port') \
+                            .props('data-testid="ssh-container-port"')
                     
                     with ui.column():
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         ui.input(
                             placeholder='2222',
                             value='2222'
-                        ).classes('w-full').bind_value(ssh_ui, 'host_port')
+                        ).classes('w-full').bind_value(ssh_ui, 'host_port') \
+                            .props('data-testid="ssh-host-port"')
             
             # SSH Users Configuration
             with self.create_card('SSH Users') as users_card:
@@ -72,7 +75,8 @@ class SSHTab(BaseTab):
                 
                 # Add user button
                 ui.button('➕ Add SSH User', on_click=self._add_user) \
-                    .classes('bg-blue-600 hover:bg-blue-700 text-white')
+                    .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                    .props('data-testid="add-ssh-user-btn"')
             
             # SSH disabled warning
             with ui.card().classes('w-full p-4 mb-4 bg-yellow-50 border-yellow-200') as warning:
@@ -130,14 +134,14 @@ class SSHTab(BaseTab):
                     username_input = ui.input(
                         'Username',
                         placeholder='username'
-                    ).classes('flex-1')
+                    ).classes('flex-1').props(f'data-testid="ssh-username-{index}"')
                     username_input.set_value(user_data.get('name', ''))
                     
                     # Password
                     password_input = ui.input(
                         'Password',
                         placeholder='Enter password (letters, numbers, -, _)'
-                    ).classes('flex-1')
+                    ).classes('flex-1').props(f'data-testid="ssh-password-{index}"')
                     password_input.set_value(user_data.get('password', ''))
                 
                 # Optional UID Configuration

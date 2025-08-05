@@ -13,6 +13,7 @@ from typing import Optional, Dict, List, Any, Literal
 from datetime import datetime
 import copy
 from enum import Enum
+from functools import partial
 
 from nicegui import ui, app
 from nicegui.events import ValueChangeEventArguments
@@ -106,7 +107,8 @@ class PeiDockerWebGUI:
             # Action buttons (only shown in active state)
             with ui.row().classes('gap-2') as actions:
                 save_btn = ui.button('💾 Save', on_click=lambda: asyncio.create_task(self.save_configuration())) \
-                    .classes('bg-green-600 hover:bg-green-700')
+                    .classes('bg-green-600 hover:bg-green-700') \
+                    .props('data-testid="save-btn"')
                 
                 configure_btn = ui.button('⚙️ Configure', on_click=lambda: asyncio.create_task(self.configure_project())) \
                     .classes('bg-yellow-600 hover:bg-yellow-700')
@@ -114,10 +116,7 @@ class PeiDockerWebGUI:
                 download_btn = ui.button('📦 Download', on_click=lambda: asyncio.create_task(self.download_project())) \
                     .classes('bg-blue-500 hover:bg-blue-600')
                 
-                # Bind visibility manually since we track app_state separately
-                self._bind_to_active_state(save_btn)
-                self._bind_to_active_state(configure_btn)
-                self._bind_to_active_state(download_btn)
+                # Visibility will be managed by update_ui_state()
     
     def create_project_info_bar(self) -> None:
         """Create the project info bar (shown only in active state)."""
@@ -145,8 +144,7 @@ class PeiDockerWebGUI:
                 ui.button('🔄 Change Project', on_click=self.change_project) \
                     .classes('bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1 ml-2')
             
-            # Bind visibility to active state
-            self._bind_to_active_state(info_bar)
+            # Visibility will be managed by update_ui_state()
     
     def create_tab_navigation(self) -> None:
         """Create the tab navigation bar."""
@@ -167,16 +165,16 @@ class PeiDockerWebGUI:
                 }
                 
                 button = ui.button(f'{icon_map[tab_name]} {tab_name.value.title()}',
-                                 on_click=lambda t=tab_name: self.switch_tab(t)) \
-                    .classes('px-4 py-2 border-b-2 border-transparent hover:border-blue-500')
+                                 on_click=partial(self.switch_tab, tab_name)) \
+                    .classes('px-4 py-2 border-b-2 border-transparent hover:border-blue-500') \
+                    .props(f'data-testid="tab-{tab_name.value}"')
                 
                 self.tab_buttons[tab_name] = button
             
             # Update active tab styling
             self._update_tab_styling()
             
-            # Bind visibility to active state
-            self._bind_to_active_state(nav)
+            # Visibility will be managed by update_ui_state()
     
     def create_main_content(self) -> None:
         """Create the main content area."""
@@ -197,7 +195,7 @@ class PeiDockerWebGUI:
                     project_dir_input = ui.input(
                         placeholder='Auto-generated project directory (click Generate for new path)', 
                         value=default_project_dir
-                    ).classes('w-full')
+                    ).classes('w-full').props('data-testid="project-dir-input"')
                     
                     with ui.row().classes('gap-2 w-full'):
                         ui.button('📂 Browse', on_click=self.browse_directory) \
@@ -209,11 +207,13 @@ class PeiDockerWebGUI:
                     with ui.row().classes('gap-4 w-full mt-6'):
                         ui.button('✨ Create Project', 
                                  on_click=lambda: self.create_project(project_dir_input.value)) \
-                            .classes('flex-1 bg-green-600 hover:bg-green-700 text-white py-2')
+                            .classes('flex-1 bg-green-600 hover:bg-green-700 text-white py-2') \
+                            .props('data-testid="create-project-btn"')
                         
                         ui.button('📂 Load Project', 
                                  on_click=lambda: self.load_project(project_dir_input.value)) \
-                            .classes('flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2')
+                            .classes('flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2') \
+                            .props('data-testid="load-project-btn"')
                 
                 # Show only in initial state
                 self._update_initial_content_visibility()
@@ -221,7 +221,9 @@ class PeiDockerWebGUI:
             # Active project content (tabs)
             with ui.column().classes('w-full') as active_content:
                 self.active_content = active_content
-                self.active_tab_container = ui.column().classes('w-full')
+                # Create tab container inside active_content context
+                with ui.column().classes('w-full') as tab_container:
+                    self.active_tab_container = tab_container
                 
                 # Hide in initial state
                 self._update_active_content_visibility()
@@ -248,8 +250,7 @@ class PeiDockerWebGUI:
                 self.error_label = ui.label('')
                 self._update_error_indicators()
             
-            # Bind visibility to active state
-            self._bind_to_active_state(status_bar)
+            # Visibility will be managed by update_ui_state()
     
     # Helper methods for state management
     def _bind_to_active_state(self, element: ui.element) -> None:
@@ -579,26 +580,24 @@ class PeiDockerWebGUI:
         self._update_initial_content_visibility()
         self._update_active_content_visibility()
         
-        # Update all bound elements
-        if self.app_state == AppState.ACTIVE:
+        # Update visibility of state-dependent elements
+        is_active = self.app_state == AppState.ACTIVE
+        
+        if self.project_info_bar:
+            self.project_info_bar.visible = is_active
+            
+        if self.tab_nav_container:
+            self.tab_nav_container.visible = is_active
+            
+        if self.status_bar_container:
+            self.status_bar_container.visible = is_active
+        
+        # Update all other elements when active
+        if is_active:
             self._update_project_dir_label()
             self._update_modified_indicators()
             self._update_error_indicators()
             self._update_tab_styling()
-            
-            # Update visibility of state-dependent elements
-            if self.header_container:
-                for child in self.header_container.default_slot.children:
-                    self._bind_to_active_state(child)
-            
-            if self.project_info_bar:
-                self._bind_to_active_state(self.project_info_bar)
-            
-            if self.tab_nav_container:
-                self._bind_to_active_state(self.tab_nav_container)
-            
-            if self.status_bar_container:
-                self._bind_to_active_state(self.status_bar_container)
 
 
 # Main entry point
