@@ -465,4 +465,32 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754393828751_qa4dm88b2" time="2025/08/05 19:37">
+    <content>
+      PeiDocker Project Terminology (from context/design/terminology.md):
+    
+      **Project-Wide Terminology:**
+    
+      1. **user_config.yml**: The main configuration file for PeiDocker projects containing SSH, environment variables, and other settings. Located in project directory. Master template: src/pei_docker/templates/config-template-full.yml
+    
+      2. **stage-1 and stage-2**: Two-stage architecture
+      - Stage-1: Initial stage building base image, installs system-level dependencies (apt), intended for many applications
+      - Stage-2: Second stage building docker image based on stage-1, installs application-level dependencies (pip, npm, ros2), specific to application
+    
+      3. **peidocker-data-model**: Data model representing user_config.yml during configuration, used by pei-docker-cli CLI and config_processor.py module
+    
+      4. **pei-docker-cli**: Command line interface for PeiDocker to create and manage projects. Source: src/pei_docker/pei.py
+    
+      **GUI-Specific Terminology:**
+    
+      1. **nicegui-web**: Web GUI implemented using NiceGUI framework. Source: src/pei_docker/webgui
+    
+      2. **ui-data-model**: Data model representing GUI state. Source: src/pei_docker/webgui/models/ui_state.py
+    
+      3. **ui-data-adapter**: Adapter converting between peidocker-data-model and ui-data-model. Source: src/pei_docker/webgui/models/config_adapter.py
+    
+      This terminology is essential for maintaining consistency across the codebase, especially after the recent refactoring that implemented the adapter pattern to bridge attrs (CLI) and pydantic (GUI) models.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

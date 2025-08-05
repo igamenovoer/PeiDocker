@@ -67,7 +67,26 @@
         "--tags",
         "refactoring data-model attrs pydantic duplication"
       ]
+    },
+    {
+      "from": "memory_saved",
+      "command": "action",
+      "timestamp": "2025-08-05T11:33:52.035Z",
+      "args": [
+        "nicegui-developer"
+      ]
+    },
+    {
+      "from": "role_activated_with_memory",
+      "command": "remember",
+      "timestamp": "2025-08-05T11:37:08.749Z",
+      "args": [
+        "nicegui-developer",
+        "PeiDocker Project Terminology (from context/design/terminology.md):\n\n**Project-Wide Terminology:**\n\n1. **user_config.yml**: The main configuration file for PeiDocker projects containing SSH, environment variables, and other settings. Located in project directory. Master template: src/pei_docker/templates/config-template-full.yml\n\n2. **stage-1 and stage-2**: Two-stage architecture\n   - Stage-1: Initial stage building base image, installs system-level dependencies (apt), intended for many applications\n   - Stage-2: Second stage building docker image based on stage-1, installs application-level dependencies (pip, npm, ros2), specific to application\n\n3. **peidocker-data-model**: Data model representing user_config.yml during configuration, used by pei-docker-cli CLI and config_processor.py module\n\n4. **pei-docker-cli**: Command line interface for PeiDocker to create and manage projects. Source: src/pei_docker/pei.py\n\n**GUI-Specific Terminology:**\n\n1. **nicegui-web**: Web GUI implemented using NiceGUI framework. Source: src/pei_docker/webgui\n\n2. **ui-data-model**: Data model representing GUI state. Source: src/pei_docker/webgui/models/ui_state.py\n\n3. **ui-data-adapter**: Adapter converting between peidocker-data-model and ui-data-model. Source: src/pei_docker/webgui/models/config_adapter.py\n\nThis terminology is essential for maintaining consistency across the codebase, especially after the recent refactoring that implemented the adapter pattern to bridge attrs (CLI) and pydantic (GUI) models.",
+        "--tags",
+        "terminology peidocker architecture gui"
+      ]
     }
   ],
-  "lastUpdated": "2025-08-05T06:28:41.138Z"
+  "lastUpdated": "2025-08-05T11:37:08.756Z"
 }

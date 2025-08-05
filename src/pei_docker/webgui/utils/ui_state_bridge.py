@@ -450,6 +450,7 @@ class UIStateBridge:
             }
         
         # Add network configuration to stage-1
+        # Following default behavior: write to both stages
         if ui_state.stage_1.network.proxy_enabled:
             proxy_config: Dict[str, Any] = {}
             if ui_state.stage_1.network.http_proxy:
@@ -493,7 +494,7 @@ class UIStateBridge:
                 for m in ui_state.stage_1.network.port_mappings
             ]
         
-        # Add SSH configuration to stage-1
+        # Add SSH configuration to stage-1 ONLY (per mapping rules)
         if ui_state.stage_1.ssh.enabled:
             # Convert users list to dict format expected by attrs
             users_dict = {}
@@ -567,7 +568,15 @@ class UIStateBridge:
         if ui_state.stage_2.environment.env_vars:
             stage_2['environment'] = env_vars_to_list(ui_state.stage_2.environment.env_vars)
         
-        # Add network configuration to stage-2 (only if different from stage-1)
+        # Add device configuration to stage-2 (copy from GUI's single device setting)
+        # Following the principle: if GUI has single section, map to both stages
+        if ui_state.stage_2.environment.device_type != 'cpu':
+            stage_2['device'] = {
+                'type': ui_state.stage_2.environment.device_type
+            }
+        
+        # Add network configuration to stage-2 
+        # Following default behavior: write to both stages
         if ui_state.stage_2.network.proxy_enabled:
             stage2_proxy_config: Dict[str, Any] = {}
             if ui_state.stage_2.network.http_proxy:
@@ -690,28 +699,36 @@ class UIStateBridge:
         return config
     
     def _load_into_ui(self, config_data: Dict[str, Any], ui_state: AppUIState) -> None:
-        """Load YAML configuration into UI state."""
+        """Load YAML configuration into UI state.
+        
+        Implements mapping rules from gui-to-core-data-mapping.md:
+        - SSH: Load from stage-2 if exists in both, otherwise from whichever has it
+        - Device: Load from stage-2 if exists in both, otherwise from whichever has it
+        - Environment: Merge variables with stage-2 overriding stage-1
+        - Network: Load from stage-2 if exists in both, otherwise from whichever has it
+        """
         stage_1_data = config_data.get('stage_1', config_data.get('stage-1', {}))
         stage_2_data = config_data.get('stage_2', config_data.get('stage-2', {}))
         
         # Load project configuration
         self._load_project_config(stage_1_data, ui_state.project)
         
-        # Load environment configuration
-        self._load_environment_config(stage_1_data, ui_state.stage_1.environment)
-        self._load_environment_config(stage_2_data, ui_state.stage_2.environment)
+        # Load environment configuration with merging logic
+        self._load_environment_config_merged(stage_1_data, stage_2_data, ui_state)
         
-        # Load network configuration
-        self._load_network_config(stage_1_data, ui_state.stage_1.network)
-        self._load_network_config(stage_2_data, ui_state.stage_2.network)
+        # Load network configuration following default behavior
+        self._load_network_config_default(stage_1_data, stage_2_data, ui_state)
         
-        # Load SSH configuration (stage-1 only)
-        self._load_ssh_config(stage_1_data, ui_state.stage_1.ssh)
+        # Load SSH configuration following default behavior
+        self._load_ssh_config_default(stage_1_data, stage_2_data, ui_state)
         
-        # Load storage configuration (stage-2 only)
+        # Load device configuration following default behavior
+        self._load_device_config_default(stage_1_data, stage_2_data, ui_state)
+        
+        # Load storage configuration (stage-2 only - has separate sections)
         self._load_storage_config(stage_2_data, ui_state.stage_2.storage)
         
-        # Load scripts configuration
+        # Load scripts configuration (has separate sections)
         self._load_scripts_config(stage_1_data, stage_2_data, 
                                 ui_state.stage_1.scripts, 
                                 ui_state.stage_2.scripts)
@@ -724,22 +741,140 @@ class UIStateBridge:
         project.base_image = image_config.get('base', 'ubuntu:22.04')
         project.image_output_name = image_config.get('output', '')
     
-    def _load_environment_config(self, stage_data: Dict[str, Any], env: EnvironmentUI) -> None:
-        """Load environment configuration from YAML data."""
-        # Load environment variables
-        env_list = stage_data.get('environment', [])
-        env.env_vars.clear()
+    def _load_environment_config_merged(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
+        """Load environment configuration with merging logic.
         
-        for env_str in env_list:
+        Implements the rule: merge env variables from both stages,
+        with stage-2 values overriding stage-1 for duplicate keys.
+        """
+        # First, collect all environment variables from both stages
+        merged_env_vars: Dict[str, str] = {}
+        
+        # Load stage-1 environment variables
+        stage_1_env_list = stage_1_data.get('environment', [])
+        for env_str in stage_1_env_list:
             if '=' in env_str:
                 key, value = env_str.split('=', 1)
-                env.env_vars[key.strip()] = value.strip()
+                merged_env_vars[key.strip()] = value.strip()
         
-        # Load device configuration
-        device_config = stage_data.get('device', {})
+        # Load stage-2 environment variables (overrides stage-1)
+        stage_2_env_list = stage_2_data.get('environment', [])
+        for env_str in stage_2_env_list:
+            if '=' in env_str:
+                key, value = env_str.split('=', 1)
+                merged_env_vars[key.strip()] = value.strip()
+        
+        # Apply merged environment variables to both UI states
+        # This ensures GUI shows the merged view
+        ui_state.stage_1.environment.env_vars = merged_env_vars.copy()
+        ui_state.stage_2.environment.env_vars = merged_env_vars.copy()
+    
+    def _load_device_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
+        """Load device configuration following default behavior.
+        
+        Default behavior: if exists in both stages, load from stage-2;
+        if exists in single stage, load from that stage.
+        """
+        device_1 = stage_1_data.get('device', {})
+        device_2 = stage_2_data.get('device', {})
+        
+        # Determine which device config to use
+        device_config = None
+        if device_2:
+            device_config = device_2  # Stage-2 takes precedence
+        elif device_1:
+            device_config = device_1
+        
+        # Apply to both UI states (GUI shows single device setting)
         if device_config:
-            env.device_type = device_config.get('type', 'cpu')
-            env.gpu_enabled = env.device_type == 'gpu'
+            device_type = device_config.get('type', 'cpu')
+            ui_state.stage_1.environment.device_type = device_type
+            ui_state.stage_1.environment.gpu_enabled = (device_type == 'gpu')
+            ui_state.stage_2.environment.device_type = device_type
+            ui_state.stage_2.environment.gpu_enabled = (device_type == 'gpu')
+    
+    def _load_network_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
+        """Load network configuration following default behavior.
+        
+        Default behavior: if exists in both stages, load from stage-2;
+        if exists in single stage, load from that stage.
+        """
+        # For each network setting, apply default behavior
+        # Proxy configuration
+        proxy_1 = stage_1_data.get('proxy', {})
+        proxy_2 = stage_2_data.get('proxy', {})
+        proxy_config = proxy_2 if proxy_2 else proxy_1
+        
+        if proxy_config:
+            address = proxy_config.get('address', '')
+            port = proxy_config.get('port', 8080)
+            scheme = 'https' if proxy_config.get('use_https', False) else 'http'
+            
+            if address:
+                proxy_url = f"{scheme}://{address}:{port}"
+                # Apply to both stages
+                ui_state.stage_1.network.proxy_enabled = True
+                ui_state.stage_1.network.http_proxy = proxy_url
+                ui_state.stage_1.network.https_proxy = proxy_url
+                ui_state.stage_2.network.proxy_enabled = True
+                ui_state.stage_2.network.http_proxy = proxy_url
+                ui_state.stage_2.network.https_proxy = proxy_url
+        
+        # APT configuration
+        apt_1 = stage_1_data.get('apt', {})
+        apt_2 = stage_2_data.get('apt', {})
+        apt_config = apt_2 if apt_2 else apt_1
+        
+        if apt_config:
+            apt_mirror = apt_config.get('repo_source', '')
+            # Apply to both stages
+            ui_state.stage_1.network.apt_mirror = apt_mirror
+            ui_state.stage_2.network.apt_mirror = apt_mirror
+        
+        # Port mappings - load separately for each stage
+        # Note: Only load port mappings, not the entire network config
+        # to avoid overriding the default behavior we just applied
+        ports_1 = stage_1_data.get('ports', [])
+        ports_2 = stage_2_data.get('ports', [])
+        
+        # Load port mappings for stage-1
+        ui_state.stage_1.network.port_mappings.clear()
+        for port_str in ports_1:
+            if ':' in port_str:
+                host, container = port_str.split(':', 1)
+                ui_state.stage_1.network.port_mappings.append({
+                    'host': host.strip(),
+                    'container': container.strip()
+                })
+        
+        # Load port mappings for stage-2
+        ui_state.stage_2.network.port_mappings.clear()
+        for port_str in ports_2:
+            if ':' in port_str:
+                host, container = port_str.split(':', 1)
+                ui_state.stage_2.network.port_mappings.append({
+                    'host': host.strip(),
+                    'container': container.strip()
+                })
+    
+    def _load_ssh_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
+        """Load SSH configuration following default behavior.
+        
+        Default behavior for reading: if exists in both stages, load from stage-2;
+        if exists in single stage, load from that stage.
+        Note: SSH is written to stage-1 ONLY, but we still follow default read behavior.
+        """
+        ssh_1 = stage_1_data.get('ssh', {})
+        ssh_2 = stage_2_data.get('ssh', {})
+        
+        # Use stage-2 if exists, otherwise stage-1
+        ssh_config = ssh_2 if ssh_2 else ssh_1
+        
+        if ssh_config:
+            # Apply to stage-1 UI (SSH tab is in stage-1)
+            # Create a temporary dict with the SSH config to load
+            temp_data = {'ssh': ssh_config}
+            self._load_ssh_config(temp_data, ui_state.stage_1.ssh)
     
     def _load_network_config(self, stage_data: Dict[str, Any], network: NetworkUI) -> None:
         """Load network configuration from YAML data."""
