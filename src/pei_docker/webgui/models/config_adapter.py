@@ -187,14 +187,6 @@ class NetworkConfigAdapter:
         return f"{scheme}://{self._proxy.address}:{self._proxy.port}"
     
     @property
-    def https_proxy(self) -> str:
-        return self.http_proxy  # Same as http_proxy
-    
-    @property
-    def no_proxy(self) -> str:
-        return "localhost,127.0.0.1,::1"  # Default no_proxy
-    
-    @property
     def apt_mirror(self) -> str:
         return self._apt.repo_source if self._apt and self._apt.repo_source else ""
     

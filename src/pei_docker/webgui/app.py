@@ -106,14 +106,14 @@ class PeiDockerWebGUI:
             
             # Action buttons (only shown in active state)
             with ui.row().classes('gap-2') as actions:
-                save_btn = ui.button('💾 Save', on_click=lambda: asyncio.create_task(self.save_configuration())) \
+                save_btn = ui.button('💾 Save', on_click=self.save_configuration) \
                     .classes('bg-green-600 hover:bg-green-700') \
                     .props('data-testid="save-btn"')
                 
-                configure_btn = ui.button('⚙️ Configure', on_click=lambda: asyncio.create_task(self.configure_project())) \
+                configure_btn = ui.button('⚙️ Configure', on_click=self.configure_project) \
                     .classes('bg-yellow-600 hover:bg-yellow-700')
                 
-                download_btn = ui.button('📦 Download', on_click=lambda: asyncio.create_task(self.download_project())) \
+                download_btn = ui.button('📦 Download', on_click=self.download_project) \
                     .classes('bg-blue-500 hover:bg-blue-600')
                 
                 # Visibility will be managed by update_ui_state()
@@ -444,11 +444,10 @@ class PeiDockerWebGUI:
         for stage_num, stage_ui in [(1, self.ui_state.stage_1), (2, self.ui_state.stage_2)]:
             scripts_ui = stage_ui.scripts
             
-            # Entry point inline scripts
-            entry_mode = getattr(scripts_ui, f'stage{stage_num}_entry_mode')
-            if entry_mode == 'inline':
-                entry_name = getattr(scripts_ui, f'stage{stage_num}_entry_inline_name')
-                entry_content = getattr(scripts_ui, f'stage{stage_num}_entry_inline_content')
+            # Entry point inline scripts - access directly from scripts_ui
+            if scripts_ui.entry_mode == 'inline':
+                entry_name = scripts_ui.entry_inline_name
+                entry_content = scripts_ui.entry_inline_content
                 
                 if entry_name and entry_content:
                     script_path = installation_dir / entry_name
@@ -463,8 +462,8 @@ class PeiDockerWebGUI:
                     # Make executable
                     script_path.chmod(0o755)
             
-            # Lifecycle inline scripts
-            lifecycle_scripts = getattr(scripts_ui, f'stage{stage_num}_lifecycle_scripts', {})
+            # Lifecycle inline scripts - access directly from scripts_ui
+            lifecycle_scripts = scripts_ui.lifecycle_scripts
             for lifecycle_type, scripts in lifecycle_scripts.items():
                 for script in scripts:
                     if script.get('type') == 'inline':

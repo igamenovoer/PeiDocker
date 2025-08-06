@@ -255,20 +255,14 @@ class UIStateBridge:
         on_entry = []
         
         # Handle entry point
-        if stage_num == 1:
-            if ui_scripts.stage1_entry_mode == "file" and ui_scripts.stage1_entry_file_path:
-                on_entry.append(ui_scripts.stage1_entry_file_path)
-            elif ui_scripts.stage1_entry_mode == "inline" and ui_scripts.stage1_entry_inline_name:
-                # For inline scripts, we'll handle this in YAML generation
-                on_entry.append(f"_inline_{ui_scripts.stage1_entry_inline_name}")
-        else:
-            if ui_scripts.stage2_entry_mode == "file" and ui_scripts.stage2_entry_file_path:
-                on_entry.append(ui_scripts.stage2_entry_file_path)
-            elif ui_scripts.stage2_entry_mode == "inline" and ui_scripts.stage2_entry_inline_name:
-                on_entry.append(f"_inline_{ui_scripts.stage2_entry_inline_name}")
+        if ui_scripts.entry_mode == "file" and ui_scripts.entry_file_path:
+            on_entry.append(ui_scripts.entry_file_path)
+        elif ui_scripts.entry_mode == "inline" and ui_scripts.entry_inline_name:
+            # For inline scripts, we'll handle this in YAML generation
+            on_entry.append(f"_inline_{ui_scripts.entry_inline_name}")
         
         # Extract lifecycle scripts
-        lifecycle_scripts = ui_scripts.stage1_lifecycle_scripts if stage_num == 1 else ui_scripts.stage2_lifecycle_scripts
+        lifecycle_scripts = ui_scripts.lifecycle_scripts
         
         on_build = []
         on_first_run = []
@@ -430,23 +424,19 @@ class UIStateBridge:
         inline_scripts_2: Dict[str, str] = {}
         
         # Process stage-1 inline scripts
-        if ui_state.stage_1.scripts.stage1_entry_mode == "inline":
-            script_name = ui_state.stage_1.scripts.stage1_entry_inline_name
-            script_content = ui_state.stage_1.scripts.stage1_entry_inline_content
+        if ui_state.stage_1.scripts.entry_mode == "inline":
+            script_name = ui_state.stage_1.scripts.entry_inline_name
+            script_content = ui_state.stage_1.scripts.entry_inline_content
             if script_name and script_content:
                 inline_scripts_1[script_name] = script_content
                 stage_1['entry_point'] = f"/pei-docker/scripts/{script_name}"
-        elif ui_state.stage_1.scripts.stage1_entry_mode == "file":
-            stage_1['entry_point'] = ui_state.stage_1.scripts.stage1_entry_file_path
+        elif ui_state.stage_1.scripts.entry_mode == "file":
+            stage_1['entry_point'] = ui_state.stage_1.scripts.entry_file_path
         
         # Add environment configuration to stage-1
-        # According to the mapping guide, environment variables should be written to both stages
-        all_env_vars = {}
-        all_env_vars.update(ui_state.stage_1.environment.env_vars)
-        all_env_vars.update(ui_state.stage_2.environment.env_vars)
-        
-        if all_env_vars:
-            stage_1['environment'] = env_vars_to_list(all_env_vars)
+        # Environment tab has separate sections for stage-1 and stage-2, save separately
+        if ui_state.stage_1.environment.env_vars:
+            stage_1['environment'] = env_vars_to_list(ui_state.stage_1.environment.env_vars)
         
         # Add device configuration to stage-1
         if ui_state.stage_1.environment.device_type != 'cpu':
@@ -525,7 +515,7 @@ class UIStateBridge:
         
         # Process stage-1 custom scripts
         custom_scripts_1 = {}
-        lifecycle_1 = ui_state.stage_1.scripts.stage1_lifecycle_scripts
+        lifecycle_1 = ui_state.stage_1.scripts.lifecycle_scripts
         
         for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
             ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
@@ -564,19 +554,19 @@ class UIStateBridge:
         }
         
         # Process stage-2 inline entry point
-        if ui_state.stage_2.scripts.stage2_entry_mode == "inline":
-            script_name = ui_state.stage_2.scripts.stage2_entry_inline_name
-            script_content = ui_state.stage_2.scripts.stage2_entry_inline_content
+        if ui_state.stage_2.scripts.entry_mode == "inline":
+            script_name = ui_state.stage_2.scripts.entry_inline_name
+            script_content = ui_state.stage_2.scripts.entry_inline_content
             if script_name and script_content:
                 inline_scripts_2[script_name] = script_content
                 stage_2['entry_point'] = f"/pei-docker/scripts/{script_name}"
-        elif ui_state.stage_2.scripts.stage2_entry_mode == "file":
-            stage_2['entry_point'] = ui_state.stage_2.scripts.stage2_entry_file_path
+        elif ui_state.stage_2.scripts.entry_mode == "file":
+            stage_2['entry_point'] = ui_state.stage_2.scripts.entry_file_path
         
         # Add environment configuration to stage-2
-        # According to the mapping guide, environment variables should be written to both stages
-        if all_env_vars:  # Using the same all_env_vars from above
-            stage_2['environment'] = env_vars_to_list(all_env_vars)
+        # Environment tab has separate sections for stage-1 and stage-2, save separately
+        if ui_state.stage_2.environment.env_vars:
+            stage_2['environment'] = env_vars_to_list(ui_state.stage_2.environment.env_vars)
         
         # Add device configuration to stage-2 (copy from GUI's single device setting)
         # Following the principle: if GUI has single section, map to both stages
@@ -623,7 +613,7 @@ class UIStateBridge:
         
         # Process stage-2 custom scripts
         custom_scripts_2 = {}
-        lifecycle_2 = ui_state.stage_2.scripts.stage2_lifecycle_scripts
+        lifecycle_2 = ui_state.stage_2.scripts.lifecycle_scripts
         
         for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
             ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
@@ -723,8 +713,8 @@ class UIStateBridge:
         # Load project configuration
         self._load_project_config(stage_1_data, ui_state.project)
         
-        # Load environment configuration with merging logic
-        self._load_environment_config_merged(stage_1_data, stage_2_data, ui_state)
+        # Load environment configuration (separate for each stage, no merging)
+        self._load_environment_config_separate(stage_1_data, stage_2_data, ui_state)
         
         # Load network configuration following default behavior
         self._load_network_config_default(stage_1_data, stage_2_data, ui_state)
@@ -751,57 +741,56 @@ class UIStateBridge:
         project.base_image = image_config.get('base', 'ubuntu:22.04')
         project.image_output_name = image_config.get('output', '')
     
-    def _load_environment_config_merged(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
-        """Load environment configuration with merging logic.
+    def _load_environment_config_separate(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
+        """Load environment configuration separately for each stage.
         
-        Implements the rule: merge env variables from both stages,
-        with stage-2 values overriding stage-1 for duplicate keys.
+        Since the environment tab has separate sections for stage-1 and stage-2,
+        no special mapping is needed - each stage keeps its own environment variables.
         """
-        # First, collect all environment variables from both stages
-        merged_env_vars: Dict[str, str] = {}
-        
         # Load stage-1 environment variables
+        stage_1_env_vars: Dict[str, str] = {}
         stage_1_env_list = stage_1_data.get('environment', [])
         for env_str in stage_1_env_list:
             if '=' in env_str:
                 key, value = env_str.split('=', 1)
-                merged_env_vars[key.strip()] = value.strip()
+                stage_1_env_vars[key.strip()] = value.strip()
         
-        # Load stage-2 environment variables (overrides stage-1)
+        # Load stage-2 environment variables
+        stage_2_env_vars: Dict[str, str] = {}
         stage_2_env_list = stage_2_data.get('environment', [])
         for env_str in stage_2_env_list:
             if '=' in env_str:
                 key, value = env_str.split('=', 1)
-                merged_env_vars[key.strip()] = value.strip()
+                stage_2_env_vars[key.strip()] = value.strip()
         
-        # Apply merged environment variables to both UI states
-        # This ensures GUI shows the merged view
-        ui_state.stage_1.environment.env_vars = merged_env_vars.copy()
-        ui_state.stage_2.environment.env_vars = merged_env_vars.copy()
+        # Apply environment variables to their respective stages
+        ui_state.stage_1.environment.env_vars = stage_1_env_vars
+        ui_state.stage_2.environment.env_vars = stage_2_env_vars
     
     def _load_device_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
-        """Load device configuration following default behavior.
+        """Load device configuration separately for each stage.
         
-        Default behavior: if exists in both stages, load from stage-2;
-        if exists in single stage, load from that stage.
+        Each stage now has its own independent device configuration.
         """
+        # Load Stage-1 device configuration
         device_1 = stage_1_data.get('device', {})
-        device_2 = stage_2_data.get('device', {})
-        
-        # Determine which device config to use
-        device_config = None
-        if device_2:
-            device_config = device_2  # Stage-2 takes precedence
-        elif device_1:
-            device_config = device_1
-        
-        # Apply to both UI states (GUI shows single device setting)
-        if device_config:
-            device_type = device_config.get('type', 'cpu')
+        if device_1:
+            device_type = device_1.get('type', 'cpu')
             ui_state.stage_1.environment.device_type = device_type
             ui_state.stage_1.environment.gpu_enabled = (device_type == 'gpu')
+        else:
+            ui_state.stage_1.environment.device_type = 'cpu'
+            ui_state.stage_1.environment.gpu_enabled = False
+        
+        # Load Stage-2 device configuration
+        device_2 = stage_2_data.get('device', {})
+        if device_2:
+            device_type = device_2.get('type', 'cpu')
             ui_state.stage_2.environment.device_type = device_type
             ui_state.stage_2.environment.gpu_enabled = (device_type == 'gpu')
+        else:
+            ui_state.stage_2.environment.device_type = 'cpu'
+            ui_state.stage_2.environment.gpu_enabled = False
     
     def _load_network_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
         """Load network configuration following default behavior.
@@ -825,10 +814,8 @@ class UIStateBridge:
                 # Apply to both stages
                 ui_state.stage_1.network.proxy_enabled = True
                 ui_state.stage_1.network.http_proxy = proxy_url
-                ui_state.stage_1.network.https_proxy = proxy_url
                 ui_state.stage_2.network.proxy_enabled = True
                 ui_state.stage_2.network.http_proxy = proxy_url
-                ui_state.stage_2.network.https_proxy = proxy_url
         
         # APT configuration
         apt_1 = stage_1_data.get('apt', {})
@@ -898,7 +885,6 @@ class UIStateBridge:
             
             if address:
                 network.http_proxy = f"{scheme}://{address}:{port}"
-                network.https_proxy = network.http_proxy
         
         # Load APT configuration
         apt_config = stage_data.get('apt', {})
@@ -1015,13 +1001,13 @@ class UIStateBridge:
                 # This is an inline script
                 script_name = entry_point_1.replace('/pei-docker/scripts/', '')
                 if script_name in inline_scripts_1:
-                    scripts1.stage1_entry_mode = "inline"
-                    scripts1.stage1_entry_inline_name = script_name
-                    scripts1.stage1_entry_inline_content = inline_scripts_1[script_name]
+                    scripts1.entry_mode = "inline"
+                    scripts1.entry_inline_name = script_name
+                    scripts1.entry_inline_content = inline_scripts_1[script_name]
             else:
                 # This is a file path
-                scripts1.stage1_entry_mode = "file"
-                scripts1.stage1_entry_file_path = entry_point_1
+                scripts1.entry_mode = "file"
+                scripts1.entry_file_path = entry_point_1
         
         # Load stage-2 inline scripts metadata
         inline_scripts_2 = stage_2_data.get('_inline_scripts', {})
@@ -1036,16 +1022,16 @@ class UIStateBridge:
             if entry_point_2.startswith('/pei-docker/scripts/'):
                 script_name = entry_point_2.replace('/pei-docker/scripts/', '')
                 if script_name in inline_scripts_2:
-                    scripts2.stage2_entry_mode = "inline"
-                    scripts2.stage2_entry_inline_name = script_name
-                    scripts2.stage2_entry_inline_content = inline_scripts_2[script_name]
+                    scripts2.entry_mode = "inline"
+                    scripts2.entry_inline_name = script_name
+                    scripts2.entry_inline_content = inline_scripts_2[script_name]
             else:
-                scripts2.stage2_entry_mode = "file"
-                scripts2.stage2_entry_file_path = entry_point_2
+                scripts2.entry_mode = "file"
+                scripts2.entry_file_path = entry_point_2
         
         # Load lifecycle scripts
-        scripts1.stage1_lifecycle_scripts.clear()
-        scripts2.stage2_lifecycle_scripts.clear()
+        scripts1.lifecycle_scripts.clear()
+        scripts2.lifecycle_scripts.clear()
         
         # Map between UI keys and YAML keys
         script_mappings = {
@@ -1076,7 +1062,7 @@ class UIStateBridge:
                             'type': 'file',
                             'path': script_path
                         })
-                scripts1.stage1_lifecycle_scripts[ui_key] = scripts_list
+                scripts1.lifecycle_scripts[ui_key] = scripts_list
         
         # Load stage-2 lifecycle scripts
         for ui_key, yaml_key in script_mappings.items():
@@ -1097,4 +1083,4 @@ class UIStateBridge:
                             'type': 'file',
                             'path': script_path
                         })
-                scripts2.stage2_lifecycle_scripts[ui_key] = scripts_list
+                scripts2.lifecycle_scripts[ui_key] = scripts_list

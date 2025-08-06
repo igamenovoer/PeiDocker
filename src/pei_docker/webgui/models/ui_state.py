@@ -14,19 +14,14 @@ from nicegui import binding
 class EnvironmentUI:
     """UI state for environment configuration - automatically syncs with widgets"""
     
-    # GPU Configuration
+    # Device Configuration
+    device_type: str = "cpu"  # "cpu" or "gpu"
+    
+    # GPU Configuration (derived from device_type)
     gpu_enabled: bool = False
-    gpu_count: str = "all"  # "all" or specific number
-    cuda_version: str = "12.4"
     
     # Environment Variables  
     env_vars: Dict[str, str] = field(default_factory=dict)
-    
-    # Device Configuration
-    device_type: str = "cpu"  # "cpu", "gpu", "custom"
-    
-    # GPU specific settings
-    gpu_memory_limit: str = ""  # e.g., "4GB"
 
 @binding.bindable_dataclass  
 class NetworkUI:
@@ -35,8 +30,6 @@ class NetworkUI:
     # Proxy Settings
     proxy_enabled: bool = False
     http_proxy: str = ""
-    https_proxy: str = ""
-    no_proxy: str = ""
     
     # APT Configuration
     apt_mirror: str = ""
@@ -76,22 +69,16 @@ class StorageUI:
 
 @binding.bindable_dataclass
 class ScriptsUI:
-    """UI state for scripts configuration"""
+    """UI state for scripts configuration for a single stage"""
     
     # Entry point configuration
-    stage1_entry_mode: str = "none"  # "none", "file", "inline"
-    stage1_entry_file_path: str = ""
-    stage1_entry_inline_name: str = ""
-    stage1_entry_inline_content: str = ""
-    
-    stage2_entry_mode: str = "none"  # "none", "file", "inline"
-    stage2_entry_file_path: str = ""
-    stage2_entry_inline_name: str = ""
-    stage2_entry_inline_content: str = ""
+    entry_mode: str = "none"  # "none", "file", "inline"
+    entry_file_path: str = ""
+    entry_inline_name: str = ""
+    entry_inline_content: str = ""
     
     # Lifecycle scripts - storing as JSON for complex structure
-    stage1_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
-    stage2_lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    lifecycle_scripts: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
     
     # Temporary storage for inline scripts being edited
     _inline_scripts_metadata: Dict[str, Dict[str, str]] = field(default_factory=dict)

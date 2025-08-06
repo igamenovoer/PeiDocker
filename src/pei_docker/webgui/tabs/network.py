@@ -49,31 +49,16 @@ class NetworkTab(BaseTab):
                     ui.label('Enable proxy globally for both stages').classes('text-sm text-gray-600 mb-4')
                     
                     # HTTP Proxy URL
-                    with self.create_form_group('HTTP Proxy', 'HTTP proxy URL for network requests'):
+                    with self.create_form_group('HTTP Proxy', 'HTTP proxy URL for both HTTP and HTTPS requests'):
                         http_input = ui.input(
                             placeholder='http://host.docker.internal:7890'
                         ).classes('w-full').bind_value(network_1, 'http_proxy') \
                         .props('data-testid="http-proxy-input"')
                         # Keep stage 2 in sync
                         http_input.bind_value(network_2, 'http_proxy')
-                    
-                    # HTTPS Proxy URL
-                    with self.create_form_group('HTTPS Proxy', 'HTTPS proxy URL for secure requests'):
-                        https_input = ui.input(
-                            placeholder='http://host.docker.internal:7890'
-                        ).classes('w-full').bind_value(network_1, 'https_proxy') \
-                        .props('data-testid="https-proxy-input"')
-                        # Keep stage 2 in sync
-                        https_input.bind_value(network_2, 'https_proxy')
-                    
-                    # No Proxy
-                    with self.create_form_group('No Proxy', 'Comma-separated list of hosts to bypass proxy'):
-                        no_proxy_input = ui.input(
-                            placeholder='localhost,127.0.0.1,.example.com'
-                        ).classes('w-full').bind_value(network_1, 'no_proxy') \
-                        .props('data-testid="no-proxy-input"')
-                        # Keep stage 2 in sync
-                        no_proxy_input.bind_value(network_2, 'no_proxy')
+                        
+                        # Info note about proxy usage
+                        ui.label('This proxy will be used for both HTTP and HTTPS protocols').classes('text-sm text-gray-600 mt-2')
             
             # APT Configuration
             with self.create_card('📥 APT Configuration'):
@@ -323,13 +308,12 @@ class NetworkTab(BaseTab):
         
         # Validate proxy configuration
         if network.proxy_enabled:
-            if not network.http_proxy and not network.https_proxy:
-                errors.append("At least one proxy URL (HTTP or HTTPS) is required when proxy is enabled")
+            if not network.http_proxy:
+                errors.append("HTTP proxy URL is required when proxy is enabled")
             
-            # Validate proxy URLs
-            for proxy_type, proxy_url in [('HTTP', network.http_proxy), ('HTTPS', network.https_proxy)]:
-                if proxy_url and not proxy_url.startswith(('http://', 'https://', 'socks5://')):
-                    errors.append(f"{proxy_type} proxy URL must start with http://, https://, or socks5://")
+            # Validate proxy URL
+            if network.http_proxy and not network.http_proxy.startswith(('http://', 'https://', 'socks5://')):
+                errors.append("HTTP proxy URL must start with http://, https://, or socks5://")
         
         # Validate port mappings
         for i, mapping in enumerate(network.port_mappings):
