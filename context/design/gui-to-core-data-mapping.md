@@ -32,9 +32,7 @@ These tabs in the GUI have specific mapping rules:
   
 - `device` tab: follow the default behavior.
 
-- `environment` tab: 
-  - writing to `user_config.yml`: follow the default behavior
-  - reading from `user_config.yml`: merge the env variables of the two stages, but if `stage-1` and `stage-2` have the same variable, the value from `stage-2` will be used.
+- `environment` tab: the GUI has separate sections for `stage-1` and `stage-2`, so no special mapping is needed. 
 
 - `network` tab: follow the default behavior.
   

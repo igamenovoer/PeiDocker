@@ -91,40 +91,9 @@ class EnvironmentTab(BaseTab):
                 with ui.column().classes('mt-6 w-full') as gpu_config:
                     gpu_config.bind_visibility_from(stage_env, 'device_type', lambda v: v == 'gpu')
                     
-                    with self.create_form_group('GPU Configuration'):
-                        # GPU count selection
-                        with ui.row().classes('items-center gap-4 mb-4'):
-                            ui.label('GPU Count:').classes('font-medium')
-                            ui.select(
-                                options={'all': 'All GPUs', '1': '1 GPU', '2': '2 GPUs', '4': '4 GPUs'},
-                                value='all'
-                            ).classes('w-32').bind_value(stage_env, 'gpu_count') \
-                                .props(f'data-testid="{stage}-gpu-count-select"')
-                        
-                        # CUDA version selection
-                        with ui.row().classes('items-center gap-4 mb-4'):
-                            ui.label('CUDA Version:').classes('font-medium')
-                            ui.select(
-                                options={
-                                    '12.4': 'CUDA 12.4',
-                                    '12.3': 'CUDA 12.3',
-                                    '12.2': 'CUDA 12.2',
-                                    '12.1': 'CUDA 12.1',
-                                    '12.0': 'CUDA 12.0',
-                                    '11.8': 'CUDA 11.8',
-                                    '11.7': 'CUDA 11.7'
-                                },
-                                value='12.4'
-                            ).classes('w-48').bind_value(stage_env, 'cuda_version') \
-                                .props(f'data-testid="{stage}-cuda-version-select"')
-                        
-                        # GPU Memory Limit
-                        with self.create_form_group('GPU Memory Limit (optional)',
-                                                  'Limit GPU memory usage (Docker 19.03+ required)'):
-                            ui.input(
-                                placeholder='e.g., 4GB or leave empty for no limit'
-                            ).classes('w-full').bind_value(stage_env, 'gpu_memory_limit') \
-                                .props(f'data-testid="{stage}-gpu-memory-limit-input"')
+                    with self.create_form_group('GPU Configuration', 
+                                              'GPU support enabled - all available GPUs will be accessible in the container. To control GPU usage, you can either modify the generated docker compose file directly, or use "CUDA_VISIBLE_DEVICES" environment variable inside container.'):
+                        pass
     
     def _render_env_variables(self, stage: str, stage_env: Any) -> None:
         """Render environment variables from the UI state for a specific stage."""
@@ -274,17 +243,7 @@ class EnvironmentTab(BaseTab):
             elif key[0].isdigit():
                 errors.append(f"Stage-2: Environment variable name cannot start with a number: {key}")
         
-        # Validate GPU configuration for Stage-1
-        if self.app.ui_state.stage_1.environment.device_type == 'gpu' and self.app.ui_state.stage_1.environment.gpu_memory_limit:
-            memory_value = self.app.ui_state.stage_1.environment.gpu_memory_limit.strip()
-            if not any(memory_value.upper().endswith(unit) for unit in ['GB', 'MB', 'KB', 'G', 'M', 'K']):
-                errors.append("Stage-1: GPU memory limit should specify units (e.g., '4GB', '512MB')")
-        
-        # Validate GPU configuration for Stage-2
-        if self.app.ui_state.stage_2.environment.device_type == 'gpu' and self.app.ui_state.stage_2.environment.gpu_memory_limit:
-            memory_value = self.app.ui_state.stage_2.environment.gpu_memory_limit.strip()
-            if not any(memory_value.upper().endswith(unit) for unit in ['GB', 'MB', 'KB', 'G', 'M', 'K']):
-                errors.append("Stage-2: GPU memory limit should specify units (e.g., '4GB', '512MB')")
+        # No additional GPU validation needed - device_type is either 'cpu' or 'gpu'
         
         return len(errors) == 0, errors
     
