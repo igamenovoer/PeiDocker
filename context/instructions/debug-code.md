@@ -8,6 +8,7 @@ you are tasked to debug the source code, follow these guidelines to debug:
 - we are using `pixi` as python package manager, so use `pixi run` to run python code for deployment, **and `pixi run -e dev` for development tasks**
 - for any interactive process that may block the terminal, timeout within 10 seconds
 - NEVER modify pyproject.toml directly due to missing packages, use pixi installation commands instead
+- If you want to open browser, use `playwright` to open a new browser instance, do not reuse the current browser instance, as the user may be using it. And remember to close the browser instance after use.
 
 # File Handling Guidelines
 - temporary tests scripts should be placed in `<workspace_root>/tmp/tests` directory

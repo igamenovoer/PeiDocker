@@ -7,6 +7,7 @@ with the existing PeiDocker CLI commands.
 """
 
 import asyncio
+import os
 import tempfile
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Literal
@@ -506,7 +507,7 @@ class PeiDockerWebGUI:
     
     async def download_project(self) -> None:
         """Download project as archive."""
-        import zipfile
+        import shutil
         
         # Get project directory
         project_dir = self.ui_state.project.project_directory
@@ -520,26 +521,24 @@ class PeiDockerWebGUI:
             return
         
         try:
-            # Create ZIP file
+            # Create ZIP file using shutil
             project_name = self.ui_state.project.project_name or 'peidocker-project'
-            temp_dir = Path(tempfile.gettempdir())
-            zip_path = temp_dir / f"{project_name}.zip"
             
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for file_path in project_path.rglob('*'):
-                    if file_path.is_file():
-                        arcname = file_path.relative_to(project_path)
-                        zipf.write(file_path, arcname)
+            # Create zip file in temp directory (not using context manager to avoid premature cleanup)
+            temp_dir = tempfile.gettempdir()
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            temp_zip_base = os.path.join(temp_dir, f'{project_name}-{timestamp}')
             
-            # Serve the file for download
-            @app.get(f'/download/{project_name}.zip')
-            async def download():  # type: ignore
-                return ui.download(str(zip_path), f'{project_name}.zip')
+            # Use shutil.make_archive to create the zip file
+            zip_file_path = shutil.make_archive(temp_zip_base, 'zip', str(project_path))
             
-            # Trigger download
-            ui.run_javascript(f'window.open("/download/{project_name}.zip", "_self")')
+            # Trigger download using ui.download() in the UI context
+            ui.download(zip_file_path, f'{project_name}.zip')
             
             ui.notify('Project exported successfully!', type='positive')
+            
+            # Note: The temp file will be cleaned up by the OS eventually
+            # or we could implement a cleanup mechanism after download completes
             
         except Exception as e:
             ui.notify(f'Error exporting project: {str(e)}', type='negative', timeout=10000)
