@@ -541,4 +541,69 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754477636823_7tleiwhq3" time="2025/08/06 18:53">
+    <content>
+      PeiDocker Download Zip Function Fix (2025-08-06):
+    
+      PROBLEM: RuntimeError &quot;The current slot cannot be determined&quot; when clicking download button
+      - Error occurred in src/pei_docker/webgui/app.py:537 in download_project() method
+      - Tried to use ui.download() from within dynamically created FastAPI endpoint
+    
+      ROOT CAUSE:
+      - ui.download() must be called from NiceGUI UI context, not from FastAPI route handler
+      - Creating dynamic endpoints with @app.get decorator doesn&#x27;t work with ui.download()
+    
+      SOLUTION:
+      - Use shutil.make_archive() to create zip file (recommended approach from docs)
+      - Call ui.download() directly in the button event handler context
+      - Use tempfile.TemporaryDirectory() for automatic cleanup
+    
+      CODE CHANGES in download_project():
+      1. Added os import to imports section
+      2. Replaced zipfile implementation with shutil.make_archive()
+      3. Removed dynamic FastAPI endpoint creation
+      4. Called ui.download() directly in UI context
+      5. Used proper temporary directory management
+    
+      TESTING:
+      - Created test script verifying zip creation logic works
+      - Type checking passes with mypy
+      - Handles Windows path correctly with os.path.join()
+    
+      KEY PATTERN: Always call ui.download() from UI context (button handlers), never from background tasks or API endpoints
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754478079839_axm0yxmvi" time="2025/08/06 19:01">
+    <content>
+      PeiDocker Download Fix - Temporary File Persistence Issue (2025-08-06):
+    
+      SECOND ISSUE: After first fix, got &quot;File at path does not exist&quot; error
+      - Temp directory was cleaned up before browser could download the file
+      - with tempfile.TemporaryDirectory() deletes files immediately after context exits
+    
+      COMPLETE SOLUTION in download_project():
+      ```python
+      # Don&#x27;t use context manager for temp directory
+      temp_dir = tempfile.gettempdir()
+      timestamp = datetime.now().strftime(&#x27;%Y%m%d-%H%M%S&#x27;)
+      temp_zip_base = os.path.join(temp_dir, f&#x27;{project_name}-{timestamp}&#x27;)
+    
+      # Create zip file that persists
+      zip_file_path = shutil.make_archive(temp_zip_base, &#x27;zip&#x27;, str(project_path))
+    
+      # Call ui.download in UI context
+      ui.download(zip_file_path, f&#x27;{project_name}.zip&#x27;)
+      ```
+    
+      KEY LESSONS:
+      1. ui.download() sets up async download - file must persist until browser requests it
+      2. Don&#x27;t use TemporaryDirectory context manager with ui.download()
+      3. Add timestamp to filename to avoid conflicts
+      4. Let OS handle temp file cleanup later
+    
+      Testing confirmed file persists and download works correctly.
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

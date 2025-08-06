@@ -147,3 +147,91 @@ class AppUIState:
         """
         # This is a placeholder - will be implemented in the bridge layer
         return {}
+    
+    def reset(self) -> None:
+        """Reset the UI state to default values.
+        
+        This clears all configuration while maintaining object references
+        for NiceGUI bindings.
+        """
+        # Reset project configuration
+        self.project.project_name = ""
+        self.project.project_directory = ""
+        self.project.base_image = "ubuntu:22.04"
+        self.project.image_output_name = ""
+        self.project.template = "basic"
+        
+        # Reset stage-1 configuration
+        self.stage_1.environment.device_type = "cpu"
+        self.stage_1.environment.gpu_enabled = False
+        self.stage_1.environment.env_vars.clear()
+        
+        self.stage_1.network.proxy_enabled = False
+        self.stage_1.network.http_proxy = ""
+        self.stage_1.network.apt_mirror = ""
+        self.stage_1.network.port_mappings.clear()
+        
+        self.stage_1.ssh.enabled = False
+        self.stage_1.ssh.port = "22"
+        self.stage_1.ssh.host_port = "2222"
+        self.stage_1.ssh.users.clear()
+        
+        self.stage_1.storage.app_storage_type = "auto-volume"
+        self.stage_1.storage.app_volume_name = ""
+        self.stage_1.storage.app_host_path = ""
+        self.stage_1.storage.data_storage_type = "auto-volume"
+        self.stage_1.storage.data_volume_name = ""
+        self.stage_1.storage.data_host_path = ""
+        self.stage_1.storage.workspace_storage_type = "auto-volume"
+        self.stage_1.storage.workspace_volume_name = ""
+        self.stage_1.storage.workspace_host_path = ""
+        self.stage_1.storage.volumes.clear()
+        self.stage_1.storage.mounts.clear()
+        
+        self.stage_1.scripts.entry_mode = "none"
+        self.stage_1.scripts.entry_file_path = ""
+        self.stage_1.scripts.entry_inline_name = ""
+        self.stage_1.scripts.entry_inline_content = ""
+        self.stage_1.scripts.lifecycle_scripts.clear()
+        self.stage_1.scripts._inline_scripts_metadata.clear()
+        
+        # Reset stage-2 configuration
+        self.stage_2.environment.device_type = "cpu"
+        self.stage_2.environment.gpu_enabled = False
+        self.stage_2.environment.env_vars.clear()
+        
+        self.stage_2.network.proxy_enabled = False
+        self.stage_2.network.http_proxy = ""
+        self.stage_2.network.apt_mirror = ""
+        self.stage_2.network.port_mappings.clear()
+        
+        self.stage_2.ssh.enabled = False
+        self.stage_2.ssh.port = "22"
+        self.stage_2.ssh.host_port = "2222"
+        self.stage_2.ssh.users.clear()
+        
+        self.stage_2.storage.app_storage_type = "auto-volume"
+        self.stage_2.storage.app_volume_name = ""
+        self.stage_2.storage.app_host_path = ""
+        self.stage_2.storage.data_storage_type = "auto-volume"
+        self.stage_2.storage.data_volume_name = ""
+        self.stage_2.storage.data_host_path = ""
+        self.stage_2.storage.workspace_storage_type = "auto-volume"
+        self.stage_2.storage.workspace_volume_name = ""
+        self.stage_2.storage.workspace_host_path = ""
+        self.stage_2.storage.volumes.clear()
+        self.stage_2.storage.mounts.clear()
+        
+        self.stage_2.scripts.entry_mode = "none"
+        self.stage_2.scripts.entry_file_path = ""
+        self.stage_2.scripts.entry_inline_name = ""
+        self.stage_2.scripts.entry_inline_content = ""
+        self.stage_2.scripts.lifecycle_scripts.clear()
+        self.stage_2.scripts._inline_scripts_metadata.clear()
+        
+        # Reset app-level state
+        self.modified = False
+        self.last_saved = ""
+        self.active_tab = "project"
+        self.has_errors = False
+        self.error_count = 0
