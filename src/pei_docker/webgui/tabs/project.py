@@ -30,25 +30,14 @@ class ProjectTab(BaseTab):
             # Get project UI state
             project_ui = self.app.ui_state.project
             
-            # Tab header with horizontally aligned sections
+            # Two vertically aligned sections
             with ui.row().classes('w-full items-start gap-6'):
-                # Left section header
+                # Left section - Project Information
                 with ui.column().classes('flex-1'):
                     self.create_section_header(
                         '🏗️ Project Information',
                         'Configure basic project settings and Docker image information.'
                     )
-                
-                # Right section header  
-                with ui.column().classes('flex-1'):
-                    with ui.column().classes('mb-2'):
-                        ui.label('🐳 Generated Docker Images').classes('text-xl font-bold text-gray-800')
-                        ui.label('Images are automatically named based on your project name').classes('text-sm text-gray-600')
-            
-            # Two-column grid layout
-            with ui.row().classes('w-full gap-6'):
-                # Left Column - Basic Settings
-                with ui.column().classes('w-full'):
                     
                     # Project name with data binding
                     with self.create_form_group('Project Name *', 'Used for Docker image naming and project identification'):
@@ -63,40 +52,50 @@ class ProjectTab(BaseTab):
                             placeholder='ubuntu:22.04'
                         ).bind_value(project_ui, 'base_image').classes('w-full') \
                             .props('data-testid="base-image-input"')
+                        
+                        # Generated Docker Images Info (nested under base docker image)
+                        with ui.column().classes('mt-3 bg-gray-50 p-3 rounded-lg border'):
+                            ui.label('Generated Docker Images:').classes('text-sm font-medium text-gray-700 mb-2')
+                            with ui.column().classes('gap-2 ml-2'):
+                                # Stage-1 image
+                                with ui.row().classes('items-center gap-2'):
+                                    ui.icon('looks_one', size='sm').classes('text-blue-600')
+                                    ui.label('Stage-1:').classes('text-sm font-medium text-blue-800')
+                                    self.stage1_image_label = ui.label('') \
+                                        .classes('font-mono text-sm text-blue-900 bg-blue-100 px-2 py-1 rounded')
+                                
+                                # Stage-2 image
+                                with ui.row().classes('items-center gap-2'):
+                                    ui.icon('looks_two', size='sm').classes('text-green-600')
+                                    ui.label('Stage-2:').classes('text-sm font-medium text-green-800')
+                                    self.stage2_image_label = ui.label('') \
+                                        .classes('font-mono text-sm text-green-900 bg-green-100 px-2 py-1 rounded')
                 
-                # Right Column - Generated Docker Images
-                with ui.column().classes('w-full'):
-                    # Preview panel with stage images
-                    with ui.column().classes('bg-gray-50 p-4 rounded-lg border mt-8'):
-                        with ui.column().classes('gap-3'):
-                            # Stage-1 image
-                            with ui.row().classes('items-center gap-2'):
-                                ui.icon('looks_one', size='sm').classes('text-blue-600')
-                                ui.label('Stage-1:').classes('text-sm font-medium text-blue-800')
-                                self.stage1_image_label = ui.label('') \
-                                    .classes('font-mono text-sm text-blue-900 bg-blue-100 px-2 py-1 rounded')
-                            
-                            # Stage-2 image
-                            with ui.row().classes('items-center gap-2'):
-                                ui.icon('looks_two', size='sm').classes('text-green-600')
-                                ui.label('Stage-2:').classes('text-sm font-medium text-green-800')
-                                self.stage2_image_label = ui.label('') \
-                                    .classes('font-mono text-sm text-green-900 bg-green-100 px-2 py-1 rounded')
-            
-            # Architecture Information Section
-            with ui.column().classes('mt-8'):
-                with ui.expansion('🏗️ Two-Stage Architecture Overview', icon='info').classes('w-full'):
-                    with ui.column().classes('p-4 space-y-3'):
+                # Right section - Two-Stage Architecture Overview
+                with ui.column().classes('flex-1'):
+                    self.create_section_header(
+                        '🐳 Two-Stage Architecture Overview',
+                        'Understanding the PeiDocker build process.'
+                    )
+                    
+                    with ui.column().classes('p-4 bg-gray-50 rounded-lg border'):
                         ui.markdown("""
 **🔱 Stage-1 Image Building:**
+
 - 🏗️ Builds foundation image with system-level setup
+
 - 🔐 SSH server, proxy settings, APT packages, networking
+
 - ✅ Can be used independently for basic use cases
 
 **🔲 Stage-2 Image Building:**  
+
 - 📁 Built on top of Stage-1 image as foundation
+
 - ⚙️ Adds application-level customizations and packages
+
 - 💾 Includes dynamic storage system (`/soft/app`, `/soft/data`, `/soft/workspace`)
+
 - ⭐ Typically the target image due to enhanced features
 
 🚀 Both images are fully usable - you can run either with `docker compose up stage-1` or `docker compose up stage-2`.

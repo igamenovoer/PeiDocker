@@ -233,17 +233,6 @@ class PeiDockerWebGUI:
         with ui.row().classes('w-full bg-gray-200 p-2 items-center text-sm') as status_bar:
             self.status_bar_container = status_bar
             
-            # Stage selector
-            with ui.row().classes('items-center gap-2'):
-                ui.label('🏗️ Stage:').classes('font-medium')
-                
-                # Bind to ui_state.active_stage
-                stage_select = ui.select(
-                    options={1: 'Stage-1', 2: 'Stage-2'},
-                    value=self.ui_state.active_stage,
-                    on_change=lambda e: self._on_stage_change(e)
-                ).classes('w-32')
-            
             # Error indicator
             with ui.row().classes('ml-auto items-center gap-2'):
                 self.error_icon = ui.icon('error', size='sm').classes('text-red-500')
@@ -321,11 +310,6 @@ class PeiDockerWebGUI:
         """Update active content visibility."""
         if hasattr(self, 'active_content'):
             self.active_content.visible = self.app_state == AppState.ACTIVE
-    
-    def _on_stage_change(self, e: ValueChangeEventArguments) -> None:
-        """Handle stage selection change."""
-        self.ui_state.active_stage = e.value
-        self.render_active_tab()
     
     def _generate_default_project_dir(self) -> str:
         """Generate a default project directory with timestamp."""
@@ -586,7 +570,7 @@ class PeiDockerWebGUI:
         self.ui_state.stage_1.ssh.users = [{
             'name': 'me',
             'password': '123456',
-            'uid': 1000,
+            'uid': 2000,
             'ssh_keys': []
         }]
         

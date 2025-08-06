@@ -60,10 +60,6 @@ class ScriptsTab(BaseTab):
                             ui.markdown('• Has access to all stage-1 resources plus stage-2 resources').classes('text-sm')
                             ui.markdown('• Examples: `stage-2/custom/app.sh`, `stage-1/system/base.sh`').classes('text-sm')
             
-            # Get active stage's scripts UI model
-            stage_ui = self.app.ui_state.get_active_stage()
-            scripts_ui = stage_ui.scripts
-            
             # Stage-1 Scripts
             self._create_stage_scripts_section('stage1', '🏗️ Stage-1 Image Scripts', 'stage-1', 
                                              self.app.ui_state.stage_1.scripts)

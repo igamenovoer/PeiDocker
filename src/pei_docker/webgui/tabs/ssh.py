@@ -157,7 +157,7 @@ class SSHTab(BaseTab):
                         ui.label('Advanced: Leave unchecked to use automatic UID assignment').classes('text-sm text-gray-600 mb-2')
                         uid_input = ui.input(
                             'UID',
-                            placeholder='1000'
+                            placeholder='2000'
                         ).props('type=number min=0').classes('w-full')
                         uid_input.set_value(str(user_data.get('uid', '')) if user_data.get('uid') else '')
                         ui.label('Custom UID for file permissions mapping').classes('text-sm text-gray-600')

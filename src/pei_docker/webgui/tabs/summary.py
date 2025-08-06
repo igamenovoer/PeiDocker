@@ -306,8 +306,21 @@ Continue?
                 # Generate YAML preview using UIStateBridge internal method
                 config_data = self.app.bridge._ui_to_user_config_format(self.app.ui_state)
                 
-                # Convert to YAML string
-                yaml_str = yaml.dump(config_data, default_flow_style=False, 
+                # Custom representer to ensure environment variables are quoted in the display
+                def str_representer(dumper: Any, data: Any) -> Any:
+                    # Force single quotes for strings that look like environment variables
+                    if isinstance(data, str) and '=' in data:
+                        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style="'")
+                    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+                
+                # Create a custom YAML dumper for display purposes
+                class DisplayDumper(yaml.SafeDumper):
+                    pass
+                
+                DisplayDumper.add_representer(str, str_representer)
+                
+                # Convert to YAML string with quotes for display clarity
+                yaml_str = yaml.dump(config_data, Dumper=DisplayDumper, default_flow_style=False, 
                                    sort_keys=False, allow_unicode=True)
                 
                 # Display in a code block

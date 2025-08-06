@@ -77,7 +77,7 @@ class UIStateBridge:
             # Create directory if needed
             Path(file_path).parent.mkdir(parents=True, exist_ok=True)
             
-            # Save to YAML
+            # Save to YAML - let YAML handle quoting automatically
             with open(file_path, 'w', encoding='utf-8') as f:
                 yaml.dump(config_data, f, default_flow_style=False, 
                          sort_keys=False, allow_unicode=True)

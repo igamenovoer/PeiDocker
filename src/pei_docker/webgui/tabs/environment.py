@@ -3,6 +3,7 @@ Environment tab for PeiDocker Web GUI - Refactored with data binding.
 
 This tab handles environment variables and device configuration
 including GPU support for container access, using NiceGUI's data binding.
+Shows both Stage-1 and Stage-2 configurations separately.
 """
 
 from typing import TYPE_CHECKING, Optional, Any, Dict, List
@@ -17,130 +18,139 @@ class EnvironmentTab(BaseTab):
     
     def __init__(self, app: 'PeiDockerWebGUI') -> None:
         super().__init__(app)
-        self.env_variables_container: Optional[ui.column] = None
-        self.env_variable_rows: List[Dict[str, Any]] = []
+        # Separate containers for each stage's environment variables
+        self.stage1_env_container: Optional[ui.column] = None
+        self.stage2_env_container: Optional[ui.column] = None
+        self.stage1_env_rows: List[Dict[str, Any]] = []
+        self.stage2_env_rows: List[Dict[str, Any]] = []
     
     def render(self) -> ui.element:
-        """Render the environment tab content with data binding."""
+        """Render the environment tab content with data binding for both stages."""
         with ui.column().classes('w-full max-w-4xl') as container:
             self.container = container
             
             self.create_section_header(
                 '⚙️ Environment Configuration',
-                'Configure environment variables and device access including GPU support for your container'
+                'Configure environment variables and device access for both stages'
             )
             
-            # Get the active stage's environment UI state
-            stage_env = self.app.ui_state.get_active_stage().environment
+            # Stage-1 Environment Configuration
+            with self.create_card('🏗️ Stage-1 Environment'):
+                self._render_stage_environment('stage1', self.app.ui_state.stage_1.environment)
             
-            # Layout with two columns
-            with ui.row().classes('w-full gap-6'):
-                # Left column - Environment Variables
-                with ui.column().classes('w-full'):
-                    with self.create_card('🌍 Environment Variables'):
-                        with self.create_form_group('Environment Variables',
-                                                  'Set custom environment variables for your container'):
-                            
-                            # Environment variables container
-                            with ui.column().classes('w-full mb-4') as env_container:
-                                self.env_variables_container = env_container
-                                self._render_env_variables()
-                            
-                            # Add environment variable button
-                            ui.button('➕ Add Environment Variable', on_click=self._add_env_variable) \
-                                .classes('bg-blue-600 hover:bg-blue-700 text-white') \
-                                .props('data-testid="add-env-var-btn"')
-                
-                # Right column - Device Configuration
-                with ui.column().classes('w-full'):
-                    with self.create_card('🖥️ Device Configuration'):
-                        with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
-                            # Bind device type select to UI state
-                            device_select = ui.select(
-                                options={
-                                    'cpu': 'CPU Only',
-                                    'gpu': 'GPU Support'
-                                },
-                                value='cpu'
-                            ).classes('w-full').bind_value(stage_env, 'device_type') \
-                                .props('data-testid="device-type-select"')
-                            
-                            # Update gpu_enabled when device_type changes
-                            def on_device_change(e: Any) -> None:
-                                stage_env.gpu_enabled = (e.value == 'gpu')
-                                self.app.ui_state.mark_modified()
-                            
-                            device_select.on_value_change(on_device_change)
-                        
-                        # GPU Configuration (conditionally visible)
-                        with ui.column().classes('mt-6 w-full') as gpu_config:
-                            gpu_config.bind_visibility_from(stage_env, 'device_type', lambda v: v == 'gpu')
-                            
-                            with self.create_form_group('GPU Configuration'):
-                                # GPU enabled switch (automatically enabled when device_type is gpu)
-                                # Note: gpu_enabled is managed through device_type selection
-                                
-                                # GPU count selection
-                                with ui.row().classes('items-center gap-4 mb-4'):
-                                    ui.label('GPU Count:').classes('font-medium')
-                                    ui.select(
-                                        options={'all': 'All GPUs', '1': '1 GPU', '2': '2 GPUs', '4': '4 GPUs'},
-                                        value='all'
-                                    ).classes('w-32').bind_value(stage_env, 'gpu_count') \
-                                        .props('data-testid="gpu-count-select"')
-                                
-                                # CUDA version selection
-                                with ui.row().classes('items-center gap-4 mb-4'):
-                                    ui.label('CUDA Version:').classes('font-medium')
-                                    ui.select(
-                                        options={
-                                            '12.4': 'CUDA 12.4',
-                                            '12.3': 'CUDA 12.3',
-                                            '12.2': 'CUDA 12.2',
-                                            '12.1': 'CUDA 12.1',
-                                            '12.0': 'CUDA 12.0',
-                                            '11.8': 'CUDA 11.8',
-                                            '11.7': 'CUDA 11.7'
-                                        },
-                                        value='12.4'
-                                    ).classes('w-48').bind_value(stage_env, 'cuda_version') \
-                                        .props('data-testid="cuda-version-select"')
-                                
-                                # GPU Memory Limit
-                                with self.create_form_group('GPU Memory Limit (optional)',
-                                                          'Limit GPU memory usage (Docker 19.03+ required)'):
-                                    ui.input(
-                                        placeholder='e.g., 4GB or leave empty for no limit'
-                                    ).classes('w-full').bind_value(stage_env, 'gpu_memory_limit') \
-                                        .props('data-testid="gpu-memory-limit-input"')
+            # Stage-2 Environment Configuration  
+            with self.create_card('🏗️ Stage-2 Environment'):
+                self._render_stage_environment('stage2', self.app.ui_state.stage_2.environment)
         
         return container
     
-    def _render_env_variables(self) -> None:
-        """Render environment variables from the UI state."""
-        if not self.env_variables_container:
+    def _render_stage_environment(self, stage: str, stage_env: Any) -> None:
+        """Render environment configuration for a specific stage."""
+        # Layout with two columns
+        with ui.row().classes('w-full gap-6'):
+            # Left column - Environment Variables
+            with ui.column().classes('w-full'):
+                with self.create_form_group('Environment Variables',
+                                          'Set custom environment variables. These will be saved in YAML format as \'VAR=value\''):
+                    
+                    # Environment variables container
+                    with ui.column().classes('w-full mb-4') as env_container:
+                        if stage == 'stage1':
+                            self.stage1_env_container = env_container
+                        else:
+                            self.stage2_env_container = env_container
+                        self._render_env_variables(stage, stage_env)
+                    
+                    # Add environment variable button
+                    ui.button('➕ Add Environment Variable', 
+                             on_click=lambda s=stage, se=stage_env: self._add_env_variable(s, se)) \
+                        .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                        .props(f'data-testid="{stage}-add-env-var-btn"')
+            
+            # Right column - Device Configuration
+            with ui.column().classes('w-full'):
+                with self.create_form_group('Device Type', 'Select the type of hardware access needed'):
+                    # Bind device type select to UI state
+                    device_select = ui.select(
+                        options={
+                            'cpu': 'CPU Only',
+                            'gpu': 'GPU Support'
+                        },
+                        value='cpu'
+                    ).classes('w-full').bind_value(stage_env, 'device_type') \
+                        .props(f'data-testid="{stage}-device-type-select"')
+                    
+                    # Update gpu_enabled when device_type changes
+                    def on_device_change(e: Any, env: Any = stage_env) -> None:
+                        env.gpu_enabled = (e.value == 'gpu')
+                        self.app.ui_state.mark_modified()
+                    
+                    device_select.on_value_change(lambda e, se=stage_env: on_device_change(e, se))
+                
+                # GPU Configuration (conditionally visible)
+                with ui.column().classes('mt-6 w-full') as gpu_config:
+                    gpu_config.bind_visibility_from(stage_env, 'device_type', lambda v: v == 'gpu')
+                    
+                    with self.create_form_group('GPU Configuration'):
+                        # GPU count selection
+                        with ui.row().classes('items-center gap-4 mb-4'):
+                            ui.label('GPU Count:').classes('font-medium')
+                            ui.select(
+                                options={'all': 'All GPUs', '1': '1 GPU', '2': '2 GPUs', '4': '4 GPUs'},
+                                value='all'
+                            ).classes('w-32').bind_value(stage_env, 'gpu_count') \
+                                .props(f'data-testid="{stage}-gpu-count-select"')
+                        
+                        # CUDA version selection
+                        with ui.row().classes('items-center gap-4 mb-4'):
+                            ui.label('CUDA Version:').classes('font-medium')
+                            ui.select(
+                                options={
+                                    '12.4': 'CUDA 12.4',
+                                    '12.3': 'CUDA 12.3',
+                                    '12.2': 'CUDA 12.2',
+                                    '12.1': 'CUDA 12.1',
+                                    '12.0': 'CUDA 12.0',
+                                    '11.8': 'CUDA 11.8',
+                                    '11.7': 'CUDA 11.7'
+                                },
+                                value='12.4'
+                            ).classes('w-48').bind_value(stage_env, 'cuda_version') \
+                                .props(f'data-testid="{stage}-cuda-version-select"')
+                        
+                        # GPU Memory Limit
+                        with self.create_form_group('GPU Memory Limit (optional)',
+                                                  'Limit GPU memory usage (Docker 19.03+ required)'):
+                            ui.input(
+                                placeholder='e.g., 4GB or leave empty for no limit'
+                            ).classes('w-full').bind_value(stage_env, 'gpu_memory_limit') \
+                                .props(f'data-testid="{stage}-gpu-memory-limit-input"')
+    
+    def _render_env_variables(self, stage: str, stage_env: Any) -> None:
+        """Render environment variables from the UI state for a specific stage."""
+        container = self.stage1_env_container if stage == 'stage1' else self.stage2_env_container
+        rows = self.stage1_env_rows if stage == 'stage1' else self.stage2_env_rows
+        
+        if not container:
             return
         
         # Clear existing UI elements
-        self.env_variables_container.clear()
-        self.env_variable_rows.clear()
-        
-        # Get the active stage's environment variables
-        stage_env = self.app.ui_state.get_active_stage().environment
+        container.clear()
+        rows.clear()
         
         # Render each environment variable
         for key, value in stage_env.env_vars.items():
-            self._create_env_variable_row(key, value)
+            self._create_env_variable_row(stage, stage_env, key, value)
     
-    def _create_env_variable_row(self, key: str = '', value: str = '') -> None:
+    def _create_env_variable_row(self, stage: str, stage_env: Any, key: str = '', value: str = '') -> None:
         """Create a single environment variable row with data binding."""
-        if not self.env_variables_container:
+        container = self.stage1_env_container if stage == 'stage1' else self.stage2_env_container
+        rows = self.stage1_env_rows if stage == 'stage1' else self.stage2_env_rows
+        
+        if not container:
             return
         
-        # Get the active stage's environment variables dict
-        stage_env = self.app.ui_state.get_active_stage().environment
-        
-        with self.env_variables_container:
+        with container:
             with ui.card().classes('w-full p-3 mb-3 no-wrap') as variable_card:
                 # Variable configuration
                 with ui.row().classes('items-center gap-3 w-full'):
@@ -148,7 +158,7 @@ class EnvironmentTab(BaseTab):
                     name_input = ui.input(
                         placeholder='VARIABLE_NAME',
                         value=key
-                    ).classes('flex-1').props(f'data-testid="env-var-name-{key}"')
+                    ).classes('flex-1').props(f'data-testid="{stage}-env-var-name-{key}"')
                     
                     # Equals sign
                     ui.label('=').classes('font-bold text-lg text-gray-700')
@@ -157,14 +167,14 @@ class EnvironmentTab(BaseTab):
                     value_input = ui.input(
                         placeholder='value',
                         value=value
-                    ).classes('flex-1').props(f'data-testid="env-var-value-{key}"')
+                    ).classes('flex-1').props(f'data-testid="{stage}-env-var-value-{key}"')
                     
                     # Remove button
                     remove_btn = ui.button(
                         '🗑️ Remove',
-                        on_click=lambda k=key: self._remove_env_variable(k)
+                        on_click=lambda k=key, s=stage, se=stage_env: self._remove_env_variable(s, se, k)
                     ).classes('bg-red-600 hover:bg-red-700 text-white px-3 py-1') \
-                        .props(f'data-testid="remove-env-var-{key}"')
+                        .props(f'data-testid="{stage}-remove-env-var-{key}"')
                     
                     # Store row data
                     row_data = {
@@ -173,45 +183,39 @@ class EnvironmentTab(BaseTab):
                         'value_input': value_input,
                         'original_key': key
                     }
-                    self.env_variable_rows.append(row_data)
+                    rows.append(row_data)
                     
                     # Handle name changes (need to update dict key)
-                    def on_name_change(e: Any, data: Dict[str, Any] = row_data) -> None:
+                    def on_name_change(e: Any, data: Dict[str, Any] = row_data, env: Any = stage_env) -> None:
                         new_name = e.value.strip()
                         old_key = data['original_key']
                         
                         if new_name and new_name != old_key:
                             # Get current value
-                            current_value = stage_env.env_vars.get(old_key, '')
+                            current_value = env.env_vars.get(old_key, '')
                             
                             # Remove old key and add new one
-                            if old_key in stage_env.env_vars:
-                                del stage_env.env_vars[old_key]
-                            stage_env.env_vars[new_name] = current_value
+                            if old_key in env.env_vars:
+                                del env.env_vars[old_key]
+                            env.env_vars[new_name] = current_value
                             
                             # Update original key reference
                             data['original_key'] = new_name
-                            
-                            # Note: Button handler cannot be reassigned after creation
-                            # The button will still work but with the old key name
                         
                         self.app.ui_state.mark_modified()
                     
                     # Handle value changes
-                    def on_value_change(e: Any, data: Dict[str, Any] = row_data) -> None:
+                    def on_value_change(e: Any, data: Dict[str, Any] = row_data, env: Any = stage_env) -> None:
                         key_name = data['original_key']
                         if key_name:
-                            stage_env.env_vars[key_name] = e.value
+                            env.env_vars[key_name] = e.value
                             self.app.ui_state.mark_modified()
                     
                     name_input.on_value_change(on_name_change)
                     value_input.on_value_change(on_value_change)
     
-    def _add_env_variable(self) -> None:
-        """Add a new environment variable."""
-        # Get the active stage's environment
-        stage_env = self.app.ui_state.get_active_stage().environment
-        
+    def _add_env_variable(self, stage: str, stage_env: Any) -> None:
+        """Add a new environment variable for a specific stage."""
         # Find a unique variable name
         base_name = 'NEW_VAR'
         counter = 1
@@ -225,52 +229,62 @@ class EnvironmentTab(BaseTab):
         stage_env.env_vars[var_name] = ''
         
         # Create the UI row
-        self._create_env_variable_row(var_name, '')
+        self._create_env_variable_row(stage, stage_env, var_name, '')
         
         # Mark as modified
         self.app.ui_state.mark_modified()
     
-    def _remove_env_variable(self, key: str) -> None:
-        """Remove an environment variable."""
-        # Get the active stage's environment
-        stage_env = self.app.ui_state.get_active_stage().environment
+    def _remove_env_variable(self, stage: str, stage_env: Any, key: str) -> None:
+        """Remove an environment variable from a specific stage."""
+        rows = self.stage1_env_rows if stage == 'stage1' else self.stage2_env_rows
         
         # Remove from model
         if key in stage_env.env_vars:
             del stage_env.env_vars[key]
         
         # Find and remove the UI row
-        for row_data in self.env_variable_rows[:]:
+        for row_data in rows[:]:
             if row_data['original_key'] == key:
                 row_data['card'].delete()
-                self.env_variable_rows.remove(row_data)
+                rows.remove(row_data)
                 break
         
         # Mark as modified
         self.app.ui_state.mark_modified()
     
     def validate(self) -> tuple[bool, list[str]]:
-        """Validate environment configuration."""
+        """Validate environment configuration for both stages."""
         errors = []
         
-        # Get the active stage's environment
-        stage_env = self.app.ui_state.get_active_stage().environment
-        
-        # Validate environment variables
-        for key, value in stage_env.env_vars.items():
+        # Validate Stage-1 environment variables
+        for key, value in self.app.ui_state.stage_1.environment.env_vars.items():
             if not key:
-                errors.append("Environment variable name cannot be empty")
+                errors.append("Stage-1: Environment variable name cannot be empty")
             elif not key.replace('_', '').replace('-', '').isalnum():
-                errors.append(f"Invalid environment variable name: {key}")
+                errors.append(f"Stage-1: Invalid environment variable name: {key}")
             elif key[0].isdigit():
-                errors.append(f"Environment variable name cannot start with a number: {key}")
+                errors.append(f"Stage-1: Environment variable name cannot start with a number: {key}")
         
-        # Validate GPU configuration
-        if stage_env.device_type == 'gpu' and stage_env.gpu_memory_limit:
-            memory_value = stage_env.gpu_memory_limit.strip()
-            # Basic validation for memory format (should end with GB, MB, etc.)
+        # Validate Stage-2 environment variables
+        for key, value in self.app.ui_state.stage_2.environment.env_vars.items():
+            if not key:
+                errors.append("Stage-2: Environment variable name cannot be empty")
+            elif not key.replace('_', '').replace('-', '').isalnum():
+                errors.append(f"Stage-2: Invalid environment variable name: {key}")
+            elif key[0].isdigit():
+                errors.append(f"Stage-2: Environment variable name cannot start with a number: {key}")
+        
+        # Validate GPU configuration for Stage-1
+        if self.app.ui_state.stage_1.environment.device_type == 'gpu' and self.app.ui_state.stage_1.environment.gpu_memory_limit:
+            memory_value = self.app.ui_state.stage_1.environment.gpu_memory_limit.strip()
             if not any(memory_value.upper().endswith(unit) for unit in ['GB', 'MB', 'KB', 'G', 'M', 'K']):
-                errors.append("GPU memory limit should specify units (e.g., '4GB', '512MB')")
+                errors.append("Stage-1: GPU memory limit should specify units (e.g., '4GB', '512MB')")
+        
+        # Validate GPU configuration for Stage-2
+        if self.app.ui_state.stage_2.environment.device_type == 'gpu' and self.app.ui_state.stage_2.environment.gpu_memory_limit:
+            memory_value = self.app.ui_state.stage_2.environment.gpu_memory_limit.strip()
+            if not any(memory_value.upper().endswith(unit) for unit in ['GB', 'MB', 'KB', 'G', 'M', 'K']):
+                errors.append("Stage-2: GPU memory limit should specify units (e.g., '4GB', '512MB')")
         
         return len(errors) == 0, errors
     
@@ -284,5 +298,7 @@ class EnvironmentTab(BaseTab):
         """Set environment configuration data."""
         # This is now handled by the UIStateBridge during load
         # UI state is automatically bound, so we just need to refresh the view
-        if self.env_variables_container:
-            self._render_env_variables()
+        if self.stage1_env_container:
+            self._render_env_variables('stage1', self.app.ui_state.stage_1.environment)
+        if self.stage2_env_container:
+            self._render_env_variables('stage2', self.app.ui_state.stage_2.environment)

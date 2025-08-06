@@ -133,7 +133,6 @@ class AppUIState:
     stage_2: StageUI = field(default_factory=StageUI)
     
     # App-level state
-    active_stage: int = 1
     modified: bool = False
     last_saved: str = ""
     
@@ -153,10 +152,6 @@ class AppUIState:
         self.modified = False
         from datetime import datetime
         self.last_saved = datetime.now().strftime("%I:%M %p")
-    
-    def get_active_stage(self) -> StageUI:
-        """Get the currently active stage configuration."""
-        return self.stage_1 if self.active_stage == 1 else self.stage_2
     
     def merge_stages(self) -> Dict[str, Any]:
         """Merge stage-1 and stage-2 configurations.
