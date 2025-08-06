@@ -111,7 +111,7 @@ These 3 storage entries are always present and default to 'image' type even when
                 # Storage Type
                 with ui.column().classes('w-full'):
                     ui.label('Storage type:').classes('font-medium text-gray-700 mb-1')
-                    type_select = ui.select(
+                    ui.select(
                         options={
                             'auto-volume': 'auto-volume',
                             'manual-volume': 'manual-volume',
@@ -169,14 +169,16 @@ These 3 storage entries are always present and default to 'image' type even when
     
     def _create_mount_row(self, storage_ui: Any, index: int, mount: Dict[str, str], container: ui.column) -> None:
         """Create a single mount row with data binding."""
-        mount_id = mount.get('id', str(uuid.uuid4()))
+        # Ensure mount has an id (for future use if needed)
+        if 'id' not in mount:
+            mount['id'] = str(uuid.uuid4())
         
         with container:
             with ui.card().classes('w-full p-4 mb-3'):
                 # Mount header with remove button
                 with ui.row().classes('items-center justify-between mb-3'):
                     ui.label(f'Mount {index + 1}').classes('font-semibold')
-                    ui.button(icon='delete', on_click=lambda: self._remove_mount(storage_ui, index)) \
+                    ui.button(icon='delete', on_click=lambda idx=index, s_ui=storage_ui: self._remove_mount(s_ui, idx)) \
                         .classes('text-red-600 hover:text-red-700').props('flat')
                 
                 # Mount configuration
@@ -186,13 +188,13 @@ These 3 storage entries are always present and default to 'image' type even when
                         ui.label('Type:').classes('font-medium text-gray-700 mb-1')
                         ui.select(
                             options={
-                                'volume': 'Docker Volume',
-                                'host': 'Host Path',
-                                'tmpfs': 'Temporary Filesystem'
+                                'auto-volume': 'Auto Volume',
+                                'manual-volume': 'Manual Volume',
+                                'host': 'Host Path'
                             },
-                            value=mount.get('type', 'volume')
+                            value=mount.get('type', 'auto-volume')
                         ).classes('w-full').on('value-change', 
-                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'type', e.value))
+                            lambda e, idx=index, s_ui=storage_ui: self._update_mount_field(s_ui, idx, 'type', e.value))
                     
                     # Container Path
                     with ui.column():
@@ -201,26 +203,26 @@ These 3 storage entries are always present and default to 'image' type even when
                             placeholder='/path/in/container',
                             value=mount.get('container_path', '')
                         ).classes('w-full').on('value-change',
-                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'container_path', e.value))
+                            lambda e, idx=index, s_ui=storage_ui: self._update_mount_field(s_ui, idx, 'container_path', e.value))
                     
                     # Source (volume name or host path)
                     with ui.column():
-                        mount_type = mount.get('type', 'volume')
-                        label = 'Volume name:' if mount_type == 'volume' else 'Host path:' if mount_type == 'host' else 'Size:'
-                        placeholder = 'volume-name' if mount_type == 'volume' else '/host/path' if mount_type == 'host' else '100M'
+                        mount_type = mount.get('type', 'auto-volume')
+                        label = 'Volume name:' if mount_type in ['auto-volume', 'manual-volume'] else 'Host path:'
+                        placeholder = 'auto-generated' if mount_type == 'auto-volume' else 'volume-name' if mount_type == 'manual-volume' else '/host/path'
                         
                         ui.label(label).classes('font-medium text-gray-700 mb-1')
                         source_input = ui.input(
                             placeholder=placeholder,
                             value=mount.get('source', '')
                         ).classes('w-full').on('value-change',
-                            lambda e, idx=index: self._update_mount_field(storage_ui, idx, 'source', e.value))
+                            lambda e, idx=index, s_ui=storage_ui: self._update_mount_field(s_ui, idx, 'source', e.value))
                         
-                        # Hide source input for tmpfs type
-                        if mount_type == 'tmpfs':
-                            source_input.visible = True  # For tmpfs, this becomes size
+                        # Show/hide source input based on mount type
+                        if mount_type == 'auto-volume':
+                            source_input.visible = False  # Auto-volume doesn't need source
                         else:
-                            source_input.visible = True
+                            source_input.visible = True  # manual-volume and host need source
     
     def _add_mount(self, stage: str) -> None:
         """Add a new mount entry."""
@@ -229,7 +231,7 @@ These 3 storage entries are always present and default to 'image' type even when
         # Add new mount
         new_mount = {
             'id': str(uuid.uuid4()),
-            'type': 'volume',
+            'type': 'auto-volume',
             'container_path': '',
             'source': ''
         }
@@ -296,12 +298,13 @@ These 3 storage entries are always present and default to 'image' type even when
                     errors.append(f"❌ {stage_name} Mount {mount_num}: Container path must be absolute")
                 
                 # Source validation based on type
-                mount_type = mount.get('type', 'volume')
+                mount_type = mount.get('type', 'auto-volume')
                 source = mount.get('source', '')
                 
-                if mount_type in ['volume', 'host'] and not source:
-                    source_type = 'Volume name' if mount_type == 'volume' else 'Host path'
-                    errors.append(f"❌ {stage_name} Mount {mount_num}: {source_type} is required")
+                if mount_type == 'manual-volume' and not source:
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: Volume name is required for manual volume")
+                elif mount_type == 'host' and not source:
+                    errors.append(f"❌ {stage_name} Mount {mount_num}: Host path is required")
                 
                 if mount_type == 'host' and source and not source.startswith('/'):
                     errors.append(f"❌ {stage_name} Mount {mount_num}: Host path must be absolute")
@@ -331,33 +334,31 @@ These 3 storage entries are always present and default to 'image' type even when
         
         for mount in self.app.ui_state.stage_1.storage.mounts:
             if mount.get('container_path'):
+                mount_type = mount.get('type', 'auto-volume')
                 mount_config = {
-                    'type': mount.get('type', 'volume'),
+                    'type': mount_type,
                     'dst_path': mount['container_path']
                 }
                 
-                if mount['type'] == 'volume':
+                if mount_type == 'manual-volume':
                     mount_config['volume_name'] = mount.get('source', '')
-                elif mount['type'] == 'host':
+                elif mount_type == 'host':
                     mount_config['host_path'] = mount.get('source', '')
-                elif mount['type'] == 'tmpfs':
-                    mount_config['size'] = mount.get('source', '100M')
                 
                 stage1_mounts.append(mount_config)
         
         for mount in self.app.ui_state.stage_2.storage.mounts:
             if mount.get('container_path'):
+                mount_type = mount.get('type', 'auto-volume')
                 mount_config = {
-                    'type': mount.get('type', 'volume'),
+                    'type': mount_type,
                     'dst_path': mount['container_path']
                 }
                 
-                if mount['type'] == 'volume':
+                if mount_type == 'manual-volume':
                     mount_config['volume_name'] = mount.get('source', '')
-                elif mount['type'] == 'host':
+                elif mount_type == 'host':
                     mount_config['host_path'] = mount.get('source', '')
-                elif mount['type'] == 'tmpfs':
-                    mount_config['size'] = mount.get('source', '100M')
                 
                 stage2_mounts.append(mount_config)
         
@@ -397,38 +398,36 @@ These 3 storage entries are always present and default to 'image' type even when
         # Load Stage-1 mounts
         stage1_mounts = data.get('stage_1', {}).get('mounts', [])
         for mount in stage1_mounts:
+            mount_type = mount.get('type', 'auto-volume')
             mount_data = {
                 'id': str(uuid.uuid4()),
-                'type': mount.get('type', 'volume'),
+                'type': mount_type,
                 'container_path': mount.get('dst_path', ''),
                 'source': ''
             }
             
-            if mount['type'] == 'volume':
+            if mount_type == 'manual-volume':
                 mount_data['source'] = mount.get('volume_name', '')
-            elif mount['type'] == 'host':
+            elif mount_type == 'host':
                 mount_data['source'] = mount.get('host_path', '')
-            elif mount['type'] == 'tmpfs':
-                mount_data['source'] = mount.get('size', '100M')
             
             self.app.ui_state.stage_1.storage.mounts.append(mount_data)
         
         # Load Stage-2 mounts
         stage2_mounts = data.get('stage_2', {}).get('mounts', [])
         for mount in stage2_mounts:
+            mount_type = mount.get('type', 'auto-volume')
             mount_data = {
                 'id': str(uuid.uuid4()),
-                'type': mount.get('type', 'volume'),
+                'type': mount_type,
                 'container_path': mount.get('dst_path', ''),
                 'source': ''
             }
             
-            if mount['type'] == 'volume':
+            if mount_type == 'manual-volume':
                 mount_data['source'] = mount.get('volume_name', '')
-            elif mount['type'] == 'host':
+            elif mount_type == 'host':
                 mount_data['source'] = mount.get('host_path', '')
-            elif mount['type'] == 'tmpfs':
-                mount_data['source'] = mount.get('size', '100M')
             
             self.app.ui_state.stage_2.storage.mounts.append(mount_data)
         

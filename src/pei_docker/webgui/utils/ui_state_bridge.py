@@ -9,18 +9,17 @@ through the adapter layer, as well as YAML serialization/deserialization.
 from typing import Dict, List, Tuple, Any, Optional
 import yaml
 from pathlib import Path
-from datetime import datetime
 import attrs
+import cattrs
+from omegaconf import OmegaConf
 
 from pei_docker.webgui.models.ui_state import (
-    AppUIState, StageUI, EnvironmentUI, NetworkUI, SSHTabUI,
+    AppUIState, StageUI, NetworkUI, SSHTabUI,
     StorageUI, ScriptsUI, ProjectUI
 )
 from pei_docker.webgui.models.config_adapter import (
-    create_attrs_config_from_dict,
     create_app_config_adapter,
-    AppConfigAdapter,
-    ProjectConfigAdapter
+    AppConfigAdapter
 )
 from pei_docker.user_config import (
     UserConfig as AttrsUserConfig,
@@ -34,8 +33,7 @@ from pei_docker.user_config import (
     CustomScriptConfig as AttrsCustomScriptConfig,
     StorageOption as AttrsStorageOption,
     StorageTypes,
-    env_dict_to_str,
-    port_mapping_dict_to_str,
+    env_str_to_dict
 )
 
 
@@ -48,7 +46,7 @@ class UIStateBridge:
         
         try:
             # Convert UI state to attrs config for validation
-            attrs_config = self._ui_to_attrs_config(ui_state)
+            _ = self._ui_to_attrs_config(ui_state)
             
             # attrs validation happens during object construction
             # If we get here, validation passed
@@ -89,31 +87,256 @@ class UIStateBridge:
             return False, errors
     
     def load_from_yaml(self, file_path: str, ui_state: AppUIState) -> Tuple[bool, List[str]]:
-        """Load YAML configuration into UI state."""
+        """Load YAML configuration into UI state using proper data flow.
+        
+        Flow: user_config.yml -> OmegaConf -> UserConfig (peidocker model) -> UI state
+        """
         errors = []
         
         try:
+            # Step 1: First load with yaml to handle duplicates (takes last value)
             with open(file_path, 'r', encoding='utf-8') as f:
-                config_data = yaml.safe_load(f)
+                yaml_data = yaml.safe_load(f)
             
-            if not config_data:
+            if not yaml_data:
                 errors.append("Empty configuration file")
                 return False, errors
             
-            # Clear current state and load from YAML
-            self._load_into_ui(config_data, ui_state)
+            # Step 2: Convert to OmegaConf for variable resolution
+            config = OmegaConf.create(yaml_data)
+            
+            # Step 3: Convert to Python dict and prepare for cattrs
+            config_dict = OmegaConf.to_container(config, resolve=True)
+            
+            # Step 3: Apply pre-processing transformations (same as in config_processor.py)
+            if isinstance(config_dict, dict):
+                for stage in ['stage_1', 'stage_2']:
+                    if stage not in config_dict:
+                        continue
+                    
+                    # Handle environment conversion from list to dict
+                    if 'environment' in config_dict[stage]:
+                        env = config_dict[stage]['environment']
+                        if env is not None and isinstance(env, list):
+                            config_dict[stage]['environment'] = env_str_to_dict(env)
+                    
+                    # Handle on_entry conversion from string to list
+                    if 'custom' in config_dict[stage] and config_dict[stage]['custom'] is not None:
+                        custom = config_dict[stage]['custom']
+                        if 'on_entry' in custom and custom['on_entry'] is not None:
+                            on_entry = custom['on_entry']
+                            if isinstance(on_entry, str):
+                                # Convert string to single-element list
+                                config_dict[stage]['custom']['on_entry'] = [on_entry]
+            
+            # Step 4: Parse into UserConfig using cattrs (proper data model)
+            user_config: AttrsUserConfig = cattrs.structure(config_dict, AttrsUserConfig)
+            
+            # Step 5: Convert UserConfig to UI state
+            self._load_user_config_into_ui(user_config, ui_state)
             
             return True, []
             
         except FileNotFoundError:
             errors.append(f"Configuration file not found: {file_path}")
             return False, errors
-        except yaml.YAMLError as e:
-            errors.append(f"Invalid YAML format: {str(e)}")
+        except (TypeError, ValueError) as e:
+            errors.append(f"Invalid configuration structure: {str(e)}")
             return False, errors
         except Exception as e:
             errors.append(f"Load failed: {str(e)}")
             return False, errors
+    
+    def _load_user_config_into_ui(self, user_config: AttrsUserConfig, ui_state: AppUIState) -> None:
+        """Convert UserConfig (peidocker data model) to UI state.
+        
+        This replaces the old _load_into_ui method with a proper data-model-driven approach.
+        """
+        # Reset UI state
+        ui_state.reset()
+        
+        # Load stage-1 configuration
+        if user_config.stage_1:
+            self._load_stage_config_into_ui(user_config.stage_1, ui_state.stage_1, ui_state.project, 1)
+        
+        # Load stage-2 configuration  
+        if user_config.stage_2:
+            self._load_stage_config_into_ui(user_config.stage_2, ui_state.stage_2, ui_state.project, 2)
+        
+        # Mark as not modified after loading
+        ui_state.modified = False
+    
+    def _load_stage_config_into_ui(self, stage_config: AttrsStageConfig, ui_stage: StageUI, ui_project: ProjectUI, stage_num: int) -> None:
+        """Load a stage configuration from the data model into UI state."""
+        # Load image configuration (stage 1 only loads base image to project)
+        if stage_config.image and stage_num == 1:
+            if stage_config.image.base:
+                ui_project.base_image = stage_config.image.base
+            if stage_config.image.output:
+                ui_project.image_output_name = stage_config.image.output
+        
+        # Load SSH configuration (stage 1 only)
+        if stage_config.ssh and stage_num == 1:
+            ui_stage.ssh.enabled = stage_config.ssh.enable
+            ui_stage.ssh.port = str(stage_config.ssh.port)
+            ui_stage.ssh.host_port = str(stage_config.ssh.host_port)
+            
+            # Load SSH users
+            ui_stage.ssh.users = []
+            for username, user_config in stage_config.ssh.users.items():
+                user_data = {
+                    'name': username,
+                    'password': user_config.password or '',
+                    'uid': str(user_config.uid) if user_config.uid is not None else '',
+                    'ssh_keys': [user_config.pubkey_text] if user_config.pubkey_text else []
+                }
+                ui_stage.ssh.users.append(user_data)
+        
+        # Load proxy configuration
+        if stage_config.proxy:
+            ui_stage.network.proxy_enabled = True
+            # Reconstruct proxy URL
+            scheme = 'https' if stage_config.proxy.use_https else 'http'
+            ui_stage.network.http_proxy = f"{scheme}://{stage_config.proxy.address}:{stage_config.proxy.port}"
+        else:
+            ui_stage.network.proxy_enabled = False
+        
+        # Load APT configuration (stage 1 only)
+        if stage_config.apt and stage_num == 1:
+            ui_stage.network.apt_mirror = stage_config.apt.repo_source or ""
+        
+        # Load device configuration
+        if stage_config.device:
+            ui_stage.environment.device_type = stage_config.device.type
+        else:
+            ui_stage.environment.device_type = 'cpu'
+        
+        # Load environment variables
+        if stage_config.environment:
+            ui_stage.environment.env_vars = dict(stage_config.environment)
+        
+        # Load port mappings
+        if stage_config.ports:
+            ui_stage.network.port_mappings = []
+            for port_str in stage_config.ports:
+                if ':' in port_str:
+                    host_port, container_port = port_str.split(':', 1)
+                    ui_stage.network.port_mappings.append({
+                        'host': host_port,
+                        'container': container_port
+                    })
+        
+        # Load custom scripts
+        if stage_config.custom:
+            self._load_custom_scripts_into_ui(stage_config.custom, ui_stage.scripts)
+        
+        # Load storage configuration (stage 2 only)
+        if stage_config.storage and stage_num == 2:
+            self._load_storage_into_ui(stage_config.storage, ui_stage.storage)
+        
+        # Load mount configuration
+        if stage_config.mount:
+            self._load_mount_into_ui(stage_config.mount, ui_stage.storage)
+    
+    def _load_custom_scripts_into_ui(self, custom: AttrsCustomScriptConfig, ui_scripts: ScriptsUI) -> None:
+        """Load custom scripts from data model into UI state."""
+        # Clear existing scripts
+        ui_scripts.lifecycle_scripts = {
+            'on_build': [],
+            'on_first_run': [],
+            'on_every_run': [],
+            'on_user_login': []
+        }
+        
+        # Load entry point
+        if custom.on_entry:
+            if len(custom.on_entry) > 0:
+                entry_script = custom.on_entry[0]
+                if entry_script.startswith('_inline_'):
+                    ui_scripts.entry_mode = 'inline'
+                    ui_scripts.entry_inline_name = entry_script.replace('_inline_', '')
+                else:
+                    ui_scripts.entry_mode = 'file'
+                    ui_scripts.entry_file_path = entry_script
+        
+        # Load lifecycle scripts with unique IDs
+        import uuid
+        
+        # Helper function to create script entry
+        def create_script_entry(script_path: str) -> Dict[str, Any]:
+            return {
+                'id': str(uuid.uuid4()),
+                'type': 'file',
+                'path': script_path
+            }
+        
+        # Load on_build scripts
+        if custom.on_build:
+            for script in custom.on_build:
+                ui_scripts.lifecycle_scripts['on_build'].append(create_script_entry(script))
+        
+        # Load on_first_run scripts
+        if custom.on_first_run:
+            for script in custom.on_first_run:
+                ui_scripts.lifecycle_scripts['on_first_run'].append(create_script_entry(script))
+        
+        # Load on_every_run scripts
+        if custom.on_every_run:
+            for script in custom.on_every_run:
+                ui_scripts.lifecycle_scripts['on_every_run'].append(create_script_entry(script))
+        
+        # Load on_user_login scripts
+        if custom.on_user_login:
+            for script in custom.on_user_login:
+                ui_scripts.lifecycle_scripts['on_user_login'].append(create_script_entry(script))
+    
+    def _load_storage_into_ui(self, storage_dict: Dict[str, AttrsStorageOption], ui_storage: StorageUI) -> None:
+        """Load storage configuration from data model into UI state."""
+        for name, storage_option in storage_dict.items():
+            if name == 'app':
+                ui_storage.app_storage_type = storage_option.type
+                if storage_option.type == 'host' and storage_option.host_path:
+                    ui_storage.app_host_path = storage_option.host_path
+                elif storage_option.type == 'volume' and storage_option.volume_name:
+                    ui_storage.app_volume_name = storage_option.volume_name
+            elif name == 'data':
+                ui_storage.data_storage_type = storage_option.type
+                if storage_option.type == 'host' and storage_option.host_path:
+                    ui_storage.data_host_path = storage_option.host_path
+                elif storage_option.type == 'volume' and storage_option.volume_name:
+                    ui_storage.data_volume_name = storage_option.volume_name
+            elif name == 'workspace':
+                ui_storage.workspace_storage_type = storage_option.type
+                if storage_option.type == 'host' and storage_option.host_path:
+                    ui_storage.workspace_host_path = storage_option.host_path
+                elif storage_option.type == 'volume' and storage_option.volume_name:
+                    ui_storage.workspace_volume_name = storage_option.volume_name
+    
+    def _load_mount_into_ui(self, mount_dict: Dict[str, AttrsStorageOption], ui_storage: StorageUI) -> None:
+        """Load mount configuration from data model into UI state."""
+        ui_storage.mounts = []
+        for name, mount_option in mount_dict.items():
+            # Mount types should be preserved as-is: auto-volume, manual-volume, host
+            mount_type = mount_option.type
+            # For mounts, image type is not allowed, default to auto-volume
+            if mount_type == 'image':
+                mount_type = 'auto-volume'
+            
+            # Determine source based on mount type
+            if mount_type == 'host':
+                source = mount_option.host_path or ''
+            elif mount_type == 'manual-volume':
+                source = mount_option.volume_name or ''
+            else:  # auto-volume
+                source = ''  # Auto-generated, no source needed
+            
+            mount_entry = {
+                'name': name,
+                'source': source,
+                'target': mount_option.dst_path or f'/mnt/{name}',
+                'type': mount_type
+            }
+            ui_storage.mounts.append(mount_entry)
     
     def ui_to_config(self, ui_state: AppUIState) -> AppConfigAdapter:
         """Convert UI state to attrs-based config through adapter."""
@@ -156,9 +379,18 @@ class UIStateBridge:
             for user_data in ui_stage.ssh.users:
                 username = user_data.get('name', '')
                 if username:
+                    # Convert uid string to int if present and valid
+                    uid_str = user_data.get('uid', '')
+                    uid = None
+                    if uid_str and uid_str.strip():
+                        try:
+                            uid = int(uid_str)
+                        except ValueError:
+                            pass  # Keep uid as None if not a valid integer
+                    
                     user_config = AttrsSSHUserConfig(
                         password=user_data.get('password'),
-                        uid=user_data.get('uid'),
+                        uid=uid,
                         pubkey_text=user_data.get('ssh_keys', [None])[0] if user_data.get('ssh_keys') else None
                     )
                     users[username] = user_config
@@ -373,19 +605,27 @@ class UIStateBridge:
             name = mount.get('name', '')
             source = mount.get('source', '')
             target = mount.get('target', '')
-            mount_type = mount.get('type', 'host')
+            mount_type = mount.get('type', 'auto-volume')
             
-            if name and source and target:
+            if name and target:  # Source is optional for auto-volume
                 if mount_type == 'host':
-                    mounts[name] = AttrsStorageOption(
-                        type=StorageTypes.Host,
-                        host_path=source,
-                        dst_path=target
-                    )
+                    if source:  # Host type requires source
+                        mounts[name] = AttrsStorageOption(
+                            type=StorageTypes.Host,
+                            host_path=source,
+                            dst_path=target
+                        )
                 elif mount_type == 'manual-volume':
+                    if source:  # Manual volume requires source (volume name)
+                        mounts[name] = AttrsStorageOption(
+                            type=StorageTypes.ManualVolume,
+                            volume_name=source,
+                            dst_path=target
+                        )
+                elif mount_type == 'auto-volume':
+                    # Auto-volume doesn't require source
                     mounts[name] = AttrsStorageOption(
-                        type=StorageTypes.ManualVolume,
-                        volume_name=source,
+                        type=StorageTypes.AutoVolume,
                         dst_path=target
                     )
         
@@ -496,14 +736,27 @@ class UIStateBridge:
             for user_data in ui_state.stage_1.ssh.users:
                 username = user_data.get('name', '')
                 if username:
-                    user_config = {
-                        'password': user_data.get('password'),
-                        'uid': user_data.get('uid')
-                    }
+                    user_config = {}
+                    
+                    # Only include password if not empty
+                    password = user_data.get('password')
+                    if password:
+                        user_config['password'] = password
+                    
+                    # Only include uid if not empty (uid must be integer or omitted)
+                    uid = user_data.get('uid', '')
+                    if uid and uid.strip():
+                        try:
+                            user_config['uid'] = int(uid)
+                        except ValueError:
+                            # If not a valid integer, omit it
+                            pass
+                    
                     # Handle SSH keys
                     ssh_keys = user_data.get('ssh_keys', [])
                     if ssh_keys and ssh_keys[0]:
                         user_config['pubkey_text'] = ssh_keys[0]
+                    
                     users_dict[username] = user_config
             
             stage_1['ssh'] = {
@@ -544,7 +797,9 @@ class UIStateBridge:
         if ui_state.stage_1.scripts._inline_scripts_metadata:
             if '_inline_scripts' not in stage_1:
                 stage_1['_inline_scripts'] = {}
-            stage_1['_inline_scripts'].update(ui_state.stage_1.scripts._inline_scripts_metadata)
+            # Cast to Any to satisfy type checker - we know this is safe
+            metadata: Dict[str, Any] = dict(ui_state.stage_1.scripts._inline_scripts_metadata)
+            stage_1['_inline_scripts'].update(metadata)
         
         # Build stage-2 configuration
         stage_2: Dict[str, Any] = {
@@ -642,7 +897,9 @@ class UIStateBridge:
         if ui_state.stage_2.scripts._inline_scripts_metadata:
             if '_inline_scripts' not in stage_2:
                 stage_2['_inline_scripts'] = {}
-            stage_2['_inline_scripts'].update(ui_state.stage_2.scripts._inline_scripts_metadata)
+            # Cast to Any to satisfy type checker - we know this is safe
+            metadata_2: Dict[str, Any] = dict(ui_state.stage_2.scripts._inline_scripts_metadata)
+            stage_2['_inline_scripts'].update(metadata_2)
         
         return {
             'stage_1': stage_1,
@@ -986,6 +1243,31 @@ class UIStateBridge:
     def _load_scripts_config(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any],
                            scripts1: ScriptsUI, scripts2: ScriptsUI) -> None:
         """Load scripts configuration from YAML data."""
+        import uuid
+        
+        # Helper function to generate script ID
+        def generate_script_id(stage: str, lifecycle: str, script_type: str) -> str:
+            return f'{stage}-{lifecycle}-{script_type}-{str(uuid.uuid4()).replace("-", "")[:8]}'
+        
+        # Helper function to parse script path with arguments
+        def parse_script_with_args(script_str: str) -> Tuple[str, str]:
+            """Parse script string to separate path and arguments.
+            Returns (path, args) tuple."""
+            # Handle quoted strings properly
+            import shlex
+            try:
+                parts = shlex.split(script_str)
+                if parts:
+                    path = parts[0]
+                    # Rejoin the remaining parts as arguments
+                    args = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                    return path, args
+            except (ValueError, SyntaxError):
+                # Fallback for simple parsing when shlex fails (e.g., unbalanced quotes)
+                parts = script_str.split(None, 1)
+                if len(parts) == 2:
+                    return parts[0], parts[1]
+            return script_str.strip(), ''
         
         # Load stage-1 inline scripts metadata
         inline_scripts_1 = stage_1_data.get('_inline_scripts', {})
@@ -1005,9 +1287,10 @@ class UIStateBridge:
                     scripts1.entry_inline_name = script_name
                     scripts1.entry_inline_content = inline_scripts_1[script_name]
             else:
-                # This is a file path
+                # This is a file path (might have arguments)
+                path, args = parse_script_with_args(entry_point_1)
                 scripts1.entry_mode = "file"
-                scripts1.entry_file_path = entry_point_1
+                scripts1.entry_file_path = entry_point_1  # Keep full path with args for now
         
         # Load stage-2 inline scripts metadata
         inline_scripts_2 = stage_2_data.get('_inline_scripts', {})
@@ -1026,61 +1309,77 @@ class UIStateBridge:
                     scripts2.entry_inline_name = script_name
                     scripts2.entry_inline_content = inline_scripts_2[script_name]
             else:
+                # This is a file path (might have arguments)
+                path, args = parse_script_with_args(entry_point_2)
                 scripts2.entry_mode = "file"
-                scripts2.entry_file_path = entry_point_2
+                scripts2.entry_file_path = entry_point_2  # Keep full path with args for now
         
         # Load lifecycle scripts
         scripts1.lifecycle_scripts.clear()
         scripts2.lifecycle_scripts.clear()
         
-        # Map between UI keys and YAML keys
-        script_mappings = {
-            'pre_build': 'on_build',
-            'first_run': 'on_first_run',
-            'every_run': 'on_every_run',
-            'user_login': 'on_user_login'
-        }
+        # Use the correct UI keys that match what the scripts tab expects
+        lifecycle_keys = ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']
         
         # Load stage-1 lifecycle scripts
-        for ui_key, yaml_key in script_mappings.items():
-            if yaml_key in custom_1:
+        for lifecycle_key in lifecycle_keys:
+            if lifecycle_key in custom_1:
                 scripts_list = []
-                for script_path in custom_1[yaml_key]:
-                    if script_path.startswith('/pei-docker/scripts/'):
+                for script_str in custom_1[lifecycle_key]:
+                    if script_str.startswith('/pei-docker/scripts/'):
                         # This is an inline script
-                        script_name = script_path.replace('/pei-docker/scripts/', '')
+                        script_name = script_str.replace('/pei-docker/scripts/', '')
                         if script_name in inline_scripts_1:
                             scripts_list.append({
+                                'id': generate_script_id('stage1', lifecycle_key, 'inline'),
                                 'type': 'inline',
                                 'name': script_name,
                                 'content': inline_scripts_1[script_name],
-                                'path': script_path
+                                'path': script_str
                             })
                     else:
-                        # This is a file path
-                        scripts_list.append({
+                        # This is a file path with possible arguments
+                        path, args = parse_script_with_args(script_str)
+                        script_data = {
+                            'id': generate_script_id('stage1', lifecycle_key, 'file'),
                             'type': 'file',
-                            'path': script_path
-                        })
-                scripts1.lifecycle_scripts[ui_key] = scripts_list
+                            'path': script_str,  # Store full path with args for compatibility
+                            'content': ''  # File scripts don't have content
+                        }
+                        # Store parsed path and args separately if needed
+                        if args:
+                            script_data['script_path'] = path
+                            script_data['args'] = args
+                        scripts_list.append(script_data)
+                scripts1.lifecycle_scripts[lifecycle_key] = scripts_list
         
         # Load stage-2 lifecycle scripts
-        for ui_key, yaml_key in script_mappings.items():
-            if yaml_key in custom_2:
+        for lifecycle_key in lifecycle_keys:
+            if lifecycle_key in custom_2:
                 scripts_list = []
-                for script_path in custom_2[yaml_key]:
-                    if script_path.startswith('/pei-docker/scripts/'):
-                        script_name = script_path.replace('/pei-docker/scripts/', '')
+                for script_str in custom_2[lifecycle_key]:
+                    if script_str.startswith('/pei-docker/scripts/'):
+                        script_name = script_str.replace('/pei-docker/scripts/', '')
                         if script_name in inline_scripts_2:
                             scripts_list.append({
+                                'id': generate_script_id('stage2', lifecycle_key, 'inline'),
                                 'type': 'inline',
                                 'name': script_name,
                                 'content': inline_scripts_2[script_name],
-                                'path': script_path
+                                'path': script_str
                             })
                     else:
-                        scripts_list.append({
+                        # This is a file path with possible arguments
+                        path, args = parse_script_with_args(script_str)
+                        script_data = {
+                            'id': generate_script_id('stage2', lifecycle_key, 'file'),
                             'type': 'file',
-                            'path': script_path
-                        })
-                scripts2.lifecycle_scripts[ui_key] = scripts_list
+                            'path': script_str,  # Store full path with args for compatibility
+                            'content': ''  # File scripts don't have content
+                        }
+                        # Store parsed path and args separately if needed
+                        if args:
+                            script_data['script_path'] = path
+                            script_data['args'] = args
+                        scripts_list.append(script_data)
+                scripts2.lifecycle_scripts[lifecycle_key] = scripts_list
