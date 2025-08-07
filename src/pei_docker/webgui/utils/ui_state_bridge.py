@@ -12,7 +12,12 @@ import attrs
 import cattrs
 from omegaconf import OmegaConf
 
-from pei_docker.webgui.constants import CustomScriptLifecycleTypes
+from pei_docker.webgui.constants import (
+    CustomScriptLifecycleTypes,
+    DeviceTypes,
+    ScriptTypes,
+    EntryModes
+)
 from pei_docker.webgui.models.ui_state import (
     AppUIState, StageUI, NetworkUI, SSHTabUI,
     StorageUI, ScriptsUI, ProjectUI
@@ -217,7 +222,7 @@ class UIStateBridge:
         if stage_config.device:
             ui_stage.environment.device_type = stage_config.device.type
         else:
-            ui_stage.environment.device_type = 'cpu'
+            ui_stage.environment.device_type = DeviceTypes.CPU
         
         # Load environment variables
         if stage_config.environment:
@@ -261,10 +266,10 @@ class UIStateBridge:
             if len(custom.on_entry) > 0:
                 entry_script = custom.on_entry[0]
                 if entry_script.startswith('_inline_'):
-                    ui_scripts.entry_mode = 'inline'
+                    ui_scripts.entry_mode = EntryModes.INLINE
                     ui_scripts.entry_inline_name = entry_script.replace('_inline_', '')
                 else:
-                    ui_scripts.entry_mode = 'file'
+                    ui_scripts.entry_mode = EntryModes.FILE
                     ui_scripts.entry_file_path = entry_script
         
         # Load lifecycle scripts with unique IDs
@@ -274,7 +279,7 @@ class UIStateBridge:
         def create_script_entry(script_path: str) -> Dict[str, Any]:
             return {
                 'id': str(uuid.uuid4()),
-                'type': 'file',
+                'type': ScriptTypes.FILE,
                 'path': script_path
             }
         
@@ -303,21 +308,21 @@ class UIStateBridge:
         for name, storage_option in storage_dict.items():
             if name == 'app':
                 ui_storage.app_storage_type = storage_option.type
-                if storage_option.type == 'host' and storage_option.host_path:
+                if storage_option.type == StorageTypes.Host and storage_option.host_path:
                     ui_storage.app_host_path = storage_option.host_path
-                elif storage_option.type == 'volume' and storage_option.volume_name:
+                elif storage_option.type == StorageTypes.ManualVolume and storage_option.volume_name:
                     ui_storage.app_volume_name = storage_option.volume_name
             elif name == 'data':
                 ui_storage.data_storage_type = storage_option.type
-                if storage_option.type == 'host' and storage_option.host_path:
+                if storage_option.type == StorageTypes.Host and storage_option.host_path:
                     ui_storage.data_host_path = storage_option.host_path
-                elif storage_option.type == 'volume' and storage_option.volume_name:
+                elif storage_option.type == StorageTypes.ManualVolume and storage_option.volume_name:
                     ui_storage.data_volume_name = storage_option.volume_name
             elif name == 'workspace':
                 ui_storage.workspace_storage_type = storage_option.type
-                if storage_option.type == 'host' and storage_option.host_path:
+                if storage_option.type == StorageTypes.Host and storage_option.host_path:
                     ui_storage.workspace_host_path = storage_option.host_path
-                elif storage_option.type == 'volume' and storage_option.volume_name:
+                elif storage_option.type == StorageTypes.ManualVolume and storage_option.volume_name:
                     ui_storage.workspace_volume_name = storage_option.volume_name
     
     def _load_mount_into_ui(self, mount_dict: Dict[str, AttrsStorageOption], ui_storage: StorageUI) -> None:
@@ -327,13 +332,13 @@ class UIStateBridge:
             # Mount types should be preserved as-is: auto-volume, manual-volume, host
             mount_type = mount_option.type
             # For mounts, image type is not allowed, default to auto-volume
-            if mount_type == 'image':
-                mount_type = 'auto-volume'
+            if mount_type == StorageTypes.Image:
+                mount_type = StorageTypes.AutoVolume
             
             # Determine source based on mount type
-            if mount_type == 'host':
+            if mount_type == StorageTypes.Host:
                 source = mount_option.host_path or ''
-            elif mount_type == 'manual-volume':
+            elif mount_type == StorageTypes.ManualVolume:
                 source = mount_option.volume_name or ''
             else:  # auto-volume
                 source = ''  # Auto-generated, no source needed
@@ -452,7 +457,7 @@ class UIStateBridge:
         
         # Build device config
         device = None
-        if ui_stage.environment.device_type != 'cpu':
+        if ui_stage.environment.device_type != DeviceTypes.CPU:
             device = AttrsDeviceConfig(type=ui_stage.environment.device_type)
         
         # Convert environment variables
@@ -517,9 +522,9 @@ class UIStateBridge:
         if CustomScriptLifecycleTypes.ON_BUILD in lifecycle_scripts:
             for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_BUILD]:
                 if isinstance(script_data, dict):
-                    if script_data.get('type') == 'file' and 'path' in script_data:
+                    if script_data.get('type') == ScriptTypes.FILE and 'path' in script_data:
                         on_build.append(script_data['path'])
-                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                    elif script_data.get('type') == ScriptTypes.INLINE and 'name' in script_data:
                         # For inline scripts, use the proper path
                         on_build.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
@@ -528,9 +533,9 @@ class UIStateBridge:
         if CustomScriptLifecycleTypes.ON_FIRST_RUN in lifecycle_scripts:
             for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_FIRST_RUN]:
                 if isinstance(script_data, dict):
-                    if script_data.get('type') == 'file' and 'path' in script_data:
+                    if script_data.get('type') == ScriptTypes.FILE and 'path' in script_data:
                         on_first_run.append(script_data['path'])
-                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                    elif script_data.get('type') == ScriptTypes.INLINE and 'name' in script_data:
                         on_first_run.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_first_run.append(script_data)
@@ -538,9 +543,9 @@ class UIStateBridge:
         if CustomScriptLifecycleTypes.ON_EVERY_RUN in lifecycle_scripts:
             for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_EVERY_RUN]:
                 if isinstance(script_data, dict):
-                    if script_data.get('type') == 'file' and 'path' in script_data:
+                    if script_data.get('type') == ScriptTypes.FILE and 'path' in script_data:
                         on_every_run.append(script_data['path'])
-                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                    elif script_data.get('type') == ScriptTypes.INLINE and 'name' in script_data:
                         on_every_run.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_every_run.append(script_data)
@@ -548,9 +553,9 @@ class UIStateBridge:
         if CustomScriptLifecycleTypes.ON_USER_LOGIN in lifecycle_scripts:
             for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_USER_LOGIN]:
                 if isinstance(script_data, dict):
-                    if script_data.get('type') == 'file' and 'path' in script_data:
+                    if script_data.get('type') == ScriptTypes.FILE and 'path' in script_data:
                         on_user_login.append(script_data['path'])
-                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                    elif script_data.get('type') == ScriptTypes.INLINE and 'name' in script_data:
                         on_user_login.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_user_login.append(script_data)
@@ -576,45 +581,45 @@ class UIStateBridge:
         for name, prefix in [('app', 'app'), ('data', 'data'), ('workspace', 'workspace')]:
             storage_type = getattr(ui_storage, f'{prefix}_storage_type')
             
-            if storage_type == 'auto-volume':
+            if storage_type == StorageTypes.AutoVolume:
                 storage[name] = AttrsStorageOption(type=StorageTypes.AutoVolume)
-            elif storage_type == 'manual-volume':
+            elif storage_type == StorageTypes.ManualVolume:
                 volume_name = getattr(ui_storage, f'{prefix}_volume_name')
                 if volume_name:
                     storage[name] = AttrsStorageOption(
                         type=StorageTypes.ManualVolume,
                         volume_name=volume_name
                     )
-            elif storage_type == 'host':
+            elif storage_type == StorageTypes.Host:
                 host_path = getattr(ui_storage, f'{prefix}_host_path')
                 if host_path:
                     storage[name] = AttrsStorageOption(
                         type=StorageTypes.Host,
                         host_path=host_path
                     )
-            elif storage_type == 'image':
+            elif storage_type == StorageTypes.Image:
                 storage[name] = AttrsStorageOption(type=StorageTypes.Image)
         
         # Additional volumes
         for volume in ui_storage.volumes:
             name = volume.get('name', '')
             if name and name not in ['app', 'data', 'workspace']:
-                storage_type = volume.get('type', 'auto-volume')
+                storage_type = volume.get('type', StorageTypes.AutoVolume)
                 source = volume.get('source', '')
                 target = volume.get('target', '')
                 
-                if storage_type == 'auto-volume':
+                if storage_type == StorageTypes.AutoVolume:
                     storage[name] = AttrsStorageOption(
                         type=StorageTypes.AutoVolume,
                         dst_path=target
                     )
-                elif storage_type == 'manual-volume' and source:
+                elif storage_type == StorageTypes.ManualVolume and source:
                     storage[name] = AttrsStorageOption(
                         type=StorageTypes.ManualVolume,
                         volume_name=source,
                         dst_path=target
                     )
-                elif storage_type == 'host' and source:
+                elif storage_type == StorageTypes.Host and source:
                     storage[name] = AttrsStorageOption(
                         type=StorageTypes.Host,
                         host_path=source,
@@ -631,24 +636,24 @@ class UIStateBridge:
             name = mount.get('name', '')
             source = mount.get('source', '')
             target = mount.get('target', '')
-            mount_type = mount.get('type', 'auto-volume')
+            mount_type = mount.get('type', StorageTypes.AutoVolume)
             
             if name and target:  # Source is optional for auto-volume
-                if mount_type == 'host':
+                if mount_type == StorageTypes.Host:
                     if source:  # Host type requires source
                         mounts[name] = AttrsStorageOption(
                             type=StorageTypes.Host,
                             host_path=source,
                             dst_path=target
                         )
-                elif mount_type == 'manual-volume':
+                elif mount_type == StorageTypes.ManualVolume:
                     if source:  # Manual volume requires source (volume name)
                         mounts[name] = AttrsStorageOption(
                             type=StorageTypes.ManualVolume,
                             volume_name=source,
                             dst_path=target
                         )
-                elif mount_type == 'auto-volume':
+                elif mount_type == StorageTypes.AutoVolume:
                     # Auto-volume doesn't require source
                     mounts[name] = AttrsStorageOption(
                         type=StorageTypes.AutoVolume,
@@ -705,7 +710,7 @@ class UIStateBridge:
             stage_1['environment'] = env_vars_to_list(ui_state.stage_1.environment.env_vars)
         
         # Add device configuration to stage-1
-        if ui_state.stage_1.environment.device_type != 'cpu':
+        if ui_state.stage_1.environment.device_type != DeviceTypes.CPU:
             stage_1['device'] = {
                 'type': ui_state.stage_1.environment.device_type
             }
@@ -804,9 +809,9 @@ class UIStateBridge:
                 script_list = []
                 for script_data in lifecycle_1[script_type]:
                     if isinstance(script_data, dict):
-                        if script_data.get('type') == 'file':
+                        if script_data.get('type') == ScriptTypes.FILE:
                             script_list.append(script_data['path'])
-                        elif script_data.get('type') == 'inline':
+                        elif script_data.get('type') == ScriptTypes.INLINE:
                             inline_name = script_data.get('name', '')
                             if inline_name:
                                 script_list.append(f"/pei-docker/scripts/{inline_name}")
@@ -853,7 +858,7 @@ class UIStateBridge:
         
         # Add device configuration to stage-2 (copy from GUI's single device setting)
         # Following the principle: if GUI has single section, map to both stages
-        if ui_state.stage_2.environment.device_type != 'cpu':
+        if ui_state.stage_2.environment.device_type != DeviceTypes.CPU:
             stage_2['device'] = {
                 'type': ui_state.stage_2.environment.device_type
             }
@@ -902,9 +907,9 @@ class UIStateBridge:
                 script_list = []
                 for script_data in lifecycle_2[script_type]:
                     if isinstance(script_data, dict):
-                        if script_data.get('type') == 'file':
+                        if script_data.get('type') == ScriptTypes.FILE:
                             script_list.append(script_data['path'])
-                        elif script_data.get('type') == 'inline':
+                        elif script_data.get('type') == ScriptTypes.INLINE:
                             inline_name = script_data.get('name', '')
                             if inline_name:
                                 script_list.append(f"/pei-docker/scripts/{inline_name}")
@@ -940,18 +945,18 @@ class UIStateBridge:
         for name, prefix in [('app', 'app'), ('data', 'data'), ('workspace', 'workspace')]:
             storage_type = getattr(storage, f'{prefix}_storage_type')
             
-            if storage_type == 'auto-volume':
-                config[name] = {'type': 'auto-volume'}
-            elif storage_type == 'manual-volume':
+            if storage_type == StorageTypes.AutoVolume:
+                config[name] = {'type': StorageTypes.AutoVolume}
+            elif storage_type == StorageTypes.ManualVolume:
                 volume_name = getattr(storage, f'{prefix}_volume_name')
                 if volume_name:
-                    config[name] = {'type': 'manual-volume', 'volume_name': volume_name}
-            elif storage_type == 'host':
+                    config[name] = {'type': StorageTypes.ManualVolume, 'volume_name': volume_name}
+            elif storage_type == StorageTypes.Host:
                 host_path = getattr(storage, f'{prefix}_host_path')
                 if host_path:
-                    config[name] = {'type': 'host', 'host_path': host_path}
-            elif storage_type == 'image':
-                config[name] = {'type': 'image'}
+                    config[name] = {'type': StorageTypes.Host, 'host_path': host_path}
+            elif storage_type == StorageTypes.Image:
+                config[name] = {'type': StorageTypes.Image}
         
         # Additional mounts
         if storage.mounts:
@@ -960,18 +965,18 @@ class UIStateBridge:
                 name = mount.get('name', '')
                 source = mount.get('source', '')
                 target = mount.get('target', '')
-                mount_type = mount.get('type', 'host')
+                mount_type = mount.get('type', StorageTypes.Host)
                 
                 if name and source and target:
-                    if mount_type == 'host':
+                    if mount_type == StorageTypes.Host:
                         mount_config[name] = {
-                            'type': 'host',
+                            'type': StorageTypes.Host,
                             'host_path': source,
                             'dst_path': target
                         }
-                    elif mount_type == 'manual-volume':
+                    elif mount_type == StorageTypes.ManualVolume:
                         mount_config[name] = {
-                            'type': 'manual-volume',
+                            'type': StorageTypes.ManualVolume,
                             'volume_name': source,
                             'dst_path': target
                         }
@@ -1058,21 +1063,21 @@ class UIStateBridge:
         # Load Stage-1 device configuration
         device_1 = stage_1_data.get('device', {})
         if device_1:
-            device_type = device_1.get('type', 'cpu')
+            device_type = device_1.get('type', DeviceTypes.CPU)
             ui_state.stage_1.environment.device_type = device_type
-            ui_state.stage_1.environment.gpu_enabled = (device_type == 'gpu')
+            ui_state.stage_1.environment.gpu_enabled = (device_type == DeviceTypes.GPU)
         else:
-            ui_state.stage_1.environment.device_type = 'cpu'
+            ui_state.stage_1.environment.device_type = DeviceTypes.CPU
             ui_state.stage_1.environment.gpu_enabled = False
         
         # Load Stage-2 device configuration
         device_2 = stage_2_data.get('device', {})
         if device_2:
-            device_type = device_2.get('type', 'cpu')
+            device_type = device_2.get('type', DeviceTypes.CPU)
             ui_state.stage_2.environment.device_type = device_type
-            ui_state.stage_2.environment.gpu_enabled = (device_type == 'gpu')
+            ui_state.stage_2.environment.gpu_enabled = (device_type == DeviceTypes.GPU)
         else:
-            ui_state.stage_2.environment.device_type = 'cpu'
+            ui_state.stage_2.environment.device_type = DeviceTypes.CPU
             ui_state.stage_2.environment.gpu_enabled = False
     
     def _load_network_config_default(self, stage_1_data: Dict[str, Any], stage_2_data: Dict[str, Any], ui_state: AppUIState) -> None:
@@ -1235,24 +1240,24 @@ class UIStateBridge:
             config = storage_config.get(name, {})
             
             if isinstance(config, dict):
-                storage_type = config.get('type', 'auto-volume')
+                storage_type = config.get('type', StorageTypes.AutoVolume)
                 setattr(storage, f'{prefix}_storage_type', storage_type)
                 
-                if storage_type == 'manual-volume':
+                if storage_type == StorageTypes.ManualVolume:
                     setattr(storage, f'{prefix}_volume_name', config.get('volume_name', ''))
-                elif storage_type == 'host':
+                elif storage_type == StorageTypes.Host:
                     setattr(storage, f'{prefix}_host_path', config.get('host_path', ''))
             elif isinstance(config, str):
                 # Legacy format compatibility
-                if config == 'auto-volume':
-                    setattr(storage, f'{prefix}_storage_type', 'auto-volume')
-                elif config == 'image':
-                    setattr(storage, f'{prefix}_storage_type', 'image')
+                if config == StorageTypes.AutoVolume:
+                    setattr(storage, f'{prefix}_storage_type', StorageTypes.AutoVolume)
+                elif config == StorageTypes.Image:
+                    setattr(storage, f'{prefix}_storage_type', StorageTypes.Image)
                 elif config.startswith('volume:'):
-                    setattr(storage, f'{prefix}_storage_type', 'manual-volume')
+                    setattr(storage, f'{prefix}_storage_type', StorageTypes.ManualVolume)
                     setattr(storage, f'{prefix}_volume_name', config[7:])
                 elif config.startswith('host:'):
-                    setattr(storage, f'{prefix}_storage_type', 'host')
+                    setattr(storage, f'{prefix}_storage_type', StorageTypes.Host)
                     setattr(storage, f'{prefix}_host_path', config[5:])
         
         # Load additional mounts
@@ -1268,9 +1273,9 @@ class UIStateBridge:
                     'target': config.get('dst_path', f'/mnt/{name}')
                 }
                 
-                if mount_type == 'host':
+                if mount_type == StorageTypes.Host:
                     mount_data['source'] = config.get('host_path', '')
-                elif mount_type == 'manual-volume':
+                elif mount_type == StorageTypes.ManualVolume:
                     mount_data['source'] = config.get('volume_name', '')
                 
                 storage.mounts.append(mount_data)
@@ -1377,7 +1382,7 @@ class UIStateBridge:
                         path, args = parse_script_with_args(script_str)
                         script_data = {
                             'id': generate_script_id('stage1', lifecycle_key, 'file'),
-                            'type': 'file',
+                            'type': ScriptTypes.FILE,
                             'path': script_str,  # Store full path with args for compatibility
                             'content': ''  # File scripts don't have content
                         }
@@ -1408,7 +1413,7 @@ class UIStateBridge:
                         path, args = parse_script_with_args(script_str)
                         script_data = {
                             'id': generate_script_id('stage2', lifecycle_key, 'file'),
-                            'type': 'file',
+                            'type': ScriptTypes.FILE,
                             'path': script_str,  # Store full path with args for compatibility
                             'content': ''  # File scripts don't have content
                         }

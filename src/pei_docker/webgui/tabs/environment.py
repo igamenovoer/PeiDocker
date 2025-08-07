@@ -9,6 +9,7 @@ Shows both Stage-1 and Stage-2 configurations separately.
 from typing import TYPE_CHECKING, Optional, Any, Dict, List
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
+from pei_docker.webgui.constants import DeviceTypes
 
 if TYPE_CHECKING:
     from pei_docker.webgui.app import PeiDockerWebGUI
@@ -73,23 +74,23 @@ class EnvironmentTab(BaseTab):
                     # Bind device type select to UI state
                     device_select = ui.select(
                         options={
-                            'cpu': 'CPU Only',
-                            'gpu': 'GPU Support'
+                            DeviceTypes.CPU: 'CPU Only',
+                            DeviceTypes.GPU: 'GPU Support'
                         },
-                        value='cpu'
+                        value=DeviceTypes.CPU
                     ).classes('w-full').bind_value(stage_env, 'device_type') \
                         .props(f'data-testid="{stage}-device-type-select"')
                     
                     # Update gpu_enabled when device_type changes
                     def on_device_change(e: Any, env: Any = stage_env) -> None:
-                        env.gpu_enabled = (e.value == 'gpu')
+                        env.gpu_enabled = (e.value == DeviceTypes.GPU)
                         self.app.ui_state.mark_modified()
                     
                     device_select.on_value_change(lambda e, se=stage_env: on_device_change(e, se))
                 
                 # GPU Configuration (conditionally visible)
                 with ui.column().classes('mt-6 w-full') as gpu_config:
-                    gpu_config.bind_visibility_from(stage_env, 'device_type', lambda v: v == 'gpu')
+                    gpu_config.bind_visibility_from(stage_env, 'device_type', lambda v: v == DeviceTypes.GPU)
                     
                     with self.create_form_group('GPU Configuration', 
                                               'GPU support enabled - all available GPUs will be accessible in the container. To control GPU usage, you can either modify the generated docker compose file directly, or use "CUDA_VISIBLE_DEVICES" environment variable inside container.'):
@@ -243,7 +244,7 @@ class EnvironmentTab(BaseTab):
             elif key[0].isdigit():
                 errors.append(f"Stage-2: Environment variable name cannot start with a number: {key}")
         
-        # No additional GPU validation needed - device_type is either 'cpu' or 'gpu'
+        # No additional GPU validation needed - device_type is either CPU or GPU
         
         return len(errors) == 0, errors
     

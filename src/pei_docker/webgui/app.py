@@ -26,6 +26,7 @@ from pei_docker.webgui.tabs import (
     ProjectTab, SSHTab, NetworkTab, EnvironmentTab, 
     StorageTab, ScriptsTab, SummaryTab
 )
+from pei_docker.webgui.constants import EntryModes, ScriptTypes
 from pei_docker.pei_utils_create import create_project_direct
 
 # Keep TabName enum for navigation
@@ -442,7 +443,7 @@ class PeiDockerWebGUI:
             scripts_ui = stage_ui.scripts
             
             # Entry point inline scripts - access directly from scripts_ui
-            if scripts_ui.entry_mode == 'inline':
+            if scripts_ui.entry_mode == EntryModes.INLINE:
                 entry_name = scripts_ui.entry_inline_name
                 entry_content = scripts_ui.entry_inline_content
                 
@@ -463,7 +464,7 @@ class PeiDockerWebGUI:
             lifecycle_scripts = scripts_ui.lifecycle_scripts
             for lifecycle_type, scripts in lifecycle_scripts.items():
                 for script in scripts:
-                    if script.get('type') == 'inline':
+                    if script.get('type') == ScriptTypes.INLINE:
                         script_name = script.get('name', '')
                         script_content = script.get('content', '')
                         

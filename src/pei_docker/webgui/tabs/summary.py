@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, List, Tuple, Dict, Optional, Any
 from pathlib import Path
 from nicegui import ui, app
 from pei_docker.webgui.tabs.base import BaseTab
+from pei_docker.webgui.constants import EntryModes, ScriptTypes
 import yaml
 import asyncio
 import tempfile
@@ -131,7 +132,7 @@ class SummaryTab(BaseTab):
             
             # Entry point inline scripts
             entry_mode = getattr(scripts_ui, f'stage{stage_num}_entry_mode')
-            if entry_mode == 'inline':
+            if entry_mode == EntryModes.INLINE:
                 entry_name = getattr(scripts_ui, f'stage{stage_num}_entry_inline_name')
                 entry_content = getattr(scripts_ui, f'stage{stage_num}_entry_inline_content')
                 
@@ -152,7 +153,7 @@ class SummaryTab(BaseTab):
             lifecycle_scripts = getattr(scripts_ui, f'stage{stage_num}_lifecycle_scripts', {})
             for lifecycle_type, scripts in lifecycle_scripts.items():
                 for script in scripts:
-                    if script.get('type') == 'inline':
+                    if script.get('type') == ScriptTypes.INLINE:
                         script_name = script.get('name', '')
                         script_content = script.get('content', '')
                         
