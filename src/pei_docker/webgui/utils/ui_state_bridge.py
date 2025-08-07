@@ -135,17 +135,20 @@ class UIStateBridge:
                     # Handle on_entry conversion from string to list
                     if 'custom' in config_dict[stage] and config_dict[stage]['custom'] is not None:
                         custom = config_dict[stage]['custom']
-                        if 'on_entry' in custom and custom['on_entry'] is not None:
-                            on_entry = custom['on_entry']
+                        if CustomScriptLifecycleTypes.ON_ENTRY in custom and custom[CustomScriptLifecycleTypes.ON_ENTRY] is not None:
+                            on_entry = custom[CustomScriptLifecycleTypes.ON_ENTRY]
                             if isinstance(on_entry, str):
                                 # Convert string to single-element list
-                                config_dict[stage]['custom']['on_entry'] = [on_entry]
+                                config_dict[stage]['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [on_entry]
             
             # Step 4: Parse into UserConfig using cattrs (proper data model)
             user_config: AttrsUserConfig = cattrs.structure(config_dict, AttrsUserConfig)
             
             # Step 5: Convert UserConfig to UI state
             self._load_user_config_into_ui(user_config, ui_state)
+            
+            # Step 6: Load inline scripts metadata (not part of UserConfig structure)
+            self._load_inline_scripts_metadata(config, ui_state)
             
             return True, []
             
@@ -251,6 +254,44 @@ class UIStateBridge:
         if stage_config.mount:
             self._load_mount_into_ui(stage_config.mount, ui_stage.storage)
     
+    def _load_inline_scripts_metadata(self, config: Any, ui_state: AppUIState) -> None:
+        """Load inline scripts metadata from OmegaConf config."""
+        # Process stage-1 inline scripts
+        if 'stage_1' in config and '_inline_scripts' in config.stage_1:
+            inline_scripts_1 = config.stage_1._inline_scripts
+            ui_state.stage_1.scripts._inline_scripts_metadata.clear()
+            ui_state.stage_1.scripts._inline_scripts_metadata.update(dict(inline_scripts_1))
+            
+            # Check if entry point is an inline script
+            if 'custom' in config.stage_1 and CustomScriptLifecycleTypes.ON_ENTRY in config.stage_1.custom:
+                entry_points = config.stage_1.custom[CustomScriptLifecycleTypes.ON_ENTRY]
+                if entry_points and len(entry_points) > 0:
+                    entry_point = entry_points[0]
+                    if entry_point.startswith('/pei-docker/scripts/'):
+                        script_name = entry_point.replace('/pei-docker/scripts/', '')
+                        if script_name in inline_scripts_1:
+                            ui_state.stage_1.scripts.entry_mode = EntryModes.INLINE
+                            ui_state.stage_1.scripts.entry_inline_name = script_name
+                            ui_state.stage_1.scripts.entry_inline_content = inline_scripts_1[script_name]
+        
+        # Process stage-2 inline scripts
+        if 'stage_2' in config and '_inline_scripts' in config.stage_2:
+            inline_scripts_2 = config.stage_2._inline_scripts
+            ui_state.stage_2.scripts._inline_scripts_metadata.clear()
+            ui_state.stage_2.scripts._inline_scripts_metadata.update(dict(inline_scripts_2))
+            
+            # Check if entry point is an inline script
+            if 'custom' in config.stage_2 and CustomScriptLifecycleTypes.ON_ENTRY in config.stage_2.custom:
+                entry_points = config.stage_2.custom[CustomScriptLifecycleTypes.ON_ENTRY]
+                if entry_points and len(entry_points) > 0:
+                    entry_point = entry_points[0]
+                    if entry_point.startswith('/pei-docker/scripts/'):
+                        script_name = entry_point.replace('/pei-docker/scripts/', '')
+                        if script_name in inline_scripts_2:
+                            ui_state.stage_2.scripts.entry_mode = EntryModes.INLINE
+                            ui_state.stage_2.scripts.entry_inline_name = script_name
+                            ui_state.stage_2.scripts.entry_inline_content = inline_scripts_2[script_name]
+    
     def _load_custom_scripts_into_ui(self, custom: AttrsCustomScriptConfig, ui_scripts: ScriptsUI) -> None:
         """Load custom scripts from data model into UI state."""
         # Clear existing scripts
@@ -261,14 +302,12 @@ class UIStateBridge:
             CustomScriptLifecycleTypes.ON_USER_LOGIN: []
         }
         
-        # Load entry point
+        # Load entry point (for file-based scripts only, inline handled separately)
         if custom.on_entry:
             if len(custom.on_entry) > 0:
                 entry_script = custom.on_entry[0]
-                if entry_script.startswith('_inline_'):
-                    ui_scripts.entry_mode = EntryModes.INLINE
-                    ui_scripts.entry_inline_name = entry_script.replace('_inline_', '')
-                else:
+                # Only set as file if not already set as inline by _load_inline_scripts_metadata
+                if ui_scripts.entry_mode != EntryModes.INLINE:
                     ui_scripts.entry_mode = EntryModes.FILE
                     ui_scripts.entry_file_path = entry_script
         
@@ -1316,7 +1355,7 @@ class UIStateBridge:
         
         # Load stage-1 entry point
         custom_1 = stage_1_data.get('custom', {})
-        entry_points_1 = custom_1.get('on_entry', [])
+        entry_points_1 = custom_1.get(CustomScriptLifecycleTypes.ON_ENTRY, [])
         if entry_points_1:
             entry_point_1 = entry_points_1[0]
             if entry_point_1.startswith('/pei-docker/scripts/'):
@@ -1339,7 +1378,7 @@ class UIStateBridge:
         
         # Load stage-2 entry point
         custom_2 = stage_2_data.get('custom', {})
-        entry_points_2 = custom_2.get('on_entry', [])
+        entry_points_2 = custom_2.get(CustomScriptLifecycleTypes.ON_ENTRY, [])
         if entry_points_2:
             entry_point_2 = entry_points_2[0]
             if entry_point_2.startswith('/pei-docker/scripts/'):

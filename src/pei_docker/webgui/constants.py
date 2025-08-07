@@ -15,17 +15,19 @@ class CustomScriptLifecycleTypes:
     - on_first_run: Scripts that run on first container start
     - on_every_run: Scripts that run on every container start
     - on_user_login: Scripts that run when a user logs in via SSH
+    - on_entry: Custom entry point script that replaces the default container entry point
     """
     
     ON_BUILD: str = 'on_build'
     ON_FIRST_RUN: str = 'on_first_run'
     ON_EVERY_RUN: str = 'on_every_run'
     ON_USER_LOGIN: str = 'on_user_login'
+    ON_ENTRY: str = 'on_entry'
     
     @classmethod
     def get_all_types(cls) -> List[str]:
         """Get all lifecycle type constants as a list."""
-        return [cls.ON_BUILD, cls.ON_FIRST_RUN, cls.ON_EVERY_RUN, cls.ON_USER_LOGIN]
+        return [cls.ON_BUILD, cls.ON_FIRST_RUN, cls.ON_EVERY_RUN, cls.ON_USER_LOGIN, cls.ON_ENTRY]
     
     @classmethod
     def get_types_with_descriptions(cls) -> List[Tuple[str, str]]:

@@ -369,7 +369,7 @@ class ScriptsTab(BaseTab):
                 if path:
                     if 'custom' not in stage_1_data:
                         stage_1_data['custom'] = {}
-                    stage_1_data['custom']['on_entry'] = [path]
+                    stage_1_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [path]
             elif stage_1_scripts.entry_mode == 'inline':
                 name = stage_1_scripts.entry_inline_name.strip()
                 content = stage_1_scripts.entry_inline_content.strip()
@@ -377,7 +377,7 @@ class ScriptsTab(BaseTab):
                     script_path = f'stage-1/custom/{name}'
                     if 'custom' not in stage_1_data:
                         stage_1_data['custom'] = {}
-                    stage_1_data['custom']['on_entry'] = [script_path]
+                    stage_1_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [script_path]
                     # Store inline script metadata
                     if '_inline_scripts' not in stage_1_data:
                         stage_1_data['_inline_scripts'] = []
@@ -394,7 +394,7 @@ class ScriptsTab(BaseTab):
                 if path:
                     if 'custom' not in stage_2_data:
                         stage_2_data['custom'] = {}
-                    stage_2_data['custom']['on_entry'] = [path]
+                    stage_2_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [path]
             elif stage_2_scripts.entry_mode == 'inline':
                 name = stage_2_scripts.entry_inline_name.strip()
                 content = stage_2_scripts.entry_inline_content.strip()
@@ -402,7 +402,7 @@ class ScriptsTab(BaseTab):
                     script_path = f'stage-2/custom/{name}'
                     if 'custom' not in stage_2_data:
                         stage_2_data['custom'] = {}
-                    stage_2_data['custom']['on_entry'] = [script_path]
+                    stage_2_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [script_path]
                     # Store inline script metadata
                     if '_inline_scripts' not in stage_2_data:
                         stage_2_data['_inline_scripts'] = []
@@ -467,8 +467,8 @@ class ScriptsTab(BaseTab):
             
             # Load Stage-1 configuration
             stage_1_custom = stage_1_config.get('custom', {})
-            if 'on_entry' in stage_1_custom:
-                entry_paths = stage_1_custom['on_entry']
+            if CustomScriptLifecycleTypes.ON_ENTRY in stage_1_custom:
+                entry_paths = stage_1_custom[CustomScriptLifecycleTypes.ON_ENTRY]
                 if entry_paths and len(entry_paths) > 0:
                     entry_path = entry_paths[0]
                     if entry_path in inline_scripts_lookup:
@@ -486,8 +486,8 @@ class ScriptsTab(BaseTab):
             
             # Load Stage-2 configuration
             stage_2_custom = stage_2_config.get('custom', {})
-            if 'on_entry' in stage_2_custom:
-                entry_paths = stage_2_custom['on_entry']
+            if CustomScriptLifecycleTypes.ON_ENTRY in stage_2_custom:
+                entry_paths = stage_2_custom[CustomScriptLifecycleTypes.ON_ENTRY]
                 if entry_paths and len(entry_paths) > 0:
                     entry_path = entry_paths[0]
                     if entry_path in inline_scripts_lookup:
