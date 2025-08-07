@@ -327,16 +327,17 @@ class ScriptsTab(BaseTab):
             
             # Validate lifecycle scripts
             lifecycle_scripts = scripts_ui.lifecycle_scripts
-            for lifecycle_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+            for lifecycle_type in [CustomScriptLifecycleTypes.ON_BUILD, CustomScriptLifecycleTypes.ON_FIRST_RUN, 
+                                   CustomScriptLifecycleTypes.ON_EVERY_RUN, CustomScriptLifecycleTypes.ON_USER_LOGIN]:
                 if lifecycle_type in lifecycle_scripts:
                     for i, script in enumerate(lifecycle_scripts[lifecycle_type]):
-                        if script['type'] == 'file':
+                        if script['type'] == ScriptTypes.FILE:
                             path = script.get('path', '').strip()
                             if not path:
                                 errors.append(f"{stage.upper()} {lifecycle_type} script {i+1}: File path is required")
                             elif not self._validate_script_path(path, stage):
                                 errors.append(f"{stage.upper()} {lifecycle_type} script {i+1}: Invalid path '{path}' for {stage}")
-                        elif script['type'] == 'inline':
+                        elif script['type'] == ScriptTypes.INLINE:
                             if not script.get('path', '').strip():
                                 errors.append(f"{stage.upper()} {lifecycle_type} script {i+1}: Script name is required")
                             if not script.get('content', '').strip():
@@ -364,13 +365,13 @@ class ScriptsTab(BaseTab):
         
         # Collect Stage-1 configuration
         if stage_1_scripts.entry_mode != EntryModes.NONE:
-            if stage_1_scripts.entry_mode == 'file':
+            if stage_1_scripts.entry_mode == EntryModes.FILE:
                 path = stage_1_scripts.entry_file_path.strip()
                 if path:
                     if 'custom' not in stage_1_data:
                         stage_1_data['custom'] = {}
                     stage_1_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [path]
-            elif stage_1_scripts.entry_mode == 'inline':
+            elif stage_1_scripts.entry_mode == EntryModes.INLINE:
                 name = stage_1_scripts.entry_inline_name.strip()
                 content = stage_1_scripts.entry_inline_content.strip()
                 if name and content:
@@ -389,13 +390,13 @@ class ScriptsTab(BaseTab):
         
         # Collect Stage-2 configuration
         if stage_2_scripts.entry_mode != EntryModes.NONE:
-            if stage_2_scripts.entry_mode == 'file':
+            if stage_2_scripts.entry_mode == EntryModes.FILE:
                 path = stage_2_scripts.entry_file_path.strip()
                 if path:
                     if 'custom' not in stage_2_data:
                         stage_2_data['custom'] = {}
                     stage_2_data['custom'][CustomScriptLifecycleTypes.ON_ENTRY] = [path]
-            elif stage_2_scripts.entry_mode == 'inline':
+            elif stage_2_scripts.entry_mode == EntryModes.INLINE:
                 name = stage_2_scripts.entry_inline_name.strip()
                 content = stage_2_scripts.entry_inline_content.strip()
                 if name and content:
@@ -473,13 +474,13 @@ class ScriptsTab(BaseTab):
                     entry_path = entry_paths[0]
                     if entry_path in inline_scripts_lookup:
                         # Inline script
-                        stage_1_scripts.entry_mode = 'inline'
+                        stage_1_scripts.entry_mode = EntryModes.INLINE
                         script_name = entry_path.split('/')[-1]
                         stage_1_scripts.entry_inline_name = script_name
                         stage_1_scripts.entry_inline_content = inline_scripts_lookup[entry_path]['content']
                     else:
                         # File path
-                        stage_1_scripts.entry_mode = 'file'
+                        stage_1_scripts.entry_mode = EntryModes.FILE
                         stage_1_scripts.entry_file_path = entry_path
             else:
                 stage_1_scripts.entry_mode = EntryModes.NONE
@@ -492,19 +493,20 @@ class ScriptsTab(BaseTab):
                     entry_path = entry_paths[0]
                     if entry_path in inline_scripts_lookup:
                         # Inline script
-                        stage_2_scripts.entry_mode = 'inline'
+                        stage_2_scripts.entry_mode = EntryModes.INLINE
                         script_name = entry_path.split('/')[-1]
                         stage_2_scripts.entry_inline_name = script_name
                         stage_2_scripts.entry_inline_content = inline_scripts_lookup[entry_path]['content']
                     else:
                         # File path
-                        stage_2_scripts.entry_mode = 'file'
+                        stage_2_scripts.entry_mode = EntryModes.FILE
                         stage_2_scripts.entry_file_path = entry_path
             else:
                 stage_2_scripts.entry_mode = EntryModes.NONE
             
             # Load lifecycle scripts
-            for lifecycle_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
+            for lifecycle_type in [CustomScriptLifecycleTypes.ON_BUILD, CustomScriptLifecycleTypes.ON_FIRST_RUN, 
+                                   CustomScriptLifecycleTypes.ON_EVERY_RUN, CustomScriptLifecycleTypes.ON_USER_LOGIN]:
                 # Stage-1 lifecycle scripts
                 if lifecycle_type in stage_1_custom:
                     scripts_list = []
@@ -513,7 +515,7 @@ class ScriptsTab(BaseTab):
                             # Inline script
                             scripts_list.append({
                                 'id': f'stage1-{lifecycle_type}-inline-{self._generate_uuid()}',
-                                'type': 'inline',
+                                'type': ScriptTypes.INLINE,
                                 'path': script_path,
                                 'content': inline_scripts_lookup[script_path]['content']
                             })
@@ -521,7 +523,7 @@ class ScriptsTab(BaseTab):
                             # File path
                             scripts_list.append({
                                 'id': f'stage1-{lifecycle_type}-file-{self._generate_uuid()}',
-                                'type': 'file',
+                                'type': ScriptTypes.FILE,
                                 'path': script_path,
                                 'content': ''
                             })
@@ -535,7 +537,7 @@ class ScriptsTab(BaseTab):
                             # Inline script
                             scripts_list.append({
                                 'id': f'stage2-{lifecycle_type}-inline-{self._generate_uuid()}',
-                                'type': 'inline',
+                                'type': ScriptTypes.INLINE,
                                 'path': script_path,
                                 'content': inline_scripts_lookup[script_path]['content']
                             })
@@ -543,7 +545,7 @@ class ScriptsTab(BaseTab):
                             # File path
                             scripts_list.append({
                                 'id': f'stage2-{lifecycle_type}-file-{self._generate_uuid()}',
-                                'type': 'file',
+                                'type': ScriptTypes.FILE,
                                 'path': script_path,
                                 'content': ''
                             })
