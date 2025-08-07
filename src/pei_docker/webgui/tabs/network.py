@@ -18,8 +18,10 @@ class NetworkTab(BaseTab):
     
     def __init__(self, app: 'PeiDockerWebGUI'):
         super().__init__(app)
-        self.port_mappings_container: Optional[ui.column] = None
-        self.port_mapping_rows: List[Dict[str, Any]] = []
+        self.stage1_port_mappings_container: Optional[ui.column] = None
+        self.stage2_port_mappings_container: Optional[ui.column] = None
+        self.stage1_port_mapping_rows: List[Dict[str, Any]] = []
+        self.stage2_port_mapping_rows: List[Dict[str, Any]] = []
     
     def render(self) -> ui.element:
         """Render the network tab content with data binding."""
@@ -77,76 +79,117 @@ class NetworkTab(BaseTab):
                     # Keep stage 2 in sync
                     apt_select.bind_value(network_2, 'apt_mirror')
             
-            # Port Mappings
+            # Port Mappings - Now separated by stage
             with self.create_card('🔌 Port Mappings'):
-                with self.create_form_group('Additional Port Mappings', 
-                                         'Map container ports to host ports (SSH port is configured separately)'):
-                    
-                    # Warning about port mappings being applied to both stages
-                    with ui.card().classes('w-full p-3 mb-4 bg-yellow-50 border-yellow-200'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.icon('warning', color='orange')
-                            with ui.column().classes('text-sm'):
-                                ui.label('Port mappings will be applied to both stage-1 and stage-2 containers.') \
-                                    .classes('text-yellow-800 font-medium')
-                                ui.label('For more customization, edit the user_config.yml file directly.') \
-                                    .classes('text-yellow-700')
-                    
-                    # Available port mapping formats
-                    with ui.card().classes('w-full p-3 mb-4 bg-gray-50 border-gray-200'):
-                        ui.label('Available formats:').classes('text-sm font-medium text-gray-700 mb-2')
-                        with ui.column().classes('ml-4 text-sm font-mono'):
-                            ui.label('• Single port: 8080:80')
-                            ui.label('• Port range: 9090-9099:9090-9099')
-                    
-                    # Port mappings container
-                    with ui.column().classes('w-full mb-4') as mappings_container:
-                        self.port_mappings_container = mappings_container
-                        self._render_port_mappings()
-                    
-                    # Add port mapping button
-                    ui.button('➕ Add Port Mapping', on_click=self._add_port_mapping) \
-                        .classes('bg-blue-600 hover:bg-blue-700 text-white') \
-                        .props('data-testid="add-port-mapping-btn"')
-                    
-                    # Info note
-                    with ui.card().classes('w-full p-3 mt-4 bg-blue-50 border-blue-200'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.icon('info', color='blue')
+                # Info about separate port mappings
+                with ui.card().classes('w-full p-3 mb-4 bg-blue-50 border-blue-200'):
+                    with ui.row().classes('items-center gap-2'):
+                        ui.icon('info', color='blue')
+                        with ui.column().classes('text-sm'):
+                            ui.label('Port mappings can now be configured separately for each stage.') \
+                                .classes('text-blue-800 font-medium')
+                            ui.label('Stage-1 is for system-level services, Stage-2 is for application-level services.') \
+                                .classes('text-blue-700')
                             ui.label('SSH port mapping (2222:22) is configured in the SSH tab.') \
-                                .classes('text-blue-800 text-sm')
+                                .classes('text-blue-700')
+                
+                # Available port mapping formats
+                with ui.card().classes('w-full p-3 mb-4 bg-gray-50 border-gray-200'):
+                    ui.label('Available formats:').classes('text-sm font-medium text-gray-700 mb-2')
+                    with ui.column().classes('ml-4 text-sm font-mono'):
+                        ui.label('• Single port: 8080:80')
+                        ui.label('• Port range: 9090-9099:9090-9099')
+                
+                # Create tabs for stage-1 and stage-2 port mappings
+                with ui.tabs() as tabs:
+                    stage1_tab = ui.tab('Stage-1 Ports')
+                    stage2_tab = ui.tab('Stage-2 Ports')
+                
+                with ui.tab_panels(tabs, value=stage1_tab).classes('w-full'):
+                    # Stage-1 Port Mappings
+                    with ui.tab_panel(stage1_tab):
+                        with self.create_form_group('Stage-1 Port Mappings', 
+                                                 'Map container ports to host ports for system-level services'):
+                            # Stage-1 port mappings container
+                            with ui.column().classes('w-full mb-4') as stage1_mappings_container:
+                                self.stage1_port_mappings_container = stage1_mappings_container
+                                self._render_stage1_port_mappings()
+                            
+                            # Add port mapping button for stage-1
+                            ui.button('➕ Add Stage-1 Port Mapping', on_click=self._add_stage1_port_mapping) \
+                                .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                                .props('data-testid="add-stage1-port-mapping-btn"')
+                    
+                    # Stage-2 Port Mappings
+                    with ui.tab_panel(stage2_tab):
+                        with self.create_form_group('Stage-2 Port Mappings', 
+                                                 'Map container ports to host ports for application-level services'):
+                            # Stage-2 port mappings container
+                            with ui.column().classes('w-full mb-4') as stage2_mappings_container:
+                                self.stage2_port_mappings_container = stage2_mappings_container
+                                self._render_stage2_port_mappings()
+                            
+                            # Add port mapping button for stage-2
+                            ui.button('➕ Add Stage-2 Port Mapping', on_click=self._add_stage2_port_mapping) \
+                                .classes('bg-blue-600 hover:bg-blue-700 text-white') \
+                                .props('data-testid="add-stage2-port-mapping-btn"')
         
         return container
     
-    def _render_port_mappings(self) -> None:
-        """Render port mappings from the UI state."""
-        if not self.port_mappings_container:
+    def _render_stage1_port_mappings(self) -> None:
+        """Render port mappings for stage-1."""
+        if not self.stage1_port_mappings_container:
             return
         
         # Clear existing UI elements
-        self.port_mappings_container.clear()
-        self.port_mapping_rows.clear()
+        self.stage1_port_mappings_container.clear()
+        self.stage1_port_mapping_rows.clear()
         
-        # Get the port mappings from network state
+        # Get the port mappings from stage-1 network state
         network = self.app.ui_state.stage_1.network
         
         # Render each port mapping
         for i, mapping in enumerate(network.port_mappings):
-            self._create_port_mapping_row(i, mapping)
-        
-        # Don't add any default mappings - let the user add them as needed
+            self._create_port_mapping_row(i, mapping, 'stage1')
     
-    def _create_port_mapping_row(self, index: int, mapping: Dict[str, str]) -> None:
-        """Create a single port mapping row with data binding."""
-        if not self.port_mappings_container:
+    def _render_stage2_port_mappings(self) -> None:
+        """Render port mappings for stage-2."""
+        if not self.stage2_port_mappings_container:
             return
         
-        with self.port_mappings_container:
+        # Clear existing UI elements
+        self.stage2_port_mappings_container.clear()
+        self.stage2_port_mapping_rows.clear()
+        
+        # Get the port mappings from stage-2 network state
+        network = self.app.ui_state.stage_2.network
+        
+        # Render each port mapping
+        for i, mapping in enumerate(network.port_mappings):
+            self._create_port_mapping_row(i, mapping, 'stage2')
+    
+    def _create_port_mapping_row(self, index: int, mapping: Dict[str, str], stage: str) -> None:
+        """Create a single port mapping row with data binding.
+        
+        Args:
+            index: Index of the mapping in the list
+            mapping: Port mapping dictionary with 'host' and 'container' keys
+            stage: Either 'stage1' or 'stage2' to identify which stage this mapping belongs to
+        """
+        container = self.stage1_port_mappings_container if stage == 'stage1' else self.stage2_port_mappings_container
+        row_list = self.stage1_port_mapping_rows if stage == 'stage1' else self.stage2_port_mapping_rows
+        
+        if not container:
+            return
+        
+        with container:
             with ui.card().classes('w-full p-4 mb-4') as mapping_card:
                 # Mapping header
                 with ui.row().classes('items-center justify-between mb-4'):
-                    ui.label(f'🔌 Port Mapping {index + 1}').classes('text-lg font-semibold')
-                    ui.button('🗑️ Remove', on_click=lambda idx=index: self._remove_port_mapping(idx)) \
+                    stage_label = 'Stage-1' if stage == 'stage1' else 'Stage-2'
+                    ui.label(f'🔌 {stage_label} Port Mapping {index + 1}').classes('text-lg font-semibold')
+                    ui.button('🗑️ Remove', 
+                             on_click=lambda idx=index, s=stage: self._remove_port_mapping(idx, s)) \
                         .classes('bg-red-600 hover:bg-red-700 text-white text-sm')
                 
                 # Port configuration
@@ -155,7 +198,7 @@ class NetworkTab(BaseTab):
                         ui.label('Host Port').classes('font-medium text-gray-700 mb-1')
                         host_input = ui.input(
                             placeholder='Host port (e.g., 8080 or 9090-9099)'
-                        ).classes('w-full').props(f'data-testid="port-mapping-host-{index}"')
+                        ).classes('w-full').props(f'data-testid="port-mapping-{stage}-host-{index}"')
                         host_input.set_value(mapping.get('host', ''))
                         host_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                     
@@ -163,7 +206,7 @@ class NetworkTab(BaseTab):
                         ui.label('Container Port').classes('font-medium text-gray-700 mb-1')
                         container_input = ui.input(
                             placeholder='Container port (e.g., 80 or 9090-9099)'
-                        ).classes('w-full').props(f'data-testid="port-mapping-container-{index}"')
+                        ).classes('w-full').props(f'data-testid="port-mapping-{stage}-container-{index}"')
                         container_input.set_value(mapping.get('container', ''))
                         container_error = ui.label('').classes('text-red-600 text-sm mt-1 hidden')
                 
@@ -173,6 +216,7 @@ class NetworkTab(BaseTab):
                 # Store row data
                 row_data = {
                     'index': index,
+                    'stage': stage,
                     'host_input': host_input,
                     'container_input': container_input,
                     'host_error': host_error,
@@ -181,15 +225,13 @@ class NetworkTab(BaseTab):
                     'card': mapping_card,
                     'mapping': mapping
                 }
-                self.port_mapping_rows.append(row_data)
+                row_list.append(row_data)
                 
                 # Update mapping on input changes
                 def update_mapping(e: Any, field: str, data: Dict[str, Any] = row_data) -> None:
                     data['mapping'][field] = e.value
                     self._validate_and_update_preview(data)
-                    # Also update stage 2
-                    if data['index'] < len(self.app.ui_state.stage_2.network.port_mappings):
-                        self.app.ui_state.stage_2.network.port_mappings[data['index']][field] = e.value
+                    # Mark as modified
                     self.app.ui_state.mark_modified()
                 
                 host_input.on_value_change(lambda e: update_mapping(e, 'host'))
@@ -198,30 +240,47 @@ class NetworkTab(BaseTab):
                 # Initial validation and preview
                 self._validate_and_update_preview(row_data)
     
-    def _add_port_mapping(self) -> None:
-        """Add a new port mapping."""
-        # Add to both stages
+    def _add_stage1_port_mapping(self) -> None:
+        """Add a new port mapping to stage-1."""
         new_mapping = {'host': '', 'container': ''}
         self.app.ui_state.stage_1.network.port_mappings.append(new_mapping)
-        self.app.ui_state.stage_2.network.port_mappings.append(new_mapping.copy())
         
         # Create the UI row
         index = len(self.app.ui_state.stage_1.network.port_mappings) - 1
-        self._create_port_mapping_row(index, new_mapping)
+        self._create_port_mapping_row(index, new_mapping, 'stage1')
         
         # Mark as modified
         self.app.ui_state.mark_modified()
     
-    def _remove_port_mapping(self, index: int) -> None:
-        """Remove a port mapping."""
-        # Remove from both stages
-        if index < len(self.app.ui_state.stage_1.network.port_mappings):
-            self.app.ui_state.stage_1.network.port_mappings.pop(index)
-        if index < len(self.app.ui_state.stage_2.network.port_mappings):
-            self.app.ui_state.stage_2.network.port_mappings.pop(index)
+    def _add_stage2_port_mapping(self) -> None:
+        """Add a new port mapping to stage-2."""
+        new_mapping = {'host': '', 'container': ''}
+        self.app.ui_state.stage_2.network.port_mappings.append(new_mapping)
         
-        # Re-render all mappings to update indices
-        self._render_port_mappings()
+        # Create the UI row
+        index = len(self.app.ui_state.stage_2.network.port_mappings) - 1
+        self._create_port_mapping_row(index, new_mapping, 'stage2')
+        
+        # Mark as modified
+        self.app.ui_state.mark_modified()
+    
+    def _remove_port_mapping(self, index: int, stage: str) -> None:
+        """Remove a port mapping from the specified stage.
+        
+        Args:
+            index: Index of the mapping to remove
+            stage: Either 'stage1' or 'stage2'
+        """
+        if stage == 'stage1':
+            if index < len(self.app.ui_state.stage_1.network.port_mappings):
+                self.app.ui_state.stage_1.network.port_mappings.pop(index)
+            # Re-render stage-1 mappings to update indices
+            self._render_stage1_port_mappings()
+        else:  # stage2
+            if index < len(self.app.ui_state.stage_2.network.port_mappings):
+                self.app.ui_state.stage_2.network.port_mappings.pop(index)
+            # Re-render stage-2 mappings to update indices
+            self._render_stage2_port_mappings()
         
         # Mark as modified
         self.app.ui_state.mark_modified()
@@ -303,26 +362,36 @@ class NetworkTab(BaseTab):
         """Validate network configuration."""
         errors = []
         
-        # Get network states
-        network = self.app.ui_state.stage_1.network
+        # Get network states for both stages
+        network_1 = self.app.ui_state.stage_1.network
+        network_2 = self.app.ui_state.stage_2.network
         
-        # Validate proxy configuration
-        if network.proxy_enabled:
-            if not network.http_proxy:
+        # Validate proxy configuration (same for both stages)
+        if network_1.proxy_enabled:
+            if not network_1.http_proxy:
                 errors.append("HTTP proxy URL is required when proxy is enabled")
             
             # Validate proxy URL
-            if network.http_proxy and not network.http_proxy.startswith(('http://', 'https://', 'socks5://')):
+            if network_1.http_proxy and not network_1.http_proxy.startswith(('http://', 'https://', 'socks5://')):
                 errors.append("HTTP proxy URL must start with http://, https://, or socks5://")
         
-        # Validate port mappings
-        for i, mapping in enumerate(network.port_mappings):
+        # Validate stage-1 port mappings
+        for i, mapping in enumerate(network_1.port_mappings):
             host = mapping.get('host', '').strip()
             container = mapping.get('container', '').strip()
             
             if host or container:
                 if not host or not container:
-                    errors.append(f"Port mapping {i+1}: Both host and container ports are required")
+                    errors.append(f"Stage-1 port mapping {i+1}: Both host and container ports are required")
+        
+        # Validate stage-2 port mappings
+        for i, mapping in enumerate(network_2.port_mappings):
+            host = mapping.get('host', '').strip()
+            container = mapping.get('container', '').strip()
+            
+            if host or container:
+                if not host or not container:
+                    errors.append(f"Stage-2 port mapping {i+1}: Both host and container ports are required")
         
         return len(errors) == 0, errors
     
@@ -336,5 +405,7 @@ class NetworkTab(BaseTab):
         """Set network configuration data."""
         # This is now handled by the UIStateBridge during load
         # UI state is automatically bound, so we just need to refresh the view
-        if self.port_mappings_container:
-            self._render_port_mappings()
+        if self.stage1_port_mappings_container:
+            self._render_stage1_port_mappings()
+        if self.stage2_port_mappings_container:
+            self._render_stage2_port_mappings()
