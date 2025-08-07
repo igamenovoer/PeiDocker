@@ -1,15 +1,15 @@
-# PeiDocker v0.2.0 Release Notes
+# PeiDocker v1.0.0 Release Notes
 
 ## 🚀 Release Overview
 
-PeiDocker v0.2.0 is a major release introducing a web-based GUI, modular architecture, and PyPI distribution.
+PeiDocker v1.0.0 is the first stable production release, introducing a web-based GUI, modular architecture, and PyPI distribution.
 
 ## 📦 PyPI Publication Instructions
 
 ### Pre-publication Checklist
 
 1. ✅ PR #3 has been created: https://github.com/igamenovoer/PeiDocker/pull/3
-2. ✅ Version updated to 0.2.0 in pyproject.toml
+2. ✅ Version updated to 1.0.0 in pyproject.toml
 3. ✅ LICENSE file added (MIT)
 4. ✅ MANIFEST.in configured for package distribution
 5. ✅ Dependencies updated (nicegui added, textual removed)
@@ -30,7 +30,7 @@ PeiDocker v0.2.0 is a major release introducing a web-based GUI, modular archite
 
 3. **Create a GitHub Release**
    ```sh
-   gh release create v0.2.0 --title "v0.2.0: Web GUI and PyPI Release" --notes-file RELEASE_NOTES.md
+   gh release create v1.0.0 --title "v1.0.0: Production Release with Web GUI" --notes-file RELEASE_NOTES.md
    ```
 
 4. **Build the distribution**
