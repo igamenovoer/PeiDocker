@@ -465,4 +465,62 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754574458470_rr83vw5xw" time="2025/08/07 21:47">
+    <content>
+      PeiDocker Python Development Standards (2025-08-07):
+    
+      CODING GUIDELINES:
+      - ✅ Use context7 MCP for 3rd party library documentation when needed
+      - ✅ Use online search for best practices when in doubt
+      - ✅ NO unicode emojis in console output (print statements) - causes environment issues
+      - ✅ Unicode emojis OK in GUI code (NiceGUI web apps) - modern browser support
+      - ✅ NEVER modify pyproject.toml directly - use pixi installation commands instead
+      - ✅ Avoid relative imports - use absolute imports for clarity
+      - ✅ Use `pixi run -e dev` for development tasks, `pixi run` for deployment
+    
+      STRONGLY TYPED CODE REQUIREMENTS:
+      - ✅ Write strongly typed Python with proper type hints
+      - ✅ Use `mypy` to validate types after editing code
+      - ✅ Use `Any` as fallback when type is uncertain
+      - ✅ Use context7 MCP to research 3rd party library types
+      - ✅ Create minimal examples to inspect types if documentation inconsistent
+    
+      EXECUTION CONSTRAINTS:
+      - ✅ Timeout interactive processes within 10 seconds
+      - ✅ Timeout wait operations within 15 seconds max
+      - ✅ Environment: pixi-based Python package management
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754574773357_at8wymekw" time="2025/08/07 21:52">
+    <content>
+      PeiDocker WebGUI Proxy URL Bug Fix (2025-08-07):
+    
+      BUG IDENTIFIED:
+      - HTTP proxy input field showing &quot;http://None:None&quot; on startup when no proxy configured
+      - Root cause: NetworkConfigAdapter.http_proxy property in config_adapter.py:184-188
+      - Issue: When ProxyConfig.address or ProxyConfig.port are None, they format as string &quot;None&quot;
+    
+      FIX IMPLEMENTED:
+      - Added None check for port field in addition to address field
+      - Changed condition from: `if not self._proxy or not self._proxy.address:`
+      - To: `if not self._proxy or not self._proxy.address or not self._proxy.port:`
+      - Now returns empty string when either address OR port is None
+    
+      TECHNICAL DETAILS:
+      - ProxyConfig fields: `address: str | None = field(default=None)`, `port: int | None = field(default=None)`
+      - NetworkConfigAdapter binds to NiceGUI input field in network.py:53-58
+      - Fix ensures empty proxy configs display as empty string, not &quot;http://None:None&quot;
+    
+      TESTING:
+      - Created comprehensive test suite at tmp/tests/test_proxy_fix.py
+      - 6 test cases covering all None value combinations
+      - All tests pass - validates fix works correctly
+      - Follows Windows environment guidelines (no unicode emojis in console output)
+    
+      FILE MODIFIED:
+      - src/pei_docker/webgui/models/config_adapter.py (line 184)
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

@@ -33,4 +33,7 @@ pixi run pei-docker-cli create -p ./build
 pei-docker-cli create -p ./build
 ```
 
+## Memory Management
+- When using promptx mcp to save long term memory, DO NOT do it automatically, memory should be updated by explicit command
+
 [... rest of the existing content remains unchanged ...]

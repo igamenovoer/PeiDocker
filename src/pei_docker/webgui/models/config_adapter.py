@@ -181,7 +181,7 @@ class NetworkConfigAdapter:
     
     @property
     def http_proxy(self) -> str:
-        if not self._proxy or not self._proxy.address:
+        if not self._proxy or not self._proxy.address or not self._proxy.port:
             return ""
         scheme = "https" if self._proxy.use_https else "http"
         return f"{scheme}://{self._proxy.address}:{self._proxy.port}"

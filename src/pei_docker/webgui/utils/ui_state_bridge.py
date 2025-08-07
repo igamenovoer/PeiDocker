@@ -193,13 +193,14 @@ class UIStateBridge:
                 ui_stage.ssh.users.append(user_data)
         
         # Load proxy configuration
-        if stage_config.proxy:
+        if stage_config.proxy and stage_config.proxy.address and stage_config.proxy.port:
             ui_stage.network.proxy_enabled = True
             # Reconstruct proxy URL
             scheme = 'https' if stage_config.proxy.use_https else 'http'
             ui_stage.network.http_proxy = f"{scheme}://{stage_config.proxy.address}:{stage_config.proxy.port}"
         else:
             ui_stage.network.proxy_enabled = False
+            ui_stage.network.http_proxy = ""
         
         # Load APT configuration (stage 1 only)
         if stage_config.apt and stage_num == 1:
@@ -453,10 +454,14 @@ class UIStateBridge:
         # Convert port mappings
         ports = None
         if ui_stage.network.port_mappings:
-            ports = [
+            # Filter out empty port mappings
+            valid_ports = [
                 f"{m['host']}:{m['container']}" 
                 for m in ui_stage.network.port_mappings
+                if m.get('host', '').strip() and m.get('container', '').strip()
             ]
+            if valid_ports:
+                ports = valid_ports
         
         # Build custom scripts config
         custom = self._build_custom_scripts(ui_stage.scripts, stage_num)
@@ -686,34 +691,33 @@ class UIStateBridge:
         
         # Add network configuration to stage-1
         # Following default behavior: write to both stages
-        if ui_state.stage_1.network.proxy_enabled:
+        if ui_state.stage_1.network.proxy_enabled and ui_state.stage_1.network.http_proxy:
             proxy_config: Dict[str, Any] = {}
-            if ui_state.stage_1.network.http_proxy:
-                # Extract components from proxy URL
-                proxy_url = ui_state.stage_1.network.http_proxy
-                if '://' in proxy_url:
-                    scheme, rest = proxy_url.split('://', 1)
-                    use_https = scheme == 'https'
-                else:
-                    rest = proxy_url
-                    use_https = False
-                
-                if ':' in rest:
-                    address, port_str = rest.rsplit(':', 1)
-                    try:
-                        port = int(port_str)
-                    except ValueError:
-                        port = 8080
-                else:
-                    address = rest
+            # Extract components from proxy URL
+            proxy_url = ui_state.stage_1.network.http_proxy
+            if '://' in proxy_url:
+                scheme, rest = proxy_url.split('://', 1)
+                use_https = scheme == 'https'
+            else:
+                rest = proxy_url
+                use_https = False
+            
+            if ':' in rest:
+                address, port_str = rest.rsplit(':', 1)
+                try:
+                    port = int(port_str)
+                except ValueError:
                     port = 8080
-                
-                proxy_config['address'] = address
-                proxy_config['port'] = port
-                proxy_config['enable_globally'] = True
-                if use_https:
-                    proxy_config['use_https'] = True
-                
+            else:
+                address = rest
+                port = 8080
+            
+            proxy_config['address'] = address
+            proxy_config['port'] = port
+            proxy_config['enable_globally'] = True
+            if use_https:
+                proxy_config['use_https'] = True
+            
             stage_1['proxy'] = proxy_config
         
         if ui_state.stage_1.network.apt_mirror:
@@ -724,10 +728,14 @@ class UIStateBridge:
         
         # Add port mappings to stage-1
         if ui_state.stage_1.network.port_mappings:
-            stage_1['ports'] = [
+            # Filter out empty port mappings
+            valid_ports = [
                 f"{m['host']}:{m['container']}" 
                 for m in ui_state.stage_1.network.port_mappings
+                if m.get('host', '').strip() and m.get('container', '').strip()
             ]
+            if valid_ports:
+                stage_1['ports'] = valid_ports
         
         # Add SSH configuration to stage-1 ONLY (per mapping rules)
         if ui_state.stage_1.ssh.enabled:
@@ -832,33 +840,32 @@ class UIStateBridge:
         
         # Add network configuration to stage-2 
         # Following default behavior: write to both stages
-        if ui_state.stage_2.network.proxy_enabled:
+        if ui_state.stage_2.network.proxy_enabled and ui_state.stage_2.network.http_proxy:
             stage2_proxy_config: Dict[str, Any] = {}
-            if ui_state.stage_2.network.http_proxy:
-                proxy_url = ui_state.stage_2.network.http_proxy
-                if '://' in proxy_url:
-                    scheme, rest = proxy_url.split('://', 1)
-                    use_https = scheme == 'https'
-                else:
-                    rest = proxy_url
-                    use_https = False
-                
-                if ':' in rest:
-                    address, port_str = rest.rsplit(':', 1)
-                    try:
-                        port = int(port_str)
-                    except ValueError:
-                        port = 8080
-                else:
-                    address = rest
+            proxy_url = ui_state.stage_2.network.http_proxy
+            if '://' in proxy_url:
+                scheme, rest = proxy_url.split('://', 1)
+                use_https = scheme == 'https'
+            else:
+                rest = proxy_url
+                use_https = False
+            
+            if ':' in rest:
+                address, port_str = rest.rsplit(':', 1)
+                try:
+                    port = int(port_str)
+                except ValueError:
                     port = 8080
-                
-                stage2_proxy_config['address'] = address
-                stage2_proxy_config['port'] = port
-                stage2_proxy_config['enable_globally'] = True
-                if use_https:
-                    stage2_proxy_config['use_https'] = True
-                
+            else:
+                address = rest
+                port = 8080
+            
+            stage2_proxy_config['address'] = address
+            stage2_proxy_config['port'] = port
+            stage2_proxy_config['enable_globally'] = True
+            if use_https:
+                stage2_proxy_config['use_https'] = True
+            
             stage_2['proxy'] = stage2_proxy_config
         
         # Add storage configuration to stage-2
@@ -1066,13 +1073,19 @@ class UIStateBridge:
             port = proxy_config.get('port', 8080)
             scheme = 'https' if proxy_config.get('use_https', False) else 'http'
             
-            if address:
+            if address and port:
                 proxy_url = f"{scheme}://{address}:{port}"
                 # Apply to both stages
                 ui_state.stage_1.network.proxy_enabled = True
                 ui_state.stage_1.network.http_proxy = proxy_url
                 ui_state.stage_2.network.proxy_enabled = True
                 ui_state.stage_2.network.http_proxy = proxy_url
+            else:
+                # Clear proxy settings if invalid
+                ui_state.stage_1.network.proxy_enabled = False
+                ui_state.stage_1.network.http_proxy = ""
+                ui_state.stage_2.network.proxy_enabled = False
+                ui_state.stage_2.network.http_proxy = ""
         
         # APT configuration
         apt_1 = stage_1_data.get('apt', {})
@@ -1135,13 +1148,16 @@ class UIStateBridge:
         # Load proxy configuration
         proxy_config = stage_data.get('proxy', {})
         if proxy_config:
-            network.proxy_enabled = True
             address = proxy_config.get('address', '')
             port = proxy_config.get('port', 8080)
             scheme = 'https' if proxy_config.get('use_https', False) else 'http'
             
-            if address:
+            if address and port:
+                network.proxy_enabled = True
                 network.http_proxy = f"{scheme}://{address}:{port}"
+            else:
+                network.proxy_enabled = False
+                network.http_proxy = ""
         
         # Load APT configuration
         apt_config = stage_data.get('apt', {})
