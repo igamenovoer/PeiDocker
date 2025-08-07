@@ -932,6 +932,17 @@ class UIStateBridge:
             
             stage_2['proxy'] = stage2_proxy_config
         
+        # Add port mappings to stage-2
+        if ui_state.stage_2.network.port_mappings:
+            # Filter out empty port mappings
+            valid_ports = [
+                f"{m['host']}:{m['container']}" 
+                for m in ui_state.stage_2.network.port_mappings
+                if m.get('host', '').strip() and m.get('container', '').strip()
+            ]
+            if valid_ports:
+                stage_2['ports'] = valid_ports
+        
         # Add storage configuration to stage-2
         storage_config = self._build_yaml_storage_config(ui_state.stage_2.storage)
         if storage_config:
