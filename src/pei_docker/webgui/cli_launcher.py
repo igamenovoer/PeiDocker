@@ -24,8 +24,9 @@ Options for 'start' Command
 ---------------------------
 
 --port <port>
-    Port to run the web application (default: 8080)
-    If the port is already in use, the command will show an error and exit.
+    Port to run the web application (default: auto-select free port)
+    If not specified, automatically selects an available port.
+    If specified but in use, finds the next available port.
 
 --project-dir <path>
     Project directory to load or create on startup.
@@ -121,6 +122,64 @@ def check_port_available(port: int) -> bool:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         result = sock.connect_ex(('localhost', port))
         return result != 0
+
+
+def get_free_port() -> int:
+    """Get a free TCP port in a cross-platform way.
+    
+    Uses the OS to atomically assign a free port, preventing race conditions.
+    
+    Returns
+    -------
+    int
+        An available port number.
+    
+    Notes
+    -----
+    This method is more reliable than sequentially checking ports as it lets
+    the OS handle port assignment atomically.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))  # Bind to any available port
+        port = s.getsockname()[1]  # Get the assigned port number
+    return port
+
+
+def find_free_port(start_port: int = 8080, max_tries: int = 100) -> Optional[int]:
+    """Find the next available port starting from start_port.
+    
+    Sequentially checks ports starting from start_port until an available one
+    is found or max_tries attempts have been made.
+    
+    Parameters
+    ----------
+    start_port : int, optional
+        Port number to start checking from (default: 8080).
+    max_tries : int, optional
+        Maximum number of ports to try (default: 100).
+    
+    Returns
+    -------
+    int or None
+        The first available port found, or None if no ports are available
+        within max_tries attempts.
+    
+    Notes
+    -----
+    This method tries sequential ports starting from start_port. It's useful
+    when you want a port close to a specific number (like 8080, 8081, 8082...).
+    """
+    port = start_port
+    for _ in range(max_tries):
+        if port >= 65535:
+            break
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', port))
+                return port
+        except OSError:
+            port += 1
+    return None
 
 
 def create_project_with_cli(project_dir: Path) -> bool:
@@ -361,32 +420,51 @@ def start_command(args: argparse.Namespace) -> None:
     ----------
     args : argparse.Namespace
         Parsed command line arguments containing:
-        - port: Server port number
+        - port: Server port number (None for auto-select)
         - project_dir: Optional project directory path  
         - jump_to_page: Optional page name for navigation
 
     Notes
     -----
     Validation sequence:
-    1. Check port availability (exit on conflict)
+    1. Determine port: auto-select if None, or use/find alternative for specified port
     2. Validate project directory path and permissions
     3. Validate page name if jump-to-page specified
     4. Configure NiceGUI application with timer-based state setup
-    5. Start server on 0.0.0.0 with specified port
+    5. Start server on 0.0.0.0 with selected port
 
     The server runs with auto-detect dark mode, no reload, and 🐳 favicon.
     State setup is delayed by 0.5 seconds to ensure proper GUI initialization.
+    
+    By default (when no --port specified), uses an OS-selected free port.
+    If a specific port is requested but unavailable, automatically finds an alternative.
 
     Raises
     ------
     SystemExit
-        Exits with code 1 if port is in use, project directory is invalid,
-        or page name is invalid.
+        Exits with code 1 if project directory is invalid or page name is invalid.
     """
-    # Check port availability
-    if not check_port_available(args.port):
-        print(f"Error: Port {args.port} is already in use", file=sys.stderr)
-        sys.exit(1)
+    # Determine which port to use
+    if args.port is None:
+        # No port specified - use OS-selected free port
+        actual_port = get_free_port()
+        print(f"No port specified, using auto-selected port {actual_port}", file=sys.stderr)
+    else:
+        # Port specified - try to use it, fallback if needed
+        desired_port = args.port
+        if check_port_available(desired_port):
+            actual_port = desired_port
+        else:
+            print(f"Port {desired_port} is already in use, searching for an available port...", file=sys.stderr)
+            # Try to find a free port starting from the desired port
+            actual_port = find_free_port(desired_port)
+            
+            if actual_port is None:
+                # If sequential search fails, try to get any free port from OS
+                print("Could not find free port sequentially, requesting any available port from OS...", file=sys.stderr)
+                actual_port = get_free_port()
+                
+            print(f"Using port {actual_port} instead", file=sys.stderr)
     
     # Validate project directory if specified
     if args.project_dir:
@@ -419,12 +497,12 @@ def start_command(args: argparse.Namespace) -> None:
             ), once=True)
     
     # Run the application
-    print(f"Starting PeiDocker Web GUI on port {args.port}...")
-    print(f"Open http://localhost:{args.port} in your browser")
+    print(f"Starting PeiDocker Web GUI on port {actual_port}...")
+    print(f"Open http://localhost:{actual_port} in your browser")
     
     ui.run(
         host='0.0.0.0',
-        port=args.port,
+        port=actual_port,
         title='PeiDocker Web GUI',
         favicon='🐳',
         dark=None,  # Auto-detect from system
@@ -466,8 +544,8 @@ def main() -> None:
     start_parser.add_argument(
         '--port',
         type=int,
-        default=8080,
-        help='Port to run the web application (default: 8080)'
+        default=None,
+        help='Port to run the web application (default: auto-select free port)'
     )
     start_parser.add_argument(
         '--project-dir',
