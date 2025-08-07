@@ -1,0 +1,244 @@
+<div class="tab-title">
+    🏗️ Project Information
+</div>
+<p class="tab-description">
+    Configure basic project settings and Docker image information. This forms the foundation of your containerized development environment.
+</p>
+
+<!-- Project Directory Selection (Initial State) -->
+<div id="project-directory-section" class="mb-6">
+    <h3 class="card-header mb-4">📁 Project Directory</h3>
+    
+    <div class="form-group">
+        <label for="project-dir-path">Project Directory Path:</label>
+        <div class="input-group">
+            <input type="text" id="project-dir-path" class="form-input" 
+                   placeholder="/path/to/your/project or leave empty for temporary directory"
+                   value="">
+            <button class="btn btn-secondary" onclick="browseDirectory()">
+                📁 Browse
+            </button>
+        </div>
+        <div class="help-text">
+            Directory must be empty or non-existent. Leave empty to use a generated temporary directory.
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button class="btn btn-primary btn-large" onclick="createProject()">
+            🚀 Create Project
+        </button>
+        <button class="btn btn-outline btn-large" onclick="loadProject()" disabled>
+            📂 Load Project
+        </button>
+    </div>
+    
+    <div class="alert alert-info">
+        <strong>Note:</strong> Load Project functionality is not yet implemented. 
+        You will see a warning dialog if you click this button.
+    </div>
+</div>
+
+<!-- Project Summary (After Creation) -->
+<div id="project-summary-section" class="mb-6" style="display: none;">
+    <h3 class="card-header mb-4">📁 Active Project Directory</h3>
+    
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span id="active-project-path"></span>
+            </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="changeProject()">
+            🔄 Change Project
+        </button>
+    </div>
+</div>
+
+<!-- Project Configuration (Always Available) -->
+<div id="project-config-section">
+
+<div class="grid grid-2">
+    <!-- Left Column - Basic Settings -->
+    <div>
+        <h3 class="card-header mb-4">Basic Settings</h3>
+        
+        <div class="form-group">
+            <label class="form-label" for="project-name">
+                Project Name *
+            </label>
+            <input 
+                type="text" 
+                id="project-name" 
+                class="form-input" 
+                value="my-awesome-project"
+                placeholder="Enter project name"
+            >
+            <div class="form-help">
+                Used for Docker image naming and project identification
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="base-image">
+                Base Docker Image
+            </label>
+            <input 
+                type="text" 
+                id="base-image" 
+                class="form-input" 
+                value="ubuntu:24.04"
+                placeholder="docker-image:tag"
+            >
+            <div class="form-help">
+                Docker Hub image to use as the base for your container
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Right Column - Preview and Validation -->
+    <div>
+        <h3 class="card-header mb-4">Generated Docker Images</h3>
+        
+        <div class="preview-panel mb-6">
+            <div class="preview-line" id="stage1-image">my-awesome-project:stage-1</div>
+            <div class="preview-line" id="stage2-image">my-awesome-project:stage-2</div>
+        </div>
+
+    </div>
+</div>
+
+
+</div>
+
+<script>
+    function browseDirectory() {
+        // In a real NiceGUI app, this would trigger a server-side directory picker
+        alert('Directory browser would open here. Please enter path manually for now.');
+    }
+
+    function createProject() {
+        const projectDir = document.getElementById('project-dir-path').value.trim();
+        
+        if (projectDir === '') {
+            // Project creation in temporary directory
+            if (confirm('Create project in a temporary directory? The project will be created automatically.')) {
+                activateProjectConfiguration('/tmp/peidocker_demo_project_' + new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','_'));
+            }
+        } else {
+            // Project creation in specified directory
+            if (confirm(`Create project in "${projectDir}"?\n\nThe directory must be empty or non-existent.`)) {
+                activateProjectConfiguration(projectDir);
+            }
+        }
+    }
+
+    function loadProject() {
+        alert('Load Project functionality is not yet implemented. This feature will allow you to load existing PeiDocker projects.');
+    }
+
+    function activateProjectConfiguration(projectPath) {
+        // Hide project directory selection and show summary
+        document.getElementById('project-directory-section').style.display = 'none';
+        document.getElementById('project-summary-section').style.display = 'block';
+        
+        // Update project summary
+        const activeProjectPath = document.getElementById('active-project-path');
+        if (activeProjectPath) {
+            activeProjectPath.textContent = projectPath;
+        }
+        
+        
+        // Call parent window function to update the header project info
+        if (typeof window.parent.updateProjectInfoBar === 'function') {
+            window.parent.updateProjectInfoBar(true, projectPath);
+        } else if (typeof parent.updateProjectInfoBar === 'function') {
+            parent.updateProjectInfoBar(true, projectPath);
+        }
+        
+        // Update project info bar if it exists in current document
+        const projectPathSpan = document.querySelector('.project-path');
+        if (projectPathSpan) {
+            projectPathSpan.textContent = projectPath;
+        }
+        
+        // Show success message
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success mb-4';
+        alertDiv.innerHTML = '<strong>✅ Project Created:</strong> Project directory initialized with pei-docker-cli create. You can now configure all aspects of your containerized environment.';
+        document.getElementById('project-config-section').insertBefore(alertDiv, document.getElementById('project-config-section').firstChild);
+        
+        // Mark configuration as modified
+        if (typeof window.markConfigurationModified === 'function') {
+            window.markConfigurationModified();
+        } else if (typeof parent.markConfigurationModified === 'function') {
+            parent.markConfigurationModified();
+        }
+        
+        // Update status bar
+        const statusSpan = document.querySelector('.status-left span');
+        if (statusSpan) {
+            statusSpan.textContent = 'Project created - configuration ready';
+        }
+    }
+    
+    function changeProject() {
+        if (confirm('Switch to a different project? Any unsaved changes will be lost.')) {
+            // Show directory selection again
+            document.getElementById('project-directory-section').style.display = 'block';
+            // Hide project summary only
+            document.getElementById('project-summary-section').style.display = 'none';
+            
+            // Clear the directory input
+            document.getElementById('project-dir-path').value = '';
+            
+            // Reset project configuration fields to defaults
+            document.getElementById('project-name').value = 'my-awesome-project';
+            document.getElementById('base-image').value = 'ubuntu:24.04';
+            
+            // Update the preview using the global function
+            if (typeof window.updatePreview === 'function') {
+                window.updatePreview();
+            } else if (typeof parent.updatePreview === 'function') {
+                parent.updatePreview();
+            }
+            
+            // Update parent window
+            if (typeof window.parent.updateProjectInfoBar === 'function') {
+                window.parent.updateProjectInfoBar(false);
+            } else if (typeof parent.updateProjectInfoBar === 'function') {
+                parent.updateProjectInfoBar(false);
+            }
+        }
+    }
+
+    // Check if we should show project summary or directory selection
+    function initializeProjectState() {
+        // In a real app, this would check if a project is already active
+        const hasActiveProject = false; // This would come from server state
+        
+        if (hasActiveProject) {
+            // If there's an active project, show summary instead of directory selection
+            document.getElementById('project-directory-section').style.display = 'none';
+            document.getElementById('project-summary-section').style.display = 'block';
+        } else {
+            // If no active project, show directory selection
+            document.getElementById('project-directory-section').style.display = 'block';
+            document.getElementById('project-summary-section').style.display = 'none';
+        }
+        // Project configuration is always visible
+    }
+
+
+
+    // Listen for project activation events from parent window
+    document.addEventListener('projectActivated', function(event) {
+        activateProjectConfiguration(event.detail.projectPath);
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initializeProjectState);
+</script>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn active">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    ⚙️ Environment Configuration
+                </div>
+                <p class="tab-description">
+                    Configure environment variables and device access for your container, including GPU support and custom environment settings.
+                </p>
+
+                <!-- Environment Variables -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🌍 Environment Variables
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="env-vars-enabled" onchange="toggleEnvVars()" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Set Custom Environment Variables</div>
+                                    <div class="form-help">
+                                        Configure environment variables that will be available in the container
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="env-vars-config">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Add Environment Variable</label>
+                                        <div class="flex gap-2 mb-4">
+                                            <input 
+                                                type="text" 
+                                                id="new-env-var" 
+                                                class="form-input" 
+                                                placeholder="KEY=VALUE"
+                                                onkeypress="handleEnvVarEnter(event)"
+                                            >
+                                            <button class="btn btn-primary" onclick="addEnvVar()">
+                                                ➕ Add
+                                            </button>
+                                        </div>
+                                        <div class="form-help">
+                                            Format: KEY=VALUE (e.g., NODE_ENV=production)
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="form-label">Common Examples</div>
+                                        <div class="text-sm text-secondary">
+                                            <div>• NODE_ENV=production</div>
+                                            <div>• DEBUG=true</div>
+                                            <div>• PYTHONPATH=/app/src</div>
+                                            <div>• PORT=3000</div>
+                                            <div>• DATABASE_URL=postgresql://...</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="form-label">Quick Add</div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button class="btn btn-secondary text-xs" onclick="quickAddEnvVar('NODE_ENV=production')">
+                                                NODE_ENV=production
+                                            </button>
+                                            <button class="btn btn-secondary text-xs" onclick="quickAddEnvVar('DEBUG=true')">
+                                                DEBUG=true
+                                            </button>
+                                            <button class="btn btn-secondary text-xs" onclick="quickAddEnvVar('PORT=3000')">
+                                                PORT=3000
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="form-label">Current Environment Variables</div>
+                                    <div id="env-vars-list">
+                                        <div class="list-item">
+                                            <div class="list-item-content">NODE_ENV=production</div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-secondary text-xs" onclick="editEnvVar(this)">
+                                                    ✏️ Edit
+                                                </button>
+                                                <button class="btn btn-error text-xs" onclick="removeEnvVar(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="list-item">
+                                            <div class="list-item-content">DEBUG=true</div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-secondary text-xs" onclick="editEnvVar(this)">
+                                                    ✏️ Edit
+                                                </button>
+                                                <button class="btn btn-error text-xs" onclick="removeEnvVar(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                        <div class="text-sm">
+                                            <strong>💡 Tip:</strong> To delete a variable, you can also set it to an empty value (KEY=)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Configuration -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🎮 Device Configuration
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="gpu-enabled" onchange="toggleGPU()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Enable GPU Support</div>
+                                    <div class="form-help">
+                                        Enable NVIDIA GPU access for the container
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="gpu-info" class="mt-4">
+                            <div class="grid grid-2">
+                                <div>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            ⚠️ GPU Requirements
+                                        </div>
+                                        <div class="card-content">
+                                            <div class="text-sm">
+                                                <div class="mb-2"><strong>Prerequisites:</strong></div>
+                                                <ul style="margin-left: 1rem;">
+                                                    <li>NVIDIA Docker runtime installed</li>
+                                                    <li>Compatible GPU drivers</li>
+                                                    <li>CUDA-compatible base image</li>
+                                                </ul>
+                                                <div class="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                                    <strong>Note:</strong> We do not detect GPU availability automatically. Enable only if you have the required setup.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            🐳 Recommended GPU Base Images
+                                        </div>
+                                        <div class="card-content">
+                                            <div class="text-sm">
+                                                <div class="mb-2">For GPU workloads, consider these base images:</div>
+                                                <div class="font-mono text-xs mb-2">
+                                                    nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+                                                </div>
+                                                <div class="font-mono text-xs mb-2">
+                                                    nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
+                                                </div>
+                                                <div class="font-mono text-xs mb-2">
+                                                    pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+                                                </div>
+                                                <div class="font-mono text-xs">
+                                                    tensorflow/tensorflow:2.13.0-gpu
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        👀 Environment Configuration Preview
+                    </div>
+                    <div class="card-content">
+                        <div class="grid grid-2">
+                            <div>
+                                <div class="form-label mb-2">Docker Run Command</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div>docker run -d \</div>
+                                        <div>  --name my-awesome-project \</div>
+                                        <div id="gpu-docker-arg" style="display: none;">  --gpus all \</div>
+                                        <div>  -e NODE_ENV=production \</div>
+                                        <div>  -e DEBUG=true \</div>
+                                        <div>  my-awesome-project:stage-2</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-label mb-2">Environment Inside Container</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div>$ env | grep -E "(NODE_ENV|DEBUG)"</div>
+                                        <div>NODE_ENV=production</div>
+                                        <div>DEBUG=true</div>
+                                        <div style="margin-top: 0.5rem;" id="gpu-env-vars" style="display: none;">
+                                            <div>$ nvidia-smi</div>
+                                            <div>NVIDIA-SMI 535.86.10</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="form-label mb-2">Stage-1 Configuration Impact</div>
+                            <div class="text-sm text-secondary">
+                                <div class="mb-2">
+                                    ⚠️ <strong>Important:</strong> Environment variables and device configuration will only be set in <strong>stage-1</strong> of user_config.
+                                </div>
+                                <div>
+                                    For <strong>stage-2</strong> configuration, you'll need to edit the config file directly after saving.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>Environment tab: All valid</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function toggleEnvVars() {
+            const enabled = document.getElementById('env-vars-enabled').checked;
+            const config = document.getElementById('env-vars-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleGPU() {
+            const enabled = document.getElementById('gpu-enabled').checked;
+            const dockerArg = document.getElementById('gpu-docker-arg');
+            const envVars = document.getElementById('gpu-env-vars');
+            
+            dockerArg.style.display = enabled ? 'block' : 'none';
+            envVars.style.display = enabled ? 'block' : 'none';
+        }
+
+        function addEnvVar() {
+            const input = document.getElementById('new-env-var');
+            const envVar = input.value.trim();
+            
+            if (envVar && validateEnvVar(envVar)) {
+                const listItem = document.createElement('div');
+                listItem.className = 'list-item';
+                listItem.innerHTML = `
+                    <div class="list-item-content">${envVar}</div>
+                    <div class="list-item-actions">
+                        <button class="btn btn-secondary text-xs" onclick="editEnvVar(this)">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-error text-xs" onclick="removeEnvVar(this)">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('env-vars-list').appendChild(listItem);
+                input.value = '';
+            } else {
+                alert('Invalid environment variable format. Use format: KEY=VALUE');
+            }
+        }
+
+        function quickAddEnvVar(envVar) {
+            document.getElementById('new-env-var').value = envVar;
+            addEnvVar();
+        }
+
+        function removeEnvVar(button) {
+            button.closest('.list-item').remove();
+        }
+
+        function editEnvVar(button) {
+            const listItem = button.closest('.list-item');
+            const content = listItem.querySelector('.list-item-content').textContent;
+            
+            const newValue = prompt('Edit environment variable:', content);
+            if (newValue && validateEnvVar(newValue)) {
+                listItem.querySelector('.list-item-content').textContent = newValue;
+            }
+        }
+
+        function handleEnvVarEnter(event) {
+            if (event.key === 'Enter') {
+                addEnvVar();
+            }
+        }
+
+        function validateEnvVar(envVar) {
+            // Simple validation for demo purposes
+            return envVar.includes('=') && envVar.split('=')[0].trim() !== '';
+        }
+    </script>
+</body>
+</html>

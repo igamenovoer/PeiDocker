@@ -1,0 +1,739 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<memory>
+  <item id="mem_1753710609320_nclhx9zp1" time="2025/07/28 21:50">
+    <content>
+      # Tool Skill Memory
+    
+      ## Textual Python TUI Library - Basic Usage Patterns
+    
+      Textual is a modern Python framework for creating Text User Interface (TUI) applications that run in the terminal and browser. Understanding its core patterns is essential for code review.
+    
+      ### Core Architecture Patterns
+    
+      **App Structure:**
+      - All Textual apps inherit from `textual.app.App`
+      - Apps use a `compose()` method returning `ComposeResult` to define UI structure
+      - Entry point: `app.run()` to start the application
+      - Apps can be run inline with `app.run(inline=True)` for embedding
+    
+      **Widget Hierarchy:**
+      - Widgets organized in tree structure with parent-child relationships
+      - Base class: `textual.widget.Widget` or subclasses like `Static`
+      - Widgets manage rectangular screen regions and respond to events
+      - Every widget runs in its own asyncio task
+    
+      **Event-Driven Architecture:**
+      - Event handlers use `on_&lt;event_name&gt;` naming convention (e.g., `on_mount`, `on_key`, `on_click`)
+      - Events bubble up the widget hierarchy unless stopped with `event.stop()`
+      - Actions triggered by key bindings use `action_&lt;name&gt;` method naming
+    
+      ### Essential Import Patterns
+    
+      ```python
+      from textual.app import App, ComposeResult
+      from textual.widgets import Header, Footer, Static, Button, Input
+      from textual.containers import Container, Horizontal, Vertical
+      from textual.reactive import reactive
+      from textual.message import Message
+      ```
+    
+      ### Layout Systems
+    
+      **Vertical/Horizontal Layouts:**
+      - `layout: vertical` (default for Screen) - top to bottom
+      - `layout: horizontal` - left to right
+      - Use `1fr` units for equal space distribution
+      - Utility containers: `Horizontal()`, `Vertical()`, `Grid()`
+    
+      **Grid Layout:**
+      - Set `layout: grid` and `grid-size: columns [rows]`
+      - Configure with `grid-columns`, `grid-rows` properties
+      - Support cell spanning with `column-span`, `row-span`
+      - Add spacing with `grid-gutter`
+    
+      **Docking:**
+      - Remove widgets from layout and fix position with `dock: top|right|bottom|left`
+      - Ideal for headers, footers, sidebars
+      - Docked widgets don&#x27;t scroll out of view
+    
+      ### CSS and Styling
+    
+      **TCSS (Textual CSS):**
+      - CSS-like syntax for styling widgets
+      - External files with `CSS_PATH` class variable
+      - Inline with `CSS` class variable
+      - Default widget styles with `DEFAULT_CSS` class variable
+    
+      **Selectors and Specificity:**
+      - Widget class names (e.g., `Button`)
+      - IDs with `#` (e.g., `#my-button`)
+      - Classes with `.` (e.g., `.primary`)
+      - Pseudo-selectors like `:focus`, `:hover`, `:focus-within`
+    
+      ### Widget Development Patterns
+    
+      **Custom Widgets:**
+      ```python
+      class MyWidget(Static):  # Usually extend Static, not Widget
+      DEFAULT_CSS = &quot;&quot;&quot;...&quot;&quot;&quot;  # Bundle CSS with widget
+    
+      def __init__(self, ...):
+      super().__init__()
+    
+      def on_mount(self) -&gt; None:
+      # Widget initialization
+      pass
+    
+      def render(self) -&gt; str:
+      # Return content for widget
+      return &quot;Content&quot;
+      ```
+    
+      **Compound Widgets:**
+      - Use `compose()` method to yield child widgets
+      - Combine multiple widgets into reusable components
+      - Follow &quot;attributes down, messages up&quot; pattern
+    
+      **Reactive Attributes:**
+      ```python
+      from textual.reactive import reactive
+    
+      class MyWidget(Widget):
+      count = reactive(0)  # Auto-refresh on change
+    
+      def watch_count(self, old_value, new_value):
+      # React to changes
+      pass
+      ```
+    
+      ### Message Passing and Communication
+    
+      **Custom Messages:**
+      ```python
+      class MyWidget(Widget):
+      class Changed(Message):
+      def __init__(self, value):
+      super().__init__()
+      self.value = value
+    
+      def some_action(self):
+      self.post_message(self.Changed(new_value))
+      ```
+    
+      **Message Handling:**
+      ```python
+      def on_my_widget_changed(self, event: MyWidget.Changed) -&gt; None:
+      # Handle the message
+      pass
+      ```
+    
+      ### Key Bindings and Focus
+    
+      **Defining Bindings:**
+      ```python
+      class MyWidget(Widget, can_focus=True):
+      BINDINGS = [
+      (&quot;enter&quot;, &quot;submit&quot;, &quot;Submit&quot;),
+      (&quot;escape&quot;, &quot;cancel&quot;, &quot;Cancel&quot;),
+      ]
+    
+      def action_submit(self) -&gt; None:
+      # Handle action
+      pass
+      ```
+    
+      **Focus Management:**
+      - Set `can_focus=True` for focusable widgets
+      - Use Tab/Shift+Tab for navigation
+      - Style focused state with `:focus` pseudo-selector
+    
+      ### Common Anti-Patterns to Review
+    
+      1. **Direct widget manipulation across levels** - should use message passing
+      2. **Missing event.stop()** in event handlers can cause unwanted bubbling
+      3. **Hardcoded styles** instead of using CSS classes
+      4. **Not using reactive attributes** for state that should trigger updates
+      5. **Blocking operations** in event handlers without using workers (@work decorator)
+      6. **Missing type hints** in compose() methods and event handlers
+    
+      ### Performance Considerations
+    
+      - Use `@work` decorator for async operations
+      - Implement Line API (`render_line`) for large scrollable content
+      - Use `refresh(region)` for partial updates instead of full widget refresh
+      - Consider `loading` reactive for async data loading states
+    
+      This knowledge enables effective review of Textual applications for architecture, patterns, performance, and maintainability issues.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753711879800_ra1ipag2o" time="2025/07/28 22:11">
+    <content>
+      PeiDocker GUI uses comprehensive Textual framework APIs for TUI development:
+    
+      **Core Textual Framework:**
+      - App class: Main application entry point with compose() method for initial UI
+      - Screen class: Full terminal containers for different app views
+      - ModalScreen: For modal dialogs and popups
+      - Widget base class: Foundation for custom UI components
+      - ComposeResult: Type hint for compose() method yields
+    
+      **Container Widgets:**
+      - Vertical/Horizontal: Layout containers for organizing widgets
+      - Grid: Grid-based layout container
+      - Center: Centers child widgets within container
+      - Middle: Vertical centering container
+    
+      **Input/Form Widgets:**
+      - Input: Text input with validation support
+      - Button: Clickable buttons with press events
+      - Checkbox: Boolean toggle widgets
+      - Static: Display-only text/content widgets
+      - Label: Text labels for other widgets
+    
+      **UI Structure:**
+      - Header: Top application header with title
+      - Footer: Bottom footer with key bindings
+      - ProgressBar: Progress indication widgets
+    
+      **Validation System:**
+      - Validator base class: Custom validation logic
+      - ValidationResult: Validation outcome objects
+      - Function validator: Functional validation approach
+      - Built-in validators: Number, Range, etc.
+    
+      **Message/Event System:**
+      - Message base class: Custom message definitions
+      - @on decorator: Event handler registration
+      - Event bubbling: Messages propagate up widget hierarchy
+      - Input.Changed/Input.Submitted: Input-specific events
+      - Button.Pressed: Button activation events
+    
+      **Developer Patterns:**
+      - @work decorator: Async background operations
+      - push_screen_wait(): Modal screen handling
+      - query_one(): Widget selection by selector
+      - mount()/compose(): Widget lifecycle management
+      - CSS-like styling with align properties
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753713718605_mr78uconq" time="2025/07/28 22:41">
+    <content>
+      # Tool Skill Memory
+    
+      ## The Wizard User Interface Pattern
+    
+      The Wizard is a design pattern that guides a user through a sequence of steps to accomplish a complex task, such as a setup process, configuration, or a multi-part form. It breaks down a large task into smaller, manageable chunks, presented on separate screens in a specific order.
+    
+      ### Core Components &amp; Architecture
+    
+      1.  **Wizard Controller/Orchestrator**:
+      - The central component responsible for managing the wizard&#x27;s flow and state.
+      - It dictates the sequence of steps, handles navigation logic (Next, Previous, Finish, Cancel), and orchestrates communication between the state model and the step views.
+      - This aligns with the controller/presenter role in MVC/MVP architectures.
+    
+      2.  **Step Screens (Views)**:
+      - Individual UI screens, each dedicated to a specific part of the overall task.
+      - Each step should be focused and self-contained, responsible for gathering a specific set of inputs.
+    
+      3.  **Configuration State Model**:
+      - An in-memory data structure that holds the user&#x27;s input as they progress through the wizard.
+      - This model is updated at each step and serves as the single source of truth for the wizard&#x27;s session.
+      - The data is typically only persisted to a file or database upon explicit user confirmation on the final step.
+    
+      ### Key Behavioral Patterns &amp; Best Practices
+    
+      -   **Linear Navigation**: Enforce a sequential flow. While backward navigation (`Previous`) is essential for corrections, forward navigation (`Next`) should only lead to the immediate next step. Disallow skipping steps to ensure data dependencies are met.
+      -   **Progress Indication**: Always provide clear feedback on the user&#x27;s progress (e.g., &#x27;Step 3 of 11&#x27;, a progress bar). This manages user expectations and reduces fatigue.
+      -   **Memory-First State Management**: All configuration changes should be held in the in-memory state model until the user explicitly saves or finishes. This allows for a non-destructive, iterative workflow where the user can navigate back and forth to make changes without creating partial or corrupt configurations.
+      -   **Step-wise Validation**: Validate the inputs on each step before allowing the user to proceed. Provide clear, immediate feedback on validation errors.
+      -   **Summary Screen**: The final step should be a summary of all the choices the user has made, allowing for a final review before committing.
+      -   **Explicit Commit Action**: The final action (e.g., &#x27;Save&#x27;, &#x27;Finish&#x27;, &#x27;Create&#x27;) should be explicit and only available on the summary screen. After committing, it&#x27;s good practice to allow the user to remain on the summary screen to make further edits and re-save.
+      -   **Cancellability**: The user must be able to safely exit the wizard at any point without making any changes to the system.
+      -   **Idempotent Re-entry**: If possible, allow a user to re-enter the wizard with their previously saved configuration to make modifications.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753715029541_s59nsxyjx" time="2025/07/28 23:03">
+    <content>
+      Implementing a wizard interface in Textual involves using a stack of `Screen` objects. A central controller screen manages the flow by using `app.push_screen()` to advance to the next step and `app.pop_screen()` to return to the previous one. State should be managed via a single, shared data object (like a dataclass) passed to each screen&#x27;s constructor. For returning final data or confirmation, `screen.dismiss(result)` is used, often with a callback. Input validation is handled by assigning a list of `Validator` objects to an `Input` widget&#x27;s `validators` property and using `validate_on` to control the trigger. For performance, UI updates that involve removing and adding multiple widgets, like when changing steps, should be wrapped in a `with app.batch_update():` context to prevent flickering. Long-running tasks, such as network requests, must be run in a background thread using the `@work(thread=True)` decorator to avoid blocking the UI.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753723255023_9jwnz5s5k" time="2025/07/29 01:20">
+    <content>
+      # Textual Framework - Critical Patterns for Code Review
+    
+      ## 🏗️ Application Architecture Patterns
+    
+      **Progressive Development (stopwatch01-06 series):**
+      - Start with basic App structure: Header, Footer, compose() method
+      - Incrementally add widgets and functionality
+      - Use ComposeResult type hint for compose() methods
+      - Widget composition pattern: yield widgets in compose()
+    
+      **Multi-Screen Architecture:**
+      - MODES dictionary for screen registration: `MODES = {&quot;home&quot;: HomeScreen}`
+      - Dynamic screen installation: `self.install_screen(Screen(), name=&quot;screen&quot;)`
+      - Mode switching: `app.switch_mode(&#x27;mode_name&#x27;)`
+    
+      ## 🖥️ Screen Management &amp; Navigation
+    
+      **Screen Registration Patterns:**
+      ```python
+      # Static: SCREENS = {&quot;name&quot;: ScreenClass}
+      # Dynamic: self.install_screen(Screen(), name=&quot;name&quot;)
+      ```
+    
+      **Question-Style Screens (Critical for Wizards):**
+      - Parameterized screens: `Screen[ReturnType]` with typed returns
+      - Data collection pattern: `self.dismiss(data)` to return results
+      - Async screen waiting: `await self.push_screen_wait(Screen())`
+      - Perfect for wizard steps with validation gates
+    
+      ## 📝 Form Input &amp; Validation
+    
+      **Comprehensive Validation Pattern:**
+      - Multiple validators: `validators=[Number(), Function(), Custom()]`
+      - Visual feedback with CSS: `Input.-valid { border: tall $success; }`
+      - Real-time validation: `@on(Input.Changed)` event handlers
+      - Validation result access: `event.validation_result.is_valid`
+    
+      **Choice Controls:**
+      - Checkbox for boolean: `Checkbox(&quot;Label&quot;, value=True, id=&quot;id&quot;)`
+      - Radio groups: `with RadioSet(): yield RadioButton()`
+      - Option lists: `OptionList()` for dynamic selections
+    
+      ## ⚡ State Management &amp; Reactivity
+    
+      **Reactive Properties:**
+      - `name = reactive(default_value)` for auto-updating state
+      - Validation with `validate_name()` method for bounds checking
+      - Watch methods: `watch_name(old, new)` for state change reactions
+      - UI automatically updates when reactive properties change
+    
+      ## 🎨 Layout &amp; Organization
+    
+      **Container Patterns:**
+      - Vertical layout (default): top-to-bottom widget arrangement
+      - Horizontal containers: `HorizontalGroup` for side-by-side
+      - CSS integration: External .tcss files with `CSS_PATH`
+      - Flexible sizing: `height: 1fr` for proportional space
+    
+      **Key Binding Standards:**
+      ```python
+      BINDINGS = [
+      (&quot;escape&quot;, &quot;cancel&quot;, &quot;Cancel&quot;),
+      (&quot;enter&quot;, &quot;continue&quot;, &quot;Continue&quot;),
+      (&quot;ctrl+p&quot;, &quot;previous&quot;, &quot;Previous&quot;),
+      (&quot;ctrl+n&quot;, &quot;next&quot;, &quot;Next&quot;),
+      ]
+      ```
+    
+      ## 🔍 Code Review Focus Areas
+    
+      **Critical Examples to Reference:**
+      1. `guide/screens/questions01.py` - Wizard step pattern
+      2. `widgets/input_validation.py` - Form validation
+      3. `guide/reactivity/validate01.py` - State management
+      4. `demo_app.py` - Multi-screen architecture
+      5. `tutorial/stopwatch01-06.py` - Progressive development
+    
+      **Common Anti-Patterns to Flag:**
+      - Missing type hints in compose() methods
+      - Direct widget manipulation across hierarchy levels
+      - Missing event.stop() causing unwanted bubbling
+      - Hardcoded styles instead of CSS classes
+      - Blocking operations without @work decorator
+      - Missing validation for user inputs
+    
+      **Best Practices to Enforce:**
+      - Parameterized screens for reusability
+      - Typed screen returns with Screen[Type]
+      - Comprehensive input validation with visual feedback
+      - Reactive state management for complex forms
+      - Progressive enhancement development approach
+      - External CSS files for maintainable styling
+    
+      This knowledge enables precise review of Textual applications for architecture, validation, state management, and user experience patterns.
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1753725394667_ct1q94ws7" time="2025/07/29 01:56">
+    <content>
+      # Tool Skill Memory
+    
+      ## Automated GUI Screenshot Testing with pytest-textual-snapshot
+    
+      ### Core Concept
+      pytest-textual-snapshot is a testing framework for automating visual regression testing of Textual TUI applications. It captures SVG screenshots of terminal interfaces and compares them against stored snapshots to detect unintended UI changes.
+    
+      ### Key Benefits
+      - **Visual regression detection** - Automatically catch UI changes
+      - **Documentation generation** - Auto-generate visual documentation
+      - **CI/CD integration** - Headless testing in build pipelines
+      - **Cross-platform consistency** - Ensure UI appears identical across environments
+      - **Design verification** - Compare implementation against specifications
+    
+      ### Essential Project Structure
+      ```
+      tests/
+      ├── autotest/
+      │   ├── test_gui_screenshots.py      # Main test file
+      │   ├── gui_test_app.py             # Testable wrapper
+      │   ├── __snapshots__/              # Auto-generated by pytest
+      │   └── README.md                   # Test documentation
+      └── tmp/output/gui-screenshots/     # Organized final outputs
+      ```
+    
+      ### Installation and Setup
+      ```bash
+      # Install with package manager (adapt to your environment)
+      pip install pytest-textual-snapshot
+      # or
+      poetry add pytest-textual-snapshot --group dev
+      # or
+      pixi add --pyproject pytest-textual-snapshot
+      ```
+    
+      ### Critical Component 1: Testable Wrapper
+      Create a standalone executable wrapper for your main app:
+    
+      ```python
+      # tests/autotest/gui_test_app.py
+      #!/usr/bin/env python3
+      &quot;&quot;&quot;Testable wrapper for screenshot capture.&quot;&quot;&quot;
+      import sys
+      from pathlib import Path
+    
+      # Critical: Add your package to Python path
+      repo_root = Path(__file__).parent.parent.parent
+      sys.path.insert(0, str(repo_root / &quot;src&quot;))
+      sys.path.insert(0, str(repo_root))
+    
+      # Import and run your main application
+      try:
+      from your_package.gui.app import YourMainApp
+      except ImportError as e:
+      print(f&quot;Import error: {e}&quot;)
+      print(f&quot;Python path: {sys.path}&quot;)
+      raise
+    
+      if __name__ == &quot;__main__&quot;:
+      app = YourMainApp()
+      app.run()
+      ```
+    
+      **Key Requirements:**
+      - Must be executable as standalone Python script
+      - Must handle import path setup robustly
+      - Keep simple - just import and run your app
+      - Use absolute paths for pytest-textual-snapshot compatibility
+    
+      ### Critical Component 2: Main Test Implementation
+      ```python
+      # tests/autotest/test_gui_screenshots.py
+      import pytest
+      from pathlib import Path
+      from typing import Any
+      import shutil
+    
+      class TestGUIScreenshots:
+      &quot;&quot;&quot;Screenshot testing class using pytest-textual-snapshot.&quot;&quot;&quot;
+    
+      @pytest.fixture(autouse=True)
+      def setup_screenshots_dir(self) -&gt; None:
+      &quot;&quot;&quot;Ensure output directory exists.&quot;&quot;&quot;
+      screenshots_path = Path(&quot;tmp/output/gui-screenshots&quot;)
+      screenshots_path.mkdir(parents=True, exist_ok=True)
+    
+      def test_startup_screen(self, snap_compare: Any) -&gt; None:
+      &quot;&quot;&quot;Test application startup screen.&quot;&quot;&quot;
+      test_app_path = Path(__file__).parent / &quot;gui_test_app.py&quot;
+    
+      # Critical: Use absolute path, consistent terminal size, generous timing
+      assert snap_compare(
+      str(test_app_path),
+      terminal_size=(120, 40),
+      press=[&quot;wait:3000&quot;]  # Wait for system validation
+      )
+    
+      self._copy_snapshot_to_screenshots(&quot;startup-screen&quot;)
+    
+      def test_navigation_flow(self, snap_compare: Any) -&gt; None:
+      &quot;&quot;&quot;Test screen navigation.&quot;&quot;&quot;
+      test_app_path = Path(__file__).parent / &quot;gui_test_app.py&quot;
+    
+      # Navigation pattern: Wait → Action → Wait
+      assert snap_compare(
+      str(test_app_path),
+      terminal_size=(120, 40),
+      press=[&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]
+      )
+    
+      self._copy_snapshot_to_screenshots(&quot;navigation-screen&quot;)
+    
+      def _copy_snapshot_to_screenshots(self, filename_prefix: str) -&gt; None:
+      &quot;&quot;&quot;Copy generated snapshot to organized output directory.&quot;&quot;&quot;
+      snapshots_dir = Path(&quot;tests/__snapshots__&quot;)
+      screenshots_dir = Path(&quot;tmp/output/gui-screenshots&quot;)
+    
+      if snapshots_dir.exists():
+      snapshot_files = list(snapshots_dir.glob(&quot;**/*.svg&quot;))
+      if snapshot_files:
+      latest_snapshot = max(snapshot_files, key=lambda p: p.stat().st_mtime)
+      target_path = screenshots_dir / f&quot;{filename_prefix}.svg&quot;
+      shutil.copy2(latest_snapshot, target_path)
+      print(f&quot;Screenshot saved: {target_path}&quot;)
+      ```
+    
+      ### Terminal Size Standards
+      ```python
+      # Use consistent terminal sizes across all tests
+      terminal_size=(120, 40)  # width=120 cols, height=40 lines (recommended)
+    
+      # Alternative sizes based on use case:
+      terminal_size=(80, 24)   # Standard minimal
+      terminal_size=(100, 30)  # Medium development
+      terminal_size=(140, 50)  # Large/presentation
+      ```
+    
+      ### Timing Patterns for Different Scenarios
+      ```python
+      # Startup with system validation (most apps need this)
+      press=[&quot;wait:3000&quot;]
+    
+      # Simple navigation
+      press=[&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]
+    
+      # Complex interaction sequences
+      press=[&quot;wait:2000&quot;, &quot;tab&quot;, &quot;tab&quot;, &quot;space&quot;, &quot;wait:1000&quot;]
+    
+      # Multi-step workflows
+      press=[&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;, &quot;tab&quot;, &quot;wait:500&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]
+    
+      # Error condition testing
+      press=[&quot;wait:2000&quot;, &quot;tab&quot;, &quot;invalid_input&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]
+      ```
+    
+      ### Test Execution Workflow
+      ```bash
+      # Initial setup (first run will FAIL - this is expected)
+      pytest tests/autotest/test_gui_screenshots.py::TestGUIScreenshots::test_startup_screen -v
+    
+      # Update snapshots to accept initial capture
+      pytest tests/autotest/test_gui_screenshots.py::TestGUIScreenshots::test_startup_screen --snapshot-update
+    
+      # Run all GUI tests
+      pytest tests/autotest/test_gui_screenshots.py -v
+    
+      # Update snapshots after intentional changes
+      pytest tests/autotest/test_gui_screenshots.py --snapshot-update
+      ```
+    
+      ### Advanced Patterns
+    
+      #### Parameterized Testing
+      ```python
+      @pytest.mark.parametrize(&quot;screen_name,key_sequence&quot;, [
+      (&quot;startup&quot;, [&quot;wait:3000&quot;]),
+      (&quot;config&quot;, [&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]),
+      (&quot;wizard&quot;, [&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]),
+      ])
+      def test_all_screens(self, snap_compare: Any, screen_name: str, key_sequence: list) -&gt; None:
+      &quot;&quot;&quot;Test multiple screens with parameterized sequences.&quot;&quot;&quot;
+      test_app_path = Path(__file__).parent / &quot;gui_test_app.py&quot;
+    
+      assert snap_compare(
+      str(test_app_path),
+      terminal_size=(120, 40),
+      press=key_sequence
+      )
+    
+      self._copy_snapshot_to_screenshots(f&quot;param-{screen_name}&quot;)
+      ```
+    
+      #### Complete User Workflow Testing
+      ```python
+      def test_complete_workflow(self, snap_compare: Any) -&gt; None:
+      &quot;&quot;&quot;Test complete user workflow across multiple screens.&quot;&quot;&quot;
+      test_scenarios = [
+      (&quot;step1&quot;, [&quot;wait:3000&quot;]),
+      (&quot;step2&quot;, [&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]),
+      (&quot;step3&quot;, [&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:1000&quot;, &quot;tab&quot;, &quot;enter&quot;, &quot;wait:1000&quot;]),
+      ]
+    
+      for scenario_name, key_sequence in test_scenarios:
+      test_app_path = Path(__file__).parent / &quot;gui_test_app.py&quot;
+      assert snap_compare(str(test_app_path), terminal_size=(120, 40), press=key_sequence)
+      self._copy_snapshot_to_screenshots(f&quot;workflow-{scenario_name}&quot;)
+      ```
+    
+      ### Common Issues and Solutions
+    
+      #### File Path Problems
+      ```python
+      # WRONG: Relative paths or temporary files
+      test_app_path = Path(&quot;tmp/test_app.py&quot;)  # Will fail
+    
+      # RIGHT: Permanent files with proper path resolution
+      test_app_path = Path(__file__).parent / &quot;gui_test_app.py&quot;
+      assert test_app_path.exists(), f&quot;Test app not found: {test_app_path}&quot;
+      ```
+    
+      #### Import Path Issues
+      ```python
+      # In gui_test_app.py - robust path setup
+      import sys
+      from pathlib import Path
+    
+      # Add multiple potential paths
+      repo_root = Path(__file__).parent.parent.parent
+      sys.path.insert(0, str(repo_root / &quot;src&quot;))
+      sys.path.insert(0, str(repo_root))
+      sys.path.insert(0, str(repo_root / &quot;your_package&quot;))
+    
+      # Verify imports work with error handling
+      try:
+      from your_package.gui.app import YourApp
+      except ImportError as e:
+      print(f&quot;Import error: {e}&quot;)
+      print(f&quot;Python path: {sys.path}&quot;)
+      print(f&quot;Available files: {list(repo_root.rglob(&#x27;*.py&#x27;))}&quot;)
+      raise
+      ```
+    
+      #### Timing Issues
+      ```python
+      # TOO SHORT - May capture loading screens
+      press=[&quot;wait:1000&quot;]  # Often insufficient
+    
+      # BETTER - Allow time for system validation
+      press=[&quot;wait:3000&quot;]  # Usually sufficient
+    
+      # FOR SLOW SYSTEMS - More generous timing
+      press=[&quot;wait:5000&quot;]  # For complex validation or slow systems
+    
+      # MULTI-STEP - Wait before and after each action
+      press=[&quot;wait:3000&quot;, &quot;enter&quot;, &quot;wait:2000&quot;]  # Action sandwiched by waits
+      ```
+    
+      ### CI/CD Integration Template
+      ```yaml
+      # .github/workflows/gui-tests.yml
+      name: GUI Screenshot Tests
+      on: [push, pull_request]
+    
+      jobs:
+      gui-tests:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+    
+      - name: Setup Python Environment
+      uses: actions/setup-python@v4
+      with:
+      python-version: &#x27;3.11&#x27;
+    
+      - name: Install Dependencies
+      run: |
+      pip install pytest pytest-textual-snapshot
+      pip install -e .
+    
+      - name: Run GUI Screenshot Tests
+      run: |
+      pytest tests/autotest/test_gui_screenshots.py -v
+    
+      - name: Upload Screenshots
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+      name: gui-screenshots-${{ github.sha }}
+      path: tmp/output/gui-screenshots/
+      ```
+    
+      ### Output Organization and Cleanup
+      ```python
+      def _enhanced_copy_with_organization(self, filename_prefix: str) -&gt; None:
+      &quot;&quot;&quot;Enhanced snapshot copy with organization.&quot;&quot;&quot;
+      from datetime import datetime
+    
+      snapshots_dir = Path(&quot;tests/__snapshots__&quot;)
+      screenshots_dir = Path(&quot;tmp/output/gui-screenshots&quot;)
+    
+      # Create organized subdirectories
+      by_date = screenshots_dir / datetime.now().strftime(&quot;%Y-%m-%d&quot;)
+    
+      if snapshots_dir.exists():
+      snapshot_files = list(snapshots_dir.glob(&quot;**/*.svg&quot;))
+      if snapshot_files:
+      latest_snapshot = max(snapshot_files, key=lambda p: p.stat().st_mtime)
+    
+      # Copy to multiple locations
+      main_target = screenshots_dir / f&quot;{filename_prefix}.svg&quot;
+      dated_target = by_date / f&quot;{filename_prefix}.svg&quot;
+    
+      import shutil
+      shutil.copy2(latest_snapshot, main_target)
+      by_date.mkdir(parents=True, exist_ok=True)
+      shutil.copy2(latest_snapshot, dated_target)
+    
+      @pytest.fixture(autouse=True, scope=&quot;session&quot;)
+      def cleanup_old_screenshots():
+      &quot;&quot;&quot;Clean up old screenshots before test session.&quot;&quot;&quot;
+      screenshots_dir = Path(&quot;tmp/output/gui-screenshots&quot;)
+      if screenshots_dir.exists():
+      import time
+      cutoff = time.time() - (7 * 24 * 3600)  # 7 days
+    
+      for old_file in screenshots_dir.glob(&quot;**/*.svg&quot;):
+      if old_file.stat().st_mtime &lt; cutoff:
+      old_file.unlink()
+      ```
+    
+      ### Best Practices Checklist
+    
+      1. **✅ Use permanent test wrapper files** - Never create temporary files
+      2. **✅ Consistent terminal sizing** - Use same dimensions across all tests
+      3. **✅ Generous timing** - Always allow sufficient time for app initialization
+      4. **✅ Absolute path resolution** - Use Path(__file__).parent patterns
+      5. **✅ Environment consistency** - Use isolated development environments
+      6. **✅ Meaningful test names** - Include screen/feature identifiers
+      7. **✅ Organized outputs** - Copy snapshots to well-structured directories
+      8. **✅ Documentation integration** - Auto-generate visual documentation
+      9. **✅ CI/CD compatibility** - Design for headless execution
+      10. **✅ Error scenario testing** - Test both success and failure states
+    
+      ### Troubleshooting Checklist
+    
+      When tests fail, verify:
+      - [ ] gui_test_app.py is executable standalone
+      - [ ] Import paths are correct in test wrapper
+      - [ ] Sufficient wait time for system validation (minimum 3000ms)
+      - [ ] Terminal size is consistent across tests
+      - [ ] Using isolated development environment
+      - [ ] Snapshot directories exist with proper permissions
+      - [ ] Using absolute file paths
+      - [ ] Test app path resolves correctly
+    
+      ### Framework Compatibility
+      This technique works with:
+      - **Textual TUI applications** (primary use case)
+      - **Rich-based terminal applications**
+      - **Other Python terminal frameworks** with proper adapter
+      - **Cross-platform development** (Linux, macOS, Windows)
+      - **Containerized environments** (Docker, CI/CD)
+    
+      ### Performance Considerations
+      - Screenshots are generated as SVG (vector format, small file size)
+      - Terminal capture is fast (typically &lt; 1 second per screenshot)
+      - Network/system validation timing is usually the bottleneck (3-5 seconds)
+      - Storage requirements are minimal (SVG files typically 10-50KB each)
+      - CI/CD execution time is reasonable (2-5 minutes for comprehensive test suite)
+    
+      This tool skill enables reliable, automated visual testing for any Textual-based TUI application across different projects and development environments.
+    </content>
+    <tags>#其他</tags>
+  </item>
+</memory>

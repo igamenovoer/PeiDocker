@@ -1,0 +1,176 @@
+<div class="tab-title">
+    ⚙️ Environment Configuration
+</div>
+<p class="tab-description">
+    Configure environment variables and device access including GPU support for your container.
+</p>
+
+<div class="grid grid-2">
+    <!-- Environment Variables -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                🌍 Environment Variables
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label">
+                        Environment Variables
+                    </label>
+                    <div class="form-help mb-4">
+                        Set custom environment variables for your container
+                    </div>
+                    
+                    <div id="env-variables">
+                        <div class="list-item">
+                            <div class="list-item-content">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="NODE_ENV" style="flex: 1;">
+                                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                                    <input type="text" class="form-input" placeholder="value" value="development" style="flex: 1;">
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-error btn-sm" onclick="removeEnvVariable(this)">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="list-item">
+                            <div class="list-item-content">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" value="DEBUG" style="flex: 1;">
+                                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                                    <input type="text" class="form-input" placeholder="value" value="true" style="flex: 1;">
+                                </div>
+                            </div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-error btn-sm" onclick="removeEnvVariable(this)">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="addEnvVariable()">
+                        ➕ Add Environment Variable
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Configuration -->
+    <div>
+        <div class="card mb-6">
+            <div class="card-header">
+                🖥️ Device Configuration
+            </div>
+            <div class="card-content">
+                <div class="form-group">
+                    <label class="form-label" for="device-type">
+                        Device Type
+                    </label>
+                    <select id="device-type" class="form-select" onchange="updateDeviceConfig()">
+                        <option value="cpu">CPU Only</option>
+                        <option value="gpu">GPU Support</option>
+                    </select>
+                    <div class="form-help">
+                        Select the type of hardware access needed
+                    </div>
+                </div>
+
+                <div id="gpu-config" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            GPU Configuration
+                        </label>
+                        <div class="flex items-center gap-4 mb-4">
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-input" id="gpu-all" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <div>
+                                <div class="form-label">Use All GPUs</div>
+                                <div class="form-help">
+                                    Grant access to all available GPU devices
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="gpu-memory">
+                                GPU Memory Limit (optional)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="gpu-memory" 
+                                class="form-input" 
+                                placeholder="e.g., 4GB or leave empty for no limit"
+                            >
+                            <div class="form-help">
+                                Limit GPU memory usage (Docker 19.03+ required)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let envVariableCount = 2; // Already have 2 demo variables
+
+    function addEnvVariable() {
+        const container = document.getElementById('env-variables');
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <div class="list-item-content">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="text" class="form-input" placeholder="VARIABLE_NAME" style="flex: 1;">
+                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-primary);">=</span>
+                    <input type="text" class="form-input" placeholder="value" style="flex: 1;">
+                </div>
+            </div>
+            <div class="list-item-actions">
+                <button class="btn btn-error btn-sm" onclick="removeEnvVariable(this)">
+                    🗑️ Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        // Add event listeners to the new inputs for configuration tracking
+        const newInputs = div.querySelectorAll('input');
+        newInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (typeof markConfigurationModified === 'function') {
+                    markConfigurationModified();
+                }
+            });
+        });
+        
+        envVariableCount++;
+    }
+
+    function removeEnvVariable(button) {
+        button.closest('.list-item').remove();
+        envVariableCount--;
+    }
+
+    function updateDeviceConfig() {
+        const deviceType = document.getElementById('device-type').value;
+        const gpuConfig = document.getElementById('gpu-config');
+        
+        gpuConfig.style.display = deviceType === 'gpu' ? 'block' : 'none';
+    }
+
+    // Make environment functions globally available
+    window.addEnvVariable = addEnvVariable;
+    window.removeEnvVariable = removeEnvVariable;
+    window.updateDeviceConfig = updateDeviceConfig;
+</script>

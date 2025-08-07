@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+actor "User" as user
+actor "Configuration Store" as config
+
+rectangle "Project Information Screen" {
+  usecase "Enter Project Name" as UC1
+  usecase "Enter Base Image" as UC2
+  usecase "Validate Project Name" as UC3
+  usecase "Validate Base Image" as UC4
+  usecase "Preview Docker Images" as UC5
+  usecase "Auto-populate from Directory" as UC7
+  usecase "Navigate to Next Step" as UC8
+}
+
+user --> UC1
+user --> UC2
+user --> UC8
+UC1 --> UC3 : <<include>>
+UC2 --> UC4 : <<include>>
+UC1 --> UC5 : <<include>>
+UC2 --> UC5 : <<include>>
+UC3 --> config
+UC4 --> config
+UC7 --> UC1 : <<extend>>
+@enduml

@@ -1,0 +1,166 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pei-docker"
+version = "1.0.0"
+description = "A sophisticated Docker automation framework that transforms YAML configurations into reproducible containerized environments"
+authors = [
+    {name = "igamenovoer", email = "igamenovoer@xx.com"}
+]
+maintainers = [
+    {name = "igamenovoer", email = "igamenovoer@xx.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+keywords = ["docker", "containerization", "automation", "yaml", "devops"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "cattrs>=25.1.1,<26",
+    "omegaconf>=2.3.0,<3",
+    "attrs>=25.3.0,<26",
+    "click>=8.2.1,<9",
+    "nicegui>=2.21.1,<3",
+]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs-material>=9.6.15,<10",
+    "mkdocs-autorefs",
+    "mkdocs-glightbox",
+    "pymdown-extensions",
+]
+
+[project.urls]
+Homepage = "https://github.com/igamenovoer/PeiDocker"
+Documentation = "https://github.com/igamenovoer/PeiDocker"
+Repository = "https://github.com/igamenovoer/PeiDocker"
+Issues = "https://github.com/igamenovoer/PeiDocker/issues"
+
+[project.scripts]
+pei-docker-cli = "pei_docker.pei:cli"
+pei-docker-gui = "pei_docker.webgui.cli_launcher:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pei_docker"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+# Pixi configuration for development workflow
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
+
+[tool.pixi.dependencies]
+# Python and other conda dependencies can go here
+python = ">=3.11"
+nicegui = ">=2.21.1,<3"
+playwright = "*"
+ruff = ">=0.12.7,<0.13"
+
+[tool.pixi.pypi-dependencies]
+# Install the package itself in editable mode for development
+pei-docker = { path = ".", editable = true }
+
+# Dev feature for development dependencies
+[tool.pixi.feature.dev.pypi-dependencies]
+# Documentation dependencies
+mkdocs-material = ">=9.6.15,<10"
+mkdocs-autorefs = "*"
+mkdocs-glightbox = "*"
+pymdown-extensions = "*"
+# Build and publishing dependencies
+build = "*"
+twine = "*"
+# Development utilities
+textual-dev = ">=1.7.0,<2"
+# Type stubs
+types-PyYAML = "*"
+
+[tool.pixi.tasks]
+# Development tasks (run in dev environment)
+test = "pytest tests/"
+lint = "ruff check src/"
+format = "black src/ tests/"
+type-check = "mypy src/"
+
+# Documentation tasks (run in dev environment)
+docs-serve = "mkdocs serve"
+docs-build = "mkdocs build"
+
+# Legacy install task (for backwards compatibility)
+install-dev = 'pip install -e ".[dev]"'
+
+# Publishing tasks (run in dev environment since build/twine are there)
+build = "python -m build"
+publish-test = "python -m twine upload --repository testpypi dist/*"
+publish = "python -m twine upload dist/*"
+clean = "rm -rf dist/ build/ *.egg-info/"
+
+[tool.pixi.environments]
+default = {solve-group = "default"}
+dev = {features = ["dev"], solve-group = "default"}
+
+[dependency-groups]
+dev = [ "pytest>=8.4.1,<9", "pytest-asyncio>=1.1.0,<2", "pytest-textual-snapshot>=1.1.0,<2", "pytest-cov>=6.2.1,<7", "black>=25.1.0,<26", "ruff>=0.12.4,<0.13", "mypy>=1.17.0,<2", "pytest-playwright>=0.7.0,<0.8"]

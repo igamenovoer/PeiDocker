@@ -1,0 +1,33 @@
+@startuml
+[*] --> SSHDisabled
+SSHDisabled --> SSHEnabled : enable_ssh
+SSHEnabled --> SSHDisabled : disable_ssh
+
+state SSHEnabled {
+  [*] --> BasicConfig
+  BasicConfig --> PortValidation : port_changed
+  BasicConfig --> UserConfig : user_changed
+  BasicConfig --> AdvancedConfig : advanced_enabled
+  
+  PortValidation --> ValidPorts : ports_valid
+  PortValidation --> InvalidPorts : ports_invalid
+  
+  UserConfig --> ValidUser : user_valid
+  UserConfig --> InvalidUser : user_invalid
+  
+  state AdvancedConfig {
+    [*] --> KeyConfig
+    KeyConfig --> RootConfig
+  }
+}
+
+state SSHDisabled {
+  [*] --> ShowWarning
+  ShowWarning --> HideConfigPanels
+}
+
+ValidPorts --> EnableNextButton
+InvalidPorts --> DisableNextButton
+ValidUser --> EnableNextButton  
+InvalidUser --> DisableNextButton
+@enduml

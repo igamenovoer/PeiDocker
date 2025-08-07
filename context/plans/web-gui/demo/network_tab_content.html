@@ -1,0 +1,357 @@
+<div class="tab-title">
+    🌐 Network Configuration
+</div>
+<p class="tab-description">
+    Configure proxy settings (applied globally to both stages), APT repository mirrors, and port mappings for network connectivity.
+</p>
+
+<!-- Proxy Configuration -->
+<div class="card mb-6">
+    <div class="card-header">
+        🔗 Proxy Configuration
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <div class="flex items-center gap-4">
+                <label class="toggle-switch">
+                    <input type="checkbox" class="toggle-input" id="proxy-enabled">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <div class="form-label">Enable HTTP Proxy</div>
+                    <div class="form-help">
+                        Enable proxy globally for both stages
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="proxy-url">
+                Proxy URL
+            </label>
+            <div class="input-group">
+                <span class="input-group-text">http://</span>
+                <input 
+                    type="text" 
+                    id="proxy-url" 
+                    class="form-input" 
+                    placeholder="host.docker.internal:7890"
+                >
+            </div>
+            <div class="form-help">
+                HTTP proxy URL for network requests
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- APT Configuration -->
+<div class="card mb-6">
+    <div class="card-header">
+        📦 APT Configuration
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <label class="form-label" for="apt-mirror">
+                APT Mirror
+            </label>
+            <select id="apt-mirror" class="form-select">
+                <option value="default">Default Ubuntu Mirrors</option>
+                <option value="tuna">Tsinghua University (tuna)</option>
+                <option value="aliyun">Alibaba Cloud (aliyun)</option>
+                <option value="163">NetEase (163)</option>
+                <option value="ustc">USTC</option>
+            </select>
+            <div class="form-help">
+                Choose APT repository mirror for faster package downloads
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Port Mappings -->
+<div class="card">
+    <div class="card-header">
+        🔌 Port Mappings
+    </div>
+    <div class="card-content">
+        <div class="form-group">
+            <label class="form-label">
+                Additional Port Mappings
+            </label>
+            <div class="form-help mb-4">
+                Map container ports to host ports (SSH port is configured separately)
+            </div>
+            
+            <div id="port-mappings">
+                <!-- Port mapping items will be added here -->
+            </div>
+            
+            <button class="btn btn-secondary" onclick="addPortMapping()">
+                ➕ Add Port Mapping
+            </button>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <strong>Note:</strong> SSH port mapping (2222:22) is configured in the SSH tab.
+        </div>
+    </div>
+</div>
+
+<script>
+    let portMappingCount = 0;
+    let portMappings = []; // Store all port mappings
+
+    function addPortMapping(hostPort = '', containerPort = '') {
+        const container = document.getElementById('port-mappings');
+        const mappingId = `port-mapping-${portMappingCount}`;
+        
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.id = mappingId;
+        div.innerHTML = `
+            <div class="list-item-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label text-sm">Host Port</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Host port (e.g., 8080 or 9090-9099)" 
+                            value="${hostPort}"
+                            data-type="host"
+                            data-mapping-id="${mappingId}"
+                        >
+                        <div class="form-help error-message" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label text-sm">Container Port</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Container port (e.g., 80 or 9090-9099)" 
+                            value="${containerPort}"
+                            data-type="container"
+                            data-mapping-id="${mappingId}"
+                        >
+                        <div class="form-help error-message" style="display: none;"></div>
+                    </div>
+                </div>
+                <div class="port-mapping-preview" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                    <strong>Docker Compose Format:</strong> <span class="mapping-text" style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;">-</span>
+                </div>
+                <div class="port-mapping-info" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-secondary);">
+                    Supports single ports (8080:80) and ranges (9090-9099:9090-9099)
+                </div>
+            </div>
+            <div class="list-item-actions">
+                <button class="btn btn-error btn-sm" onclick="removePortMapping('${mappingId}')" title="Remove this port mapping">
+                    🗑️ Remove
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(div);
+        
+        // Add event listeners for real-time validation and preview
+        const inputs = div.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                validatePortMapping(e.target);
+                updatePortMappingPreview(div);
+                updatePortMappingsArray();
+            });
+            input.addEventListener('blur', (e) => {
+                validatePortMapping(e.target);
+            });
+        });
+        
+        // Initialize mapping data
+        portMappings.push({
+            id: mappingId,
+            hostPort: hostPort,
+            containerPort: containerPort,
+            isValid: false
+        });
+        
+        portMappingCount++;
+        
+        // Update preview immediately if values provided
+        if (hostPort || containerPort) {
+            updatePortMappingPreview(div);
+        }
+        
+        updatePortMappingsSummary();
+        return div;
+    }
+
+    function removePortMapping(mappingId) {
+        const element = document.getElementById(mappingId);
+        if (element) {
+            element.remove();
+            // Remove from array
+            portMappings = portMappings.filter(mapping => mapping.id !== mappingId);
+            updatePortMappingsSummary();
+        }
+    }
+
+    function validatePortMapping(input) {
+        const value = input.value.trim();
+        const errorDiv = input.parentElement.querySelector('.error-message');
+        let isValid = true;
+        let errorMessage = '';
+
+        if (value === '') {
+            isValid = true; // Empty is okay for partial entries
+            errorDiv.style.display = 'none';
+            input.classList.remove('error');
+            return isValid;
+        }
+
+        if (value.includes('-')) {
+            // Port range validation (e.g., "9090-9099")
+            const rangeParts = value.split('-');
+            if (rangeParts.length !== 2) {
+                isValid = false;
+                errorMessage = 'Invalid range format. Use: startPort-endPort (e.g., 9090-9099)';
+            } else {
+                const start = parseInt(rangeParts[0].trim());
+                const end = parseInt(rangeParts[1].trim());
+                
+                if (isNaN(start) || isNaN(end)) {
+                    isValid = false;
+                    errorMessage = 'Range must contain only numbers';
+                } else if (start < 1 || start > 65535 || end < 1 || end > 65535) {
+                    isValid = false;
+                    errorMessage = 'Port numbers must be between 1 and 65535';
+                } else if (start >= end) {
+                    isValid = false;
+                    errorMessage = 'Start port must be less than end port';
+                } else if (end - start > 1000) {
+                    isValid = false;
+                    errorMessage = 'Port range too large (max 1000 ports)';
+                }
+            }
+        } else {
+            // Single port validation
+            const port = parseInt(value);
+            if (isNaN(port)) {
+                isValid = false;
+                errorMessage = 'Port must be a number or range (e.g., 8080 or 9090-9099)';
+            } else if (port < 1 || port > 65535) {
+                isValid = false;
+                errorMessage = 'Port must be between 1 and 65535';
+            } else if (port < 1024) {
+                // Warning for privileged ports
+                errorMessage = 'Warning: Port < 1024 requires root privileges';
+                input.classList.remove('error');
+                errorDiv.textContent = errorMessage;
+                errorDiv.style.display = 'block';
+                errorDiv.style.color = 'var(--warning-color)';
+                return true;
+            }
+        }
+
+        // Update UI based on validation
+        if (isValid) {
+            input.classList.remove('error');
+            errorDiv.style.display = 'none';
+        } else {
+            input.classList.add('error');
+            errorDiv.textContent = errorMessage;
+            errorDiv.style.display = 'block';
+            errorDiv.style.color = 'var(--error-color)';
+        }
+
+        return isValid;
+    }
+
+    function updatePortMappingPreview(listItem) {
+        const inputs = listItem.querySelectorAll('input');
+        const hostInput = inputs[0];
+        const containerInput = inputs[1];
+        const previewSpan = listItem.querySelector('.mapping-text');
+
+        const hostValue = hostInput.value.trim();
+        const containerValue = containerInput.value.trim();
+
+        if (hostValue && containerValue) {
+            // Validate both inputs
+            const hostValid = validatePortMapping(hostInput);
+            const containerValid = validatePortMapping(containerInput);
+            
+            if (hostValid && containerValid) {
+                const mappingText = `"${hostValue}:${containerValue}"`;
+                previewSpan.textContent = mappingText;
+                previewSpan.style.color = 'var(--success-color)';
+                previewSpan.style.fontWeight = 'bold';
+                
+                // Add to YAML preview
+                const yamlPreview = listItem.querySelector('.port-mapping-info');
+                yamlPreview.innerHTML = `Will be added to <code>stage_1.ports</code> array in user_config.yml`;
+                yamlPreview.style.color = 'var(--success-color)';
+            } else {
+                previewSpan.textContent = 'Invalid mapping - check errors above';
+                previewSpan.style.color = 'var(--error-color)';
+                previewSpan.style.fontWeight = 'normal';
+            }
+        } else if (hostValue || containerValue) {
+            previewSpan.textContent = 'Incomplete mapping - both ports required';
+            previewSpan.style.color = 'var(--warning-color)';
+            previewSpan.style.fontWeight = 'normal';
+        } else {
+            previewSpan.textContent = '-';
+            previewSpan.style.color = 'var(--text-secondary)';
+            previewSpan.style.fontWeight = 'normal';
+        }
+    }
+
+    function updatePortMappingsArray() {
+        const mappingElements = document.querySelectorAll('#port-mappings .list-item');
+        portMappings = [];
+        
+        mappingElements.forEach((element) => {
+            const inputs = element.querySelectorAll('input');
+            const hostValue = inputs[0].value.trim();
+            const containerValue = inputs[1].value.trim();
+            const hostValid = hostValue === '' || validatePortMapping(inputs[0]);
+            const containerValid = containerValue === '' || validatePortMapping(inputs[1]);
+            
+            portMappings.push({
+                id: element.id,
+                hostPort: hostValue,
+                containerPort: containerValue,
+                isValid: hostValid && containerValid && hostValue !== '' && containerValue !== ''
+            });
+        });
+    }
+
+    function updatePortMappingsSummary() {
+        const validMappings = portMappings.filter(m => m.isValid);
+        const totalMappings = portMappings.length;
+        
+        // Update button text with count
+        const addButton = document.querySelector('button[onclick="addPortMapping()"]');
+        if (addButton) {
+            if (totalMappings === 0) {
+                addButton.innerHTML = '➕ Add Port Mapping';
+            } else {
+                addButton.innerHTML = `➕ Add Port Mapping (${validMappings.length}/${totalMappings} valid)`;
+            }
+        }
+    }
+
+    function getAllPortMappings() {
+        updatePortMappingsArray();
+        return portMappings.filter(m => m.isValid).map(m => `${m.hostPort}:${m.containerPort}`);
+    }
+
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add one example mapping by default
+        addPortMapping('8080', '80');
+        updatePortMappingsSummary();
+    });
+</script>

@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn active has-errors">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    💾 Storage Configuration
+                </div>
+                <p class="tab-description">
+                    Configure <strong>Storage</strong> (Stage-2's dynamic system) and <strong>Mounts</strong> (general volume mounts) for both stages.
+                </p>
+
+                <div class="alert alert-info mb-6">
+                    <strong>📋 Key Concepts:</strong> 
+                    <strong>Storage</strong> is Stage-2's unique dynamic system for predefined directories (/soft/app, /soft/data, /soft/workspace).
+                    <strong>Mounts</strong> are general volume mounts that can be defined for any container path.
+                </div>
+
+                <!-- Stage-2 Dynamic Storage (UNIQUE FEATURE) -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🚀 Stage-2 Dynamic Storage System (Stage-2 ONLY)
+                    </div>
+                    <div class="card-content">
+                        <div class="form-help mb-4">
+                            Stage-2's unique dynamic storage for predefined directories with smart linking: /soft/xxx → /hard/volume/xxx OR /hard/image/xxx
+                        </div>
+                        
+                        <div class="grid grid-3 gap-4">
+                            <!-- App Storage -->
+                            <div class="form-group">
+                                <label class="form-label">📱 App Storage (/soft/app)</label>
+                                <select class="form-select" id="app-storage-type" onchange="updateStorageInputs('app')">
+                                    <option value="auto-volume">Auto Volume (recommended)</option>
+                                    <option value="manual-volume">Manual Volume</option>
+                                    <option value="host">Host Directory</option>
+                                    <option value="image" selected>In-Image Storage</option>
+                                </select>
+                                <div class="form-help">Application files and dependencies</div>
+                                
+                                <!-- Show additional fields based on selection -->
+                                <div class="mt-2" style="display: none;" id="app-host-path">
+                                    <input type="text" class="form-input" placeholder="/host/path/to/app" />
+                                    <div class="form-help">Host directory path</div>
+                                </div>
+                                <div class="mt-2" style="display: none;" id="app-volume-name">
+                                    <input type="text" class="form-input" placeholder="my-app-volume" />
+                                    <div class="form-help">Custom volume name</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Data Storage -->
+                            <div class="form-group">
+                                <label class="form-label">📊 Data Storage (/soft/data)</label>
+                                <select class="form-select" id="data-storage-type" onchange="updateStorageInputs('data')">
+                                    <option value="auto-volume" selected>Auto Volume (recommended)</option>
+                                    <option value="manual-volume">Manual Volume</option>
+                                    <option value="host">Host Directory</option>
+                                    <option value="image">In-Image Storage</option>
+                                </select>
+                                <div class="form-help">User data and persistent files</div>
+                                
+                                <div class="mt-2" style="display: none;" id="data-host-path">
+                                    <input type="text" class="form-input" placeholder="/host/path/to/data" />
+                                    <div class="form-help">Host directory path</div>
+                                </div>
+                                <div class="mt-2" style="display: none;" id="data-volume-name">
+                                    <input type="text" class="form-input" placeholder="my-data-volume" />
+                                    <div class="form-help">Custom volume name</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Workspace Storage -->
+                            <div class="form-group">
+                                <label class="form-label">💼 Workspace Storage (/soft/workspace)</label>
+                                <select class="form-select" id="workspace-storage-type" onchange="updateStorageInputs('workspace')">
+                                    <option value="auto-volume">Auto Volume</option>
+                                    <option value="manual-volume">Manual Volume</option>
+                                    <option value="host" selected>Host Directory</option>
+                                    <option value="image">In-Image Storage</option>
+                                </select>
+                                <div class="form-help">Development and workspace files</div>
+                                
+                                <div class="mt-2" id="workspace-host-path">
+                                    <input type="text" class="form-input" placeholder="/host/path/to/workspace" value="/home/user/workspace" />
+                                    <div class="form-help">Host directory path</div>
+                                </div>
+                                <div class="mt-2" style="display: none;" id="workspace-volume-name">
+                                    <input type="text" class="form-input" placeholder="my-workspace-volume" />
+                                    <div class="form-help">Custom volume name</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage-1 Mounts -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🏗️ Stage-1 Mounts (General Volume Mounts)
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage1-mounts-enabled" onchange="toggleStage1Mounts()" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Configure Stage-1 Mounts</div>
+                                    <div class="form-help">
+                                        General volume mounts for Stage-1 image (any paths, user-defined)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="stage1-mounts-config">
+                            <!-- Add New Mount Form -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    ➕ Add New Stage-1 Mount
+                                </div>
+                                <div class="card-content">
+                                    <div class="grid grid-2 gap-4">
+                                        <div class="form-group">
+                                            <label class="form-label" for="mount-name-stage1">
+                                                Mount Name *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="mount-name-stage1" 
+                                                class="form-input" 
+                                                placeholder="cache_mount"
+                                            >
+                                            <div class="form-help">
+                                                Name for this mount configuration (used in YAML)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Mount Type</label>
+                                            <select class="form-select" id="mount-type-stage1" onchange="updateMountTypeStage1()">
+                                                <option value="auto-volume">Auto Volume</option>
+                                                <option value="manual-volume">Manual Volume</option>
+                                                <option value="host">Host Directory</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-2 gap-4">
+                                        <div class="form-group">
+                                            <label class="form-label" for="destination-stage1">
+                                                Container Path *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="destination-stage1" 
+                                                class="form-input" 
+                                                placeholder="/var/cache/apt"
+                                            >
+                                            <div class="form-help">
+                                                Path inside the container where the volume will be mounted
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" id="source-group-stage1">
+                                            <label class="form-label" for="source-stage1">
+                                                <span id="source-label-stage1">Volume Name</span>
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="source-stage1" 
+                                                    class="form-input" 
+                                                    placeholder="my-data-volume"
+                                                >
+                                                <button class="btn btn-secondary" id="browse-btn-stage1" style="display: none;">
+                                                    📁 Browse
+                                                </button>
+                                            </div>
+                                            <div class="form-help" id="source-help-stage1">
+                                                Name of the Docker volume
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <button class="btn btn-primary" onclick="addMountStage1()">
+                                            ➕ Add Mount
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Current Mounts List -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    📋 Current Stage-1 Mounts
+                                </div>
+                                <div class="card-content">
+                                    <div id="stage1-mounts-list">
+                                        <div class="list-item">
+                                            <div class="list-item-content">
+                                                <div><strong>cache_mount:</strong> /var/cache/apt</div>
+                                                <div class="text-xs text-secondary">Auto Volume</div>
+                                            </div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="list-item">
+                                            <div class="list-item-content">
+                                                <div><strong>workspace_mount:</strong> /workspace → /home/user/code</div>
+                                                <div class="text-xs text-secondary">Host Directory</div>
+                                            </div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="list-item" style="border-color: #ef4444;">
+                                            <div class="list-item-content">
+                                                <div><strong>bad_mount:</strong> /invalid/path → /nonexistent</div>
+                                                <div class="text-xs" style="color: #ef4444;">Host Directory - Path does not exist</div>
+                                            </div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage-2 Mounts -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🚀 Stage-2 Mounts (General Volume Mounts)
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage2-mounts-enabled" onchange="toggleStage2Mounts()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Configure Stage-2 Mounts</div>
+                                    <div class="form-help">
+                                        General volume mounts for Stage-2 image (any paths, user-defined)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded">
+                            <div class="flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span class="text-sm">
+                                    <strong>Important:</strong> Stage-2 mounts don't inherit from Stage-1. 
+                                    You must redefine any needed mounts for Stage-2.
+                                </span>
+                            </div>
+                        </div>
+
+                        <div id="stage2-mounts-config" style="display: none;">
+                            <!-- Add New Mount Form -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    ➕ Add New Stage-2 Mount
+                                </div>
+                                <div class="card-content">
+                                    <div class="grid grid-2 gap-4">
+                                        <div class="form-group">
+                                            <label class="form-label" for="mount-name-stage2">
+                                                Mount Name *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="mount-name-stage2" 
+                                                class="form-input" 
+                                                placeholder="user_data"
+                                            >
+                                            <div class="form-help">
+                                                Name for this mount configuration (used in YAML)
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Mount Type</label>
+                                            <select class="form-select" id="mount-type-stage2" onchange="updateMountTypeStage2()">
+                                                <option value="auto-volume">Auto Volume</option>
+                                                <option value="manual-volume">Manual Volume</option>
+                                                <option value="host">Host Directory</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-2 gap-4">
+                                        <div class="form-group">
+                                            <label class="form-label" for="destination-stage2">
+                                                Container Path *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="destination-stage2" 
+                                                class="form-input" 
+                                                placeholder="/home/me"
+                                            >
+                                            <div class="form-help">
+                                                Path inside the container where the volume will be mounted
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group" id="source-group-stage2">
+                                            <label class="form-label" for="source-stage2">
+                                                <span id="source-label-stage2">Volume Name</span>
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="source-stage2" 
+                                                    class="form-input" 
+                                                    placeholder="my-data-volume"
+                                                >
+                                                <button class="btn btn-secondary" id="browse-btn-stage2" style="display: none;">
+                                                    📁 Browse
+                                                </button>
+                                            </div>
+                                            <div class="form-help" id="source-help-stage2">
+                                                Name of the Docker volume
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <button class="btn btn-primary" onclick="addMountStage2()">
+                                            ➕ Add Mount
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Current Mounts List -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    📋 Current Stage-2 Mounts
+                                </div>
+                                <div class="card-content">
+                                    <div id="stage2-mounts-list">
+                                        <div class="list-item">
+                                            <div class="list-item-content">
+                                                <div><strong>user_home:</strong> /home/me → /home/user/data</div>
+                                                <div class="text-xs text-secondary">Host Directory</div>
+                                            </div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Storage & Mount Configuration Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        📊 Storage & Mount Configuration Summary
+                    </div>
+                    <div class="card-content">
+                        <div class="grid grid-3">
+                            <div>
+                                <div class="form-label mb-2">Stage-2 Dynamic Storage</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div class="mb-2"><strong>Smart Linking System:</strong></div>
+                                        <div>/soft/app → /hard/image/app</div>
+                                        <div>/soft/data → /hard/volume/data</div>
+                                        <div>/soft/workspace → /hard/volume/workspace</div>
+                                        <div class="mt-2 text-xs" style="color: #666;">
+                                            (Links automatically to volume or in-image)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-label mb-2">Stage-1 Mounts</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div>-v cache_mount_vol:/var/cache/apt</div>
+                                        <div>-v /home/user/code:/workspace</div>
+                                        <div style="color: #ef4444;">-v /nonexistent:/invalid/path</div>
+                                        <div class="mt-2 text-xs" style="color: #666;">
+                                            (General volume mounts)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-label mb-2">Stage-2 Mounts</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div>-v /home/user/data:/home/me</div>
+                                        <div class="mt-2 text-xs" style="color: #666;">
+                                            (Don't inherit from Stage-1)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="form-label mb-2">YAML Configuration Preview</div>
+                            <div class="preview-panel">
+                                <div class="font-mono text-sm">
+                                    <div><strong>stage_2:</strong></div>
+                                    <div>&nbsp;&nbsp;<strong>storage:</strong></div>
+                                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>app:</strong> { type: image }</div>
+                                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>data:</strong> { type: auto-volume }</div>
+                                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>workspace:</strong> { type: host, host_path: "/home/user/workspace" }</div>
+                                    <div>&nbsp;&nbsp;<strong>mount:</strong></div>
+                                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<strong>user_home:</strong> { type: host, dst_path: "/home/me", host_path: "/home/user/data" }</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Validation Errors -->
+                        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span>❌</span>
+                                <span class="text-sm font-weight-600" style="color: #ef4444;">Validation Errors</span>
+                            </div>
+                            <div class="text-sm" style="color: #ef4444;">
+                                <div>• Host directory /nonexistent does not exist</div>
+                                <div>• Mount path /invalid/path contains invalid characters</div>
+                            </div>
+                        </div>
+
+                        <!-- Storage Best Practices -->
+                        <div class="mt-4">
+                            <div class="form-label mb-2">💡 Storage & Mount Best Practices</div>
+                            <div class="text-sm text-secondary">
+                                <div class="mb-2">
+                                    <strong>Storage (Stage-2 ONLY):</strong> Use 'image' for apps, 'auto-volume' for data, 'host' for development
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Auto Volumes:</strong> Best for temporary data that doesn't need to persist outside Docker
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Manual Volumes:</strong> Good for shared data between containers or persistent storage
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Host Directories:</strong> Ideal for development when you need direct file access from host
+                                </div>
+                                <div>
+                                    <strong>Mount Inheritance:</strong> Stage-2 mounts don't inherit from Stage-1, must be redefined
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot error"></div>
+                    <span>Configuration has errors</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>Storage tab: 2 validation errors</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function toggleStage1Mounts() {
+            const enabled = document.getElementById('stage1-mounts-enabled').checked;
+            const config = document.getElementById('stage1-mounts-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleStage2Mounts() {
+            const enabled = document.getElementById('stage2-mounts-enabled').checked;
+            const config = document.getElementById('stage2-mounts-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function updateStorageInputs(storageType) {
+            const typeSelect = document.getElementById(`${storageType}-storage-type`);
+            const hostPathDiv = document.getElementById(`${storageType}-host-path`);
+            const volumeNameDiv = document.getElementById(`${storageType}-volume-name`);
+            
+            if (!typeSelect) return;
+            
+            const selectedType = typeSelect.value;
+            
+            // Hide all additional inputs
+            if (hostPathDiv) hostPathDiv.style.display = 'none';
+            if (volumeNameDiv) volumeNameDiv.style.display = 'none';
+            
+            // Show relevant input based on type
+            if (selectedType === 'host' && hostPathDiv) {
+                hostPathDiv.style.display = 'block';
+            } else if (selectedType === 'manual-volume' && volumeNameDiv) {
+                volumeNameDiv.style.display = 'block';
+            }
+        }
+
+        function updateMountTypeStage1() {
+            const type = document.getElementById('mount-type-stage1').value;
+            const sourceLabel = document.getElementById('source-label-stage1');
+            const sourceHelp = document.getElementById('source-help-stage1');
+            const browseBtn = document.getElementById('browse-btn-stage1');
+            const sourceInput = document.getElementById('source-stage1');
+
+            if (type === 'auto-volume') {
+                sourceLabel.textContent = 'Auto-generated';
+                sourceHelp.textContent = 'Volume will be created automatically';
+                sourceInput.placeholder = 'auto-volume';
+                sourceInput.disabled = true;
+                browseBtn.style.display = 'none';
+            } else if (type === 'manual-volume') {
+                sourceLabel.textContent = 'Volume Name';
+                sourceHelp.textContent = 'Name of the Docker volume';
+                sourceInput.placeholder = 'my-data-volume';
+                sourceInput.disabled = false;
+                browseBtn.style.display = 'none';
+            } else if (type === 'host') {
+                sourceLabel.textContent = 'Host Directory Path';
+                sourceHelp.textContent = 'Path on the host machine';
+                sourceInput.placeholder = '/host/path';
+                sourceInput.disabled = false;
+                browseBtn.style.display = 'inline-block';
+            }
+        }
+
+        function updateMountTypeStage2() {
+            const type = document.getElementById('mount-type-stage2').value;
+            const sourceLabel = document.getElementById('source-label-stage2');
+            const browseBtn = document.getElementById('browse-btn-stage2');
+            const sourceInput = document.getElementById('source-stage2');
+
+            if (type === 'auto-volume') {
+                sourceLabel.textContent = 'Auto-generated';
+                sourceInput.placeholder = 'auto-volume';
+                sourceInput.disabled = true;
+                browseBtn.style.display = 'none';
+            } else if (type === 'manual-volume') {
+                sourceLabel.textContent = 'Volume Name';
+                sourceInput.placeholder = 'my-data-volume';
+                sourceInput.disabled = false;
+                browseBtn.style.display = 'none';
+            } else if (type === 'host') {
+                sourceLabel.textContent = 'Host Directory Path';
+                sourceInput.placeholder = '/host/path';
+                sourceInput.disabled = false;
+                browseBtn.style.display = 'inline-block';
+            }
+        }
+
+        function addMountStage1() {
+            const mountName = document.getElementById('mount-name-stage1').value.trim();
+            const destination = document.getElementById('destination-stage1').value.trim();
+            const source = document.getElementById('source-stage1').value.trim();
+            const type = document.getElementById('mount-type-stage1').value;
+
+            if (!mountName) {
+                alert('Mount name is required');
+                return;
+            }
+
+            if (!destination) {
+                alert('Container path is required');
+                return;
+            }
+
+            if (type !== 'auto-volume' && !source) {
+                alert('Source is required for this mount type');
+                return;
+            }
+
+            const displaySource = type === 'auto-volume' ? 'auto-volume' : source;
+            const typeLabel = type === 'auto-volume' ? 'Auto Volume' : 
+                             type === 'manual-volume' ? 'Manual Volume' : 'Host Directory';
+
+            const listItem = document.createElement('div');
+            listItem.className = 'list-item';
+            listItem.innerHTML = `
+                <div class="list-item-content">
+                    <div><strong>${mountName}:</strong> ${destination}${type === 'host' ? ' → ' + source : ''}</div>
+                    <div class="text-xs text-secondary">${typeLabel}</div>
+                </div>
+                <div class="list-item-actions">
+                    <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('stage1-mounts-list').appendChild(listItem);
+            
+            // Clear inputs
+            document.getElementById('mount-name-stage1').value = '';
+            document.getElementById('destination-stage1').value = '';
+            document.getElementById('source-stage1').value = '';
+        }
+
+        function addMountStage2() {
+            const mountName = document.getElementById('mount-name-stage2').value.trim();
+            const destination = document.getElementById('destination-stage2').value.trim();
+            const source = document.getElementById('source-stage2').value.trim();
+            const type = document.getElementById('mount-type-stage2').value;
+
+            if (!mountName) {
+                alert('Mount name is required');
+                return;
+            }
+
+            if (!destination) {
+                alert('Container path is required');
+                return;
+            }
+
+            if (type !== 'auto-volume' && !source) {
+                alert('Source is required for this mount type');
+                return;
+            }
+
+            const displaySource = type === 'auto-volume' ? 'auto-volume' : source;
+            const typeLabel = type === 'auto-volume' ? 'Auto Volume' : 
+                             type === 'manual-volume' ? 'Manual Volume' : 'Host Directory';
+
+            const list = document.getElementById('stage2-mounts-list');
+            
+            // Remove empty message if it exists
+            if (list.querySelector('.text-center')) {
+                list.innerHTML = '';
+            }
+
+            const listItem = document.createElement('div');
+            listItem.className = 'list-item';
+            listItem.innerHTML = `
+                <div class="list-item-content">
+                    <div><strong>${mountName}:</strong> ${destination}${type === 'host' ? ' → ' + source : ''}</div>
+                    <div class="text-xs text-secondary">${typeLabel}</div>
+                </div>
+                <div class="list-item-actions">
+                    <button class="btn btn-error text-xs" onclick="removeMount(this)">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `;
+
+            list.appendChild(listItem);
+            
+            // Clear inputs
+            document.getElementById('mount-name-stage2').value = '';
+            document.getElementById('destination-stage2').value = '';
+            document.getElementById('source-stage2').value = '';
+        }
+
+        function removeMount(button) {
+            const list = button.closest('.list-item').parentNode;
+            button.closest('.list-item').remove();
+            
+            // Add empty message if no items left in stage-2 (no longer needed since we show a mount by default)
+            // if (list.id === 'stage2-mounts-list' && list.children.length === 0) {
+            //     list.innerHTML = '<div class="text-center text-secondary py-4">No stage-2 mounts configured</div>';
+            // }
+        }
+
+        // Initialize mount type and storage inputs on page load
+        updateMountTypeStage1();
+        updateMountTypeStage2();
+        updateStorageInputs('app');
+        updateStorageInputs('data'); 
+        updateStorageInputs('workspace');
+    </script>
+</body>
+</html>

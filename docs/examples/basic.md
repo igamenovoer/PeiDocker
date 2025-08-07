@@ -34,11 +34,14 @@ stage_1:
 With this `user_config.yml` in side your project dir, do the followings to build and run the image:
 
 ```bash
-# assuming the project dir is /path/to/project
-
-python -m pei_docker.pei configure --project-dir=/path/to/project
-
+# From within the project directory
 cd /path/to/project
+pei-docker-cli configure
+
+# Or specify project directory explicitly
+pei-docker-cli configure --project-dir=/path/to/project
+
+# Build and run the image
 docker compose build stage-1 --progress=plain --no-cache
 docker compose up stage-1
 ```
@@ -408,282 +411,23 @@ docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 -v app:
 # docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 pei-image:stage-1 /bin/bash
 ```
 
-[](){#miniconda-in-image}
-## Install miniconda in image
-
-**IMPORTANT NOTE**: The following example is for demonstration purposes only. It is **not recommended** to install miniconda (or any other apps) in the image, because it will make the image size larger, and later modifications (such as `conda install xxx`) will get lost when container is removed. It is recommended to install miniconda in the volume storage `/hard/volume/app`, and copy them to the image storage `/hard/image/app` when you decide to bake them into image. However, **external storage only exists in stage-2**.
-
-To install miniconda during build, you can make use of custom scripts. PeiDocker allows you to add your scripts in the `project_dir/installation/stage-<1,2>/custom`, and then specify them in the `user_config.yml` file.
-
-```yaml
-# user_config.yml
-stage_1:
-  image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: pei-image:stage-1
-  ssh:
-    enable: true
-    port: 22
-    host_port: 2222
-    users:
-      me:
-        password: '123456'
-      root:
-        password: root
-  apt:
-    repo_source: tuna
-  device:
-    type: gpu
-stage_2:
-  image:
-    output: pei-image:stage-2
-  device:
-    type: gpu
-  storage:
-    app:
-      type: image
-    data:
-      type: image
-    workspace:
-      type: image
-  custom:
-    on_build:
-    - stage-2/system/conda/auto-install-miniconda.sh
-```
-
-In the above example, the script `auto-install-miniconda.sh` is placed in the `project_dir/installation/stage-2/system/conda` directory. The script will be executed during the build of the `stage-2` image. Below is the content of the script. It first checks if the miniconda installation file exists in the `/tmp` directory, and if not, downloads it from the tuna mirror. Then it installs miniconda to `/hard/image/app/miniconda3`, and initializes conda for all users. The conda and pip mirrors are set to the tuna mirror. Important points to note:
-
-- Custom script can be placed anywhere in the project directory, but it is recommended to put them in the `project_dir/installation/stage-<1,2>/custom` directory. Locations like `xxx/system` are managed by official developers, and may be overwritten in future updates.
-- The package files are placed in the `project_dir/installation/stage-2/tmp` directory.
-- You can access the installation directory of the `stage-2` image using the `PEI_STAGE_DIR_2` environment variable, likewise for `stage-1`. Note it will try to use external storage `\hard\volume\app` first, but because you have not mounted any external storage, it will use the image storage `\hard\image\app`.
-- During build, you are root, so you shall execute commands for other users using `su - $user -c`.
-- Remember to set DEBIAN_FRONTEND=noninteractive to prevent interactive prompts.
-
-```bash
-#!/bin/bash
-
-# prevent interactive prompts
-export DEBIAN_FRONTEND=noninteractive
-
-# PEI_STAGE_DIR_2 points to where the installation/stage-2 is inside container
-STAGE_2_DIR_IN_CONTAINER=$PEI_STAGE_DIR_2
-echo "STAGE_2_DIR_IN_CONTAINER: $STAGE_2_DIR_IN_CONTAINER"
-
-# the installation directory of miniconda3
-# first check for volume storage at /hard/volume/app, if not found, use /hard/image/app
-if [ -d "/hard/volume/app" ]; then
-  # volume storage takes precedence, note that it only exists in stage-2
-  CONDA_INSTALL_DIR="/hard/volume/app/miniconda3"
-else
-  # otherwise, use the image storage
-  CONDA_INSTALL_DIR="/hard/image/app/miniconda3"
-fi
-
-# already installed? skip
-if [ -d $CONDA_INSTALL_DIR ]; then
-    echo "miniconda3 is already installed in $CONDA_INSTALL_DIR, skipping ..."
-    exit 0
-fi
-
-# download the miniconda3 installation file yourself, and put it in the tmp directory
-# it will be copied to the container during the build process
-CONDA_PACKAGE_NAME="Miniconda3-latest-Linux-x86_64.sh"
-
-# are you in arm64 platform? If so, use the arm64 version of miniconda3
-if [ "$(uname -m)" = "aarch64" ]; then
-    CONDA_PACKAGE_NAME="Miniconda3-latest-Linux-aarch64.sh"
-fi
-
-# download from
-CONDA_DOWNLOAD_URL="https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/$CONDA_PACKAGE_NAME"
-
-# download to
-CONDA_DOWNLOAD_DST="$STAGE_2_DIR_IN_CONTAINER/tmp/$CONDA_PACKAGE_NAME"
-
-# if the file does not exist, wget it from tuna
-if [ ! -f $CONDA_DOWNLOAD_DST ]; then
-    echo "downloading miniconda3 installation file ..."
-    wget -O $CONDA_DOWNLOAD_DST $CONDA_DOWNLOAD_URL --show-progress
-fi
-
-# install miniconda3 unattended
-echo "installing miniconda3 to $CONDA_INSTALL_DIR ..."
-bash $CONDA_DOWNLOAD_DST -b -p $CONDA_INSTALL_DIR
-
-# make conda installation read/write for all users
-echo "setting permissions for $CONDA_INSTALL_DIR ..."
-chmod -R 777 $CONDA_INSTALL_DIR
-
-echo "initializing conda for all users, including root ..."
-
-# conda and pip mirror, for faster python package installation
-# save the following content to a variable
-read -r -d '' CONDA_TUNA << EOM
-channels:
-  - defaults
-show_channel_urls: true
-default_channels:
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
-custom_channels:
-  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  msys2: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  bioconda: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  menpo: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  pytorch-lts: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  simpleitk: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  deepmodeling: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/
-EOM
-
-# tuna pip mirror
-read -r -d '' PIP_TUNA << EOM
-[global]
-index-url = https://pypi.tuna.tsinghua.edu.cn/simple
-
-[install]
-trusted-host=pypi.tuna.tsinghua.edu.cn
-EOM
-
-# aliyun pypi mirror, use it if tuna is slow
-read -r -d '' PIP_ALIYUN << EOM
-[global]
-index-url = https://mirrors.aliyun.com/pypi/simple
-
-[install]
-trusted-host=mirrors.aliyun.com
-EOM
-
-# add all user names to USER_LIST
-USER_LIST="root"
-for user in $(ls /home); do
-    USER_LIST="$USER_LIST $user"
-done
-
-# remove duplicated user names, preventing install for root twice
-USER_LIST=$(echo $USER_LIST | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
-echo "conda config for users: $USER_LIST"
-
-# for each user in USERS, initialize conda.
-# remember to execute commands in the user context using su - $user -c
-# otherwise the file will be owned by root
-for user in $USER_LIST; do
-    echo "initializing conda for $user ..."
-    su - $user -c "$CONDA_INSTALL_DIR/bin/conda init"
-
-    # if user is root, set home_dir to /root, otherwise /home/$user
-    if [ "$user" = "root" ]; then
-        home_dir="/root"
-    else
-        home_dir="/home/$user"
-    fi
-
-    # to use tuna mirror, replace the .condarc file with the pre-configured CONDA_TUNA
-    echo "setting conda mirror for $user ..."    
-    su - $user -c "echo \"$CONDA_TUNA\" >> $home_dir/.condarc"
-
-    # to use pip mirror, create a .pip directory and write the PIP_TUNA to pip.conf
-    echo "setting pip mirror for $user ..."
-    su - $user -c "mkdir -p $home_dir/.pip"
-    su - $user -c "echo \"$PIP_ALIYUN\" > $home_dir/.pip/pip.conf"
-done
-```
-
-## Install miniconda to external storage
-
-To install miniconda to external storage, you can mount external storage ([How to use external storage?][external-storage]) to the `/hard/volume/app`, so that the miniconda installation will be saved there. The following example demonstrates how to install miniconda to the external storage.
-
-First, create a docker volume named `my_app`:
-
-```bash
-docker volume create my_app
-```
-
-Then, modify the `user_config.yml` file as follows:
-
-```yaml
-stage_1:
-  image:
-    base: nvidia/cuda:12.3.2-runtime-ubuntu22.04
-    output: pei-image:stage-1
-  ssh:
-    enable: true
-    port: 22
-    host_port: 2222
-    users:
-      me:
-        password: '123456'
-      root:
-        password: root
-  apt:
-    repo_source: tuna
-  device:
-    type: gpu
-stage_2:
-  image:
-    output: pei-image:stage-2
-  device:
-    type: gpu
-  storage:
-    app:
-      type: manual-volume
-      volume_name: my_app
-    data:
-      type: auto-volume
-    workspace:
-      type: auto-volume
-  custom:
-    on_first_run:
-    - stage-2/system/conda/auto-install-miniconda.sh
-```
-
-The example is based on [Install miniconda in image][miniconda-in-image], with the following changes:
-- `app` is a **manual-volume**, which means it is created manually with the name `my_app`, and then mounted to the container. To create it, use `docker volume create my_app`.
-- `data` and `workspace` are **auto-volumes**, which means they are created automatically.
-- The `install-my-conda.sh` script is executed on the first run of the container, to install miniconda3 and setup conda for all users.
-
-**IMPORTANT**: Here comes the critical part for using `on_first_run` commands. After the commands are run, they modify the **container**, not the **image**. If you want to save the changes to the image, you need to commit the container to the image. If you forgot to do that, changes are not saved, and the first-run commands will be run again when the container is recreated. 
-
-To correct this, commit the container to the image after the first run:
-
-```bash
-docker commit <container_id> pei-image:stage-2
-```
-
-## Moving external storage to image
-
-After you have installed apps to the external storage, you can move it to the image storage. This is useful when you want to bake the installed apps into the image. To do this, just copy the files from the external storage to the image storage. Inside the container, do the followings:
-
-```bash
-# inside container
-# just copy /hard/volume/app to /hard/image/app, likewise for other directories
-cp -r /hard/volume/app /hard/image/app
-
-# for data and workspace, if you want to bake them into the image
-# cp -r /hard/volume/data /hard/image/data
-# cp -r /hard/volume/workspace /hard/image/workspace
-```
-
-And then, commit your container to image:
-  
-```bash
-docker commit <container_id> pei-image:stage-2
-```
-
 [](){#install-pixi}
 ## Install pixi package manager
 
 **Pixi** is a modern, fast package manager for Python that uses conda-forge packages but with significantly better performance than conda. It's designed for modern Python development workflows and supports creating isolated environments with precise dependency management.
 
-This example demonstrates how to automatically install pixi and set up a common development environment with essential Python packages. The installation uses the tuna mirror for faster downloads in China and configures pixi to persist across container restarts.
+**Note**: PeiDocker now recommends pixi over conda/miniconda for package management due to its superior performance and modern design. However, if you prefer to use conda/miniconda, the installation scripts are still available in `src/pei_docker/project_files/installation/stage-2/system/conda/` and can be referenced for custom implementations.
+
+### Basic pixi installation
+
+This example demonstrates how to automatically install pixi and set up a common development environment with essential Python packages. The installation uses the tuna mirror for faster downloads in China.
 
 ```yaml
-# user_config.yml
+# user_config.yml - basic pixi installation
 stage_1:
   image:
     base: ubuntu:24.04
-    output: pei-pixi-example:stage-1
+    output: pei-pixi-basic:stage-1
   
   ssh:
     enable: true
@@ -702,16 +446,16 @@ stage_1:
 
 stage_2:
   image:
-    output: pei-pixi-example:stage-2
+    output: pei-pixi-basic:stage-2
   
-  # storage configurations  
+  # storage configurations - using image storage for this basic example
   storage:
     app:
-      type: auto-volume
+      type: image
     workspace:
-      type: auto-volume
+      type: image
     data:
-      type: auto-volume
+      type: image
   
   # custom scripts to install and configure pixi
   custom:
@@ -721,28 +465,150 @@ stage_2:
       - 'stage-2/system/pixi/create-env-common.bash'
 ```
 
-### What this configuration does:
+### Pixi with persistent storage
 
-1. **Base Image**: Uses `ubuntu:24.04` as the base system
-2. **Pixi Installation**: Automatically installs pixi to `/hard/volume/app/pixi` (external storage) or `/hard/image/app/pixi` (image storage)
-3. **Mirror Configuration**: Sets up tuna mirrors for faster package downloads in China
-4. **Common Environment**: Creates a `common` global environment with essential packages:
-   - `scipy` - Scientific computing
-   - `click` - Command-line interface creation
-   - `attrs` - Classes without boilerplate
-   - `omegaconf` - Configuration management
-   - `rich` - Rich text and beautiful formatting
-   - `networkx` - Network analysis
+For better persistence and performance, use external volumes to store pixi installation and cache:
+
+```yaml
+# user_config.yml - pixi with volumes for persistence
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-pixi-volumes:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      developer:
+        password: 'dev123'
+        uid: 1100
+
+  apt:
+    repo_source: tuna
+
+stage_2:
+  image:
+    output: pei-pixi-volumes:stage-2
+  
+  # storage configurations using volumes for persistence
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume
+  
+  # additional mounts for persistent user settings
+  mount:
+    home_developer:
+      type: auto-volume
+      dst_path: /home/developer
+  
+  # custom scripts with persistent cache directory
+  custom:
+    on_first_run:
+      # Install pixi with cache directory in external storage
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/create-env-common.bash'
+```
+
+### Pixi for machine learning (GPU)
+
+For ML development with GPU support and additional packages:
+
+```yaml
+# user_config.yml - pixi with ML packages and GPU support
+stage_1:
+  image:
+    base: nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+    output: pei-pixi-ml:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      mldev:
+        password: 'ml123'
+        uid: 1100
+
+  apt:
+    repo_source: tuna
+    
+  device:
+    type: gpu
+
+stage_2:
+  image:
+    output: pei-pixi-ml:stage-2
+  
+  device:
+    type: gpu
+    
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume  
+    data:
+      type: auto-volume
+  
+  # additional mounts for ML development
+  mount:
+    models:
+      type: auto-volume
+      dst_path: /models
+      
+    home_mldev:
+      type: auto-volume
+      dst_path: /home/mldev
+  
+  environment:
+    - 'NVIDIA_VISIBLE_DEVICES=all'
+    - 'NVIDIA_DRIVER_CAPABILITIES=all'
+  
+  custom:
+    on_first_run:
+      # Install pixi with cache in external storage
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      # Install both common and ML packages
+      - 'stage-2/system/pixi/create-env-common.bash'
+      - 'stage-2/system/pixi/create-env-ml.bash'
+```
+
+### What pixi installation includes:
+
+#### Common packages (`create-env-common.bash`):
+- `scipy` - Scientific computing library
+- `click` - Command line interface toolkit
+- `attrs` - Classes without boilerplate
+- `omegaconf` - Configuration management
+- `rich` - Rich text and formatting
+- `networkx` - Network analysis
+- `ipykernel` - Jupyter kernel support
+
+#### ML packages (`create-env-ml.bash`):
+- `pytorch`, `torchvision` - Deep learning framework
+- `opencv` - Computer vision library
+- `open3d` - 3D data processing
+- `trimesh` - 3D mesh processing
+- `pyvista`, `pyvistaqt` - 3D visualization
+- `pyqt` - GUI framework
+- `mkdocs-material` - Documentation generator
 
 ### Build and run process:
 
 ```bash
-# assuming the project dir is /path/to/project
-
-# generate docker-compose.yml
-python -m pei_docker.pei configure --project-dir=/path/to/project
-
+# generate docker-compose.yml from within project directory
 cd /path/to/project
+pei-docker-cli configure
 
 # build stage-1
 docker compose build stage-1 --progress=plain --no-cache
@@ -756,7 +622,7 @@ docker compose up -d stage-2
 
 ### Verify pixi installation:
 
-After the container starts, you can SSH into it and verify pixi is working:
+After the container starts, SSH in and verify pixi is working:
 
 ```bash
 # SSH into the container
@@ -768,10 +634,14 @@ pixi --version
 # List global environments
 pixi global list
 
-# Verify packages in common environment
+# Verify packages are available
 python -c "import scipy; print('scipy:', scipy.__version__)"
 python -c "import click; print('click:', click.__version__)"
 python -c "import rich; print('rich:', rich.__version__)"
+
+# For ML environment, also check:
+python -c "import torch; print('pytorch:', torch.__version__)"
+python -c "import cv2; print('opencv:', cv2.__version__)"
 ```
 
 ### Key advantages of pixi over conda:
@@ -784,17 +654,26 @@ python -c "import rich; print('rich:', rich.__version__)"
 
 ### Important notes:
 
-- **Persistence**: Since pixi is installed to external storage (`/hard/volume/app`), the installation persists across container restarts
-- **First run only**: The installation scripts run only on the first container startup using `on_first_run`
-- **Commit changes**: If you want to bake pixi into the image permanently, commit the container after first run:
+- **Persistence**: When using external storage, pixi installation persists across container restarts
+- **First run only**: Installation scripts run only on first container startup using `on_first_run`
+- **Custom cache**: Use `--cache-dir` parameter to store package cache in external storage for faster rebuilds
+- **Adding packages**: Run `pixi global install package_name` inside the container to add more packages
+- **Commit changes**: To bake pixi into the image permanently:
   ```bash
-  docker commit <container_id> pei-pixi-example:stage-2
+  docker commit <container_id> pei-pixi-ml:stage-2
   ```
-- **Adding packages**: You can add more packages to the `common` environment by modifying the `create-env-common.bash` script or by running `pixi global install package_name` inside the container
 
-### Custom package lists:
+### Advanced customization:
 
-To customize the packages installed in the common environment, you can modify the installation scripts in your project directory under `installation/stage-2/system/pixi/` or create additional environment setup scripts for specific use cases (e.g., machine learning, web development, data science).
+You can customize pixi installation by modifying the scripts in `installation/stage-2/system/pixi/` or creating your own environment setup scripts for specific use cases.
+
+### Migration from conda:
+
+If you previously used conda/miniconda, pixi provides a similar but faster experience:
+- Global environments replace conda's base environment
+- Package installation is significantly faster
+- Better dependency resolution and reproducibility
+- For legacy conda scripts, see `src/pei_docker/project_files/installation/stage-2/system/conda/`
 
 ## Custom script parameters
 

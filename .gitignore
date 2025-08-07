@@ -166,10 +166,46 @@ build_*/
 # pixi environments
 .pixi
 
-# ignore test dir
-test-*/
+# ignore test dir in the root directory
+./test-*/
 
 # ignore .lock files
 *.lock
 
 tmp/
+
+# LaTeX intermediate files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.loa
+*.idx
+*.ind
+*.ilg
+*.xdy
+*.figlist
+*.makefile
+*.fls_latexmk
+
+# Claude AI settings
+.claude/

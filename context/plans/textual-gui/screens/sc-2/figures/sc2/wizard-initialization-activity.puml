@@ -1,0 +1,19 @@
+@startuml
+start
+:Initialize wizard controller;
+if (CLI screen override provided?) then (yes)
+  :Extract target step from --screen parameter;
+  if (Target step valid (sc-3 to sc-13)?) then (yes)
+    :Navigate directly to specified step;
+  else (no)
+    :Default to Step 1 (SC-3);
+  endif
+else (no)
+  :Start at Step 1 (SC-3);
+endif
+:Initialize memory configuration store;
+:Load project directory from SC-1 state;
+:Set up progress tracking;
+:Display initial step screen;
+stop
+@enduml

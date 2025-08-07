@@ -1,0 +1,298 @@
+# all paths are relative to /installation directory
+
+stage_1:
+  # input/output image settings
+  image:
+    base: ubuntu:24.04
+    output: pei-image:stage-1
+
+  # ssh settings
+  ssh:
+    enable: true
+
+    # port in container, if given, this port WILL be set inside container as SSH port
+    port: 22  
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
+
+    # ssh users, the key is user name, value is user info
+    users:
+      me:
+        password: '123456'
+
+        # SSH Key Options (choose one method per key type):
+        
+        # Public key options (mutually exclusive):
+        pubkey_file: null    # Path to public key file (relative to installation directory)
+        pubkey_text: null    # Direct public key content (conflicts with pubkey_file)
+        
+        # Private key options (mutually exclusive):
+        privkey_file: null   # Path to private key file (relative to installation directory)
+        privkey_text: null   # Direct private key content (conflicts with privkey_file)
+        
+        # Explicitly specifing UID for the user, must be unique in the system
+        uid: 2000
+        
+      you:
+        password: '654321'
+        
+      root: # you can configure root user here
+        password: root
+        uid: 0  # root uid, always 0 regardless of what you put here
+
+# SSH Key Configuration Examples:
+#
+# Example 1: Using public key text (inline specification)
+# users:
+#   developer:
+#     password: 'devpass'
+#     pubkey_text: |
+#       ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host
+#
+# Example 2: Using private key text (auto-generates public key)
+# users:
+#   developer:
+#     privkey_text: |
+#       -----BEGIN OPENSSH PRIVATE KEY-----
+#       b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABCLeSpkKu
+#       zfp8gLIO/O6v0GAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIFPW+lmS7RfUgmm/
+#       zHEwJ1qrxX//PVZ1IRBx9kgrr11+AAAAoE33cdhrQMyeBuE2jpkJE0NdiGdK80qW2cJjUc
+#       /5JfZSvRIF0CRD6qDt2/aOig6KQVb60ky5pAaO2nymIzTZZaVE44+LNJ46f56vqnBDQrFO
+#       /uLpyhpHFluGcphOt8myrp0F4kBJj2KObJubJLAcd4aVbWgNZ4kM+KfYnEiSG88d5JR136
+#       ZkKSpbazcnFf58IrZOPghEQPoFUeVRvnlKWPE=
+#       -----END OPENSSH PRIVATE KEY-----
+#
+# Example 3: Using both public and private keys (NOT PAIRED - independent keys)
+# users:
+#   developer:
+#     pubkey_text: |
+#       ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host
+#     privkey_text: |
+#       -----BEGIN OPENSSH PRIVATE KEY-----
+#       b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA6KBy+eb
+#       ZyS0HlPIAHbJj8AAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIGrvSeVzXGZgItH1
+#       G053XzoLT3Z4Kk68Hj5PTdwLthyEAAAAoBpmljEs0pdgvVCTGtJjCkCb0cedqiVI8GZwWH
+#       uMt8LHn06AW1m4XArj45KR03Sttn7BymZpBjkKgDAzfzM92mcex9tJOxqFauiNlgcpjn2w
+#       S7NEK4oo/LjMUMydoSsC+3ppvTpIUyQj0WH2KaP/RTUQrwny1W0Kdo5B/WgOeupon9dakz
+#       5lt6/wVYFPYahu1kYyV+6F6vJnI3BsjuDKhw0=
+#       -----END OPENSSH PRIVATE KEY-----
+#
+# Example 4: Using absolute paths and system SSH key discovery
+# users:
+#   admin:
+#     password: 'admin123'
+#     privkey_file: '/home/myuser/.ssh/id_rsa'          # Absolute path to encrypted private key
+#   developer:
+#     password: 'dev123'  
+#     pubkey_file: '~'                                  # Auto-discovers system SSH public key
+#   tester:
+#     password: 'test123'
+#     privkey_file: '~'                                 # Auto-discovers system SSH private key
+# Note: ~ syntax discovers keys in priority order: id_rsa, id_dsa, id_ecdsa, id_ed25519
+#
+# Important Notes:
+# - pubkey_file and pubkey_text are mutually exclusive
+# - privkey_file and privkey_text are mutually exclusive  
+# - When encrypted private keys are provided, NO public key is auto-generated (avoids passphrase prompts)
+# - User-provided private keys replace auto-generated keys using standard filenames (id_rsa, id_ecdsa, etc.)
+# - To get a public key from an encrypted private key, generate it manually: ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+# - Given public and private keys are independent (not required to be paired)
+# - Only provided public keys will be added to authorized_keys (no auto-generation from private keys)
+# - At least one authentication method (password, public key, or private key) must be provided
+# - Supports absolute paths (/home/user/.ssh/id_rsa) and ~ syntax for system SSH key discovery
+
+  # proxy settings
+  # inside the container, the proxy will accessed as http://{address}:{port}
+  # note that whether the proxy is used or not depends on the applications
+  proxy:
+    address: host.docker.internal # default value, this will map to the host machine
+    port: 7890  # if address==host.docker.internal, this will be the proxy port on host machine
+    enable_globally: false  # enable proxy for all shell commands during build and run?
+    remove_after_build: false # remove global proxy after build?
+    use_https: false # use https proxy?
+
+
+  # apt settings
+  apt:
+    # replace the default apt source with a custom one, use empty string to disable this
+    # repo_source: 'stage-1/system/apt/ubuntu-22.04-tsinghua-x64.list'
+    # special values that refer to well known apt sources:
+    # 'tuna' : 'http://mirrors.tuna.tsinghua.edu.cn/ubuntu/'
+    # 'aliyun' : 'http://mirrors.aliyun.com/ubuntu/'
+    # '163' : 'http://mirrors.163.com/ubuntu/'
+    # 'ustc' : 'http://mirrors.ustc.edu.cn/ubuntu/'
+    # 'cn' : 'http://cn.archive.ubuntu.com/ubuntu/
+    repo_source: ''
+    keep_repo_after_build: true # keep the apt source file after build?
+    use_proxy: false  # use proxy for apt?
+    keep_proxy_after_build: false # keep proxy settings after build?
+
+  # additional environment variables
+  # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
+  environment:
+    - 'EXAMPLE_VAR_STAGE_1=example env var'
+
+  # additional port mapping
+  # see https://docs.docker.com/compose/networking/
+  ports: []
+
+  # device settings
+  device:
+    type: cpu # can be cpu or gpu
+
+  # mount external volumes to container
+  # the volumes can be given any names, mounted anywhere
+  # mount section does NOT transfer to the next stage, so you need to define them again in stage-2
+  mount:
+    apt_cache:
+      type: auto-volume
+      dst_path: /var/cache/apt
+      host_path: null
+      volume_name: null
+
+  # custom scripts
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
+      - 'stage-1/custom/my-build-1.sh'
+      - 'stage-1/custom/my-build-2.sh --verbose --config=/tmp/build.conf'
+      # Example with parameters:
+      # - 'stage-1/custom/setup-environment.sh --env=development --log-level=debug'
+      # - 'stage-1/custom/install-packages.sh --package-list="git curl vim" --update-cache'
+
+    # scripts run on first run
+    on_first_run:
+      - 'stage-1/custom/my-on-first-run-1.sh'
+      - 'stage-1/custom/my-on-first-run-2.sh --initialize --create-dirs'
+      # Example with quoted parameters:
+      # - 'stage-1/custom/setup-workspace.sh --workspace-name="My Project" --template=default'
+
+    # scripts run on every run
+    on_every_run:
+      - 'stage-1/custom/my-on-every-run-1.sh'
+      - 'stage-1/custom/my-on-every-run-2.sh --check-health'
+      # Example with environment-specific parameters:
+      # - 'stage-1/custom/sync-data.sh --source=/data --destination=/backup --compress'
+
+    # scripts run on user login
+    on_user_login:
+      - 'stage-1/custom/my-on-user-login-1.sh'
+      - 'stage-1/custom/my-on-user-login-2.sh --show-motd --update-prompt'
+      # Example with user-specific parameters:
+      # - 'stage-1/custom/setup-user-env.sh --theme=dark --shell=bash --enable-completion'
+
+    # custom entry point script - replaces shell startup in system entrypoint
+    # this script will be executed at the end of system entrypoint with arguments
+    # if not specified, interactive shell will start by default
+    # supports both formats with optional default arguments:
+    #   on_entry: ['stage-1/custom/my-entry.sh --mode=default --timeout=30']
+    #   on_entry: 'stage-1/custom/my-entry.sh --mode=default --timeout=30'
+    # runtime arguments override default arguments: docker run image --mode=batch
+    on_entry: []  # ['stage-1/custom/my-entry.sh --mode=interactive']
+    
+stage_2:
+
+  # input/output image settings
+  image:
+    base: null  # if not specified, use the output image of stage-1
+    output: pei-image:stage-2
+
+  # additional environment variables
+  # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
+  environment:  # use list intead of dict
+    - 'EXAMPLE_VAR_STAGE_2=example env var'
+
+  # port mapping, will be appended to the stage-1 port mapping
+  # see https://docs.docker.com/compose/networking/
+  ports: []    
+
+  # device settings, will override the stage-1 device settings
+  device:
+    type: cpu # can be cpu or gpu
+
+  
+  # proxy settings
+  # inside the container, the proxy will accessed as http://{address}:{port}
+  # note that whether the proxy is used or not depends on the applications
+  proxy:
+    address: null # this means to use the proxy settings of stage-1
+    port: null
+    enable_globally: null 
+    remove_after_build: null 
+    use_https: null
+
+  # storage configurations
+  storage:
+    app:
+      type: auto-volume # auto-volume, manual-volume, host, image
+      host_path: null # host directory to be mounted, in effect when type=host
+      volume_name: null # volume name, in effect when type=manual-volume
+    data:
+      type: auto-volume
+      host_path: null
+      volume_name: null
+    workspace:
+      type: auto-volume
+      host_path: null
+      volume_name: null
+
+  # mount external volumes to container
+  # the volumes can be given any names, mounted anywhere
+  # the volume type cannot be 'image', or otherwise it will be ignored
+  mount:
+    home_me:
+      type: auto-volume   # auto-volume, manual-volume, host
+      dst_path: /home/me
+      host_path: null
+      volume_name: null
+    apt_cache:
+      type: auto-volume
+      dst_path: /var/cache/apt
+      host_path: null
+      volume_name: null
+
+  # custom scripts in stage-2, run after stage-1 custom scripts
+  # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+  custom:
+    # scripts run during build
+    on_build: 
+      - 'stage-2/custom/install-gui-tools.sh' # just an example, you can safely remove this
+      - 'stage-2/custom/my-build-1.sh'
+      - 'stage-2/custom/my-build-2.sh --enable-desktop --theme=default'
+      # Example with application-specific parameters:
+      # - 'stage-2/custom/install-ml-tools.sh --framework=pytorch --cuda-version=12.1'
+      # - 'stage-2/custom/setup-vscode.sh --extensions="python,docker,git" --settings-sync'
+
+    # scripts run on first start
+    on_first_run:
+      - 'stage-2/custom/my-on-first-run-1.sh'
+      - 'stage-2/custom/my-on-first-run-2.sh --setup-workspace --clone-repos'
+      # Example with workspace initialization:
+      # - 'stage-2/custom/init-project.sh --project-name="My App" --git-remote=origin'
+
+    # scripts run on every start
+    on_every_run:
+      - 'stage-2/custom/my-on-every-run-1.sh'
+      - 'stage-2/custom/my-on-every-run-2.sh --update-status --log-startup'
+      # Example with service management:
+      # - 'stage-2/custom/check-services.sh --services="nginx,redis" --restart-failed'
+
+    # scripts run on user login
+    on_user_login:
+      - 'stage-2/custom/my-on-user-login-1.sh'
+      - 'stage-2/custom/my-on-user-login-2.sh --welcome-message --check-updates'
+      # Example with development environment setup:
+      # - 'stage-2/custom/dev-setup.sh --activate-venv --cd-to-project --show-git-status'
+
+    # custom entry point script - replaces shell startup in system entrypoint
+    # this script will be executed at the end of system entrypoint with arguments
+    # if not specified, interactive shell will start by default (or stage-1 entry point if defined)
+    # supports both formats with optional default arguments:
+    #   on_entry: ['stage-2/custom/my-entry.sh --mode=production --log-level=info']
+    #   on_entry: 'stage-2/custom/my-entry.sh --mode=production --log-level=info'
+    # runtime arguments override default arguments: docker run image --mode=debug
+    # stage-2 entry point overrides stage-1 entry point when both are defined
+    on_entry: []  # ['stage-2/custom/my-entry.sh --mode=production']

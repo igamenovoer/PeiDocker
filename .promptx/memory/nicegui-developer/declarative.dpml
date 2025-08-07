@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<memory>
+  <item id="mem_1754041291795_1tvh6ftnw" time="2025/08/01 17:41">
+    <content>
+      NiceGUI Framework Core Knowledge (from context/hints/nicegui-kb/intro-nicegui.md):
+    
+      **Architecture**: Python web UI framework with FastAPI backend, Vue.js/Quasar frontend, WebSocket communication via socket.io, single uvicorn worker.
+    
+      **Core Components**:
+      - Basic elements: ui.label(), ui.button(), ui.input()
+      - Layout containers: ui.row(), ui.column(), ui.card()
+      - Event binding: on_click, on_change parameters
+      - Async support for event handlers
+    
+      **State Management**:
+      - Reactive variables: count = ui.state(0)
+      - Data binding: .bind_text_from(), .bind_value()
+      - Two-way binding with dictionaries
+    
+      **Key Patterns**:
+      - Page routing: @ui.page(&#x27;/path&#x27;) decorator
+      - Component organization as reusable functions
+      - Tailwind CSS classes via .classes() method
+      - Material Design via Quasar components
+    
+      **Running Apps**:
+      - Basic: ui.run()
+      - Configured: ui.run(port=8080, title=&#x27;App&#x27;, reload=True, dark=True)
+    
+      **Best Practices**:
+      1. Use containers for layout structure
+      2. Reactive variables for dynamic UI
+      3. Lambda functions for simple event handlers
+      4. Component-based architecture
+      5. Tailwind classes for styling
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754041353797_hki5anopx" time="2025/08/01 17:42">
+    <content>
+      NiceGUI File Handling Best Practices (from context/hints/howto-nicegui-file-handling-best-practices.md):
+    
+      **Core Principle**: Always use server-side file processing over client-side for security, reliability, and framework alignment.
+    
+      **Why Server-Side**:
+      - Security: File system isolation, input validation, access control
+      - NiceGUI Architecture: Backend-first philosophy, FastAPI foundation
+      - Technical: Better error handling, resource management, scalability
+    
+      **Essential Patterns**:
+      ```python
+      # Workspace creation
+      temp_dir = Path(tempfile.mkdtemp())
+      app.storage.user[&#x27;workspace_dir&#x27;] = str(temp_dir)
+    
+      # Download with zip
+      app.add_static_file(&#x27;/workspace.zip&#x27;, str(zip_path))
+      ui.download(&#x27;/workspace.zip&#x27;, &#x27;workspace.zip&#x27;)
+      ```
+    
+      **Storage Types**:
+      - app.storage.user: Persistent across sessions
+      - app.storage.tab: Session-specific, more secure
+      - app.storage.client: Per-connection
+      - app.storage.browser: Browser localStorage
+    
+      **Security Validations**:
+      - Path validation: Prevent directory traversal
+      - File size limits: MAX_WORKSPACE_SIZE check
+      - File type restrictions: ALLOWED_EXTENSIONS whitelist
+    
+      **WorkspaceManager Pattern**:
+      - Base directory management
+      - User-specific workspace creation
+      - Automatic cleanup of old workspaces
+      - Structured initialization
+    
+      **Error Handling**:
+      ```python
+      try:
+      # file operations
+      ui.notify(&#x27;Success&#x27;, type=&#x27;positive&#x27;)
+      except FileNotFoundError:
+      ui.notify(&#x27;File error&#x27;, type=&#x27;negative&#x27;)
+      ```
+    
+      **Common Pitfalls**:
+      1. Don&#x27;t store sensitive data client-side
+      2. Always validate file paths
+      3. Implement cleanup to prevent disk issues
+      4. Use appropriate storage based on data lifetime
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754041445180_rng9tli2j" time="2025/08/01 17:44">
+    <content>
+      NiceGUI Testing with Playwright (from context/hints/howto-test-nicegui-with-playwright.md):
+    
+      **Overview**: Playwright enables end-to-end testing of NiceGUI Python web UIs across multiple browsers (Chromium, Firefox, WebKit) with automation capabilities.
+    
+      **Installation**:
+      ```bash
+      pip install playwright pytest-playwright
+      playwright install
+      ```
+    
+      **Two Testing Approaches**:
+      1. **NiceGUI Built-in**: `from nicegui.testing import Screen` - Simple tests
+      2. **Playwright Direct**: Full browser automation for advanced scenarios
+    
+      **Essential Testing Pattern**:
+      ```python
+      @pytest.fixture
+      async def nicegui_app():
+      def run_app():
+      ui.run(port=8080, show=False, reload=False)
+      thread = threading.Thread(target=run_app, daemon=True)
+      thread.start()
+      time.sleep(2)
+      yield &quot;http://localhost:8080&quot;
+    
+      @pytest.mark.asyncio
+      async def test_nicegui_with_playwright(nicegui_app):
+      async with async_playwright() as p:
+      browser = await p.chromium.launch(headless=True)
+      page = await browser.new_page()
+      await page.goto(nicegui_app)
+      # Test interactions
+      ```
+    
+      **Advanced Testing Scenarios**:
+      - **Real-time Updates**: Wait for WebSocket with `&quot;window.socket &amp;&amp; window.socket.connected&quot;`
+      - **File Uploads**: Use `page.set_input_files()`
+      - **Cross-Browser**: Parametrize with `[&quot;chromium&quot;, &quot;firefox&quot;, &quot;webkit&quot;]`
+    
+      **Screenshot Capabilities**:
+      ```python
+      # Full page screenshot
+      await page.screenshot(path=&quot;screenshot.png&quot;, full_page=True)
+      # Element-specific
+      await page.locator(&#x27;.nicegui-content&#x27;).screenshot(path=&quot;element.png&quot;)
+      # Custom options with clip, quality, type
+      ```
+    
+      **Common Challenges**:
+      1. **WebSocket Issues**: Wait for `window.socket &amp;&amp; window.socket.connected`
+      2. **Dynamic Content**: Use `page.wait_for_selector()` or `wait_for_load_state(&#x27;networkidle&#x27;)`
+      3. **Vue.js Components**: Wait for `window.Vue &amp;&amp; window.app`
+    
+      **Best Practices**:
+      - Use consistent viewport sizes for screenshots
+      - Wait for content loading before assertions
+      - Implement screenshot-on-failure for debugging
+      - Use headed mode for development, headless for CI
+      - Organize test fixtures with conftest.py
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754042355478_60c2ttdkb" time="2025/08/01 17:59">
+    <content>
+      PeiDocker NiceGUI WebGUI Screenshot Testing Success (2025-08-01):
+    
+      SUCCESSFUL SCREENSHOT CAPTURE:
+      - ✅ Created comprehensive Playwright screenshot script at ./tmp/take_first_page_screenshot.py
+      - ✅ Successfully launched PeiDocker NiceGUI app using pixi run -e dev
+      - ✅ App properly loaded with WebSocket connection and Vue.js components
+      - ✅ Screenshot saved to ./tmp/first-page.png (30,752 bytes, 1280x752 PNG)
+      - ✅ Page title: &quot;🐳 PeiDocker Web GUI&quot;
+      - ✅ Page content length: 39,641 characters
+    
+      KEY TECHNICAL SOLUTIONS:
+      - Used dynamic Python runner script to properly initialize webgui app
+      - Fixed PNG screenshot quality parameter issue (PNG doesn&#x27;t support quality option)
+      - Proper wait strategy: WebSocket connection + Vue.js components + 2sec buffer
+      - Clean process management with process groups for termination
+    
+      SCRIPT FEATURES:
+      - Comprehensive error handling and cleanup
+      - Real-time feedback during execution
+      - Proper viewport sizing (1280x720)
+      - Full page screenshot capture
+      - Verification with page title and content length
+    
+      PROJECT STRUCTURE CONFIRMED:
+      - Two GUI systems: /gui/ (Textual) and /webgui/ (NiceGUI)
+      - WebGUI entry point needs custom runner since no main() function
+      - App runs on localhost:8080 with proper FastAPI/NiceGUI architecture
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754046403137_0i3f02cqq" time="2025/08/01 19:06">
+    <content>
+      Created Comprehensive NiceGUI Playwright Testing Guide (2025-08-01):
+    
+      DOCUMENTATION CREATED:
+      - ✅ File: /context/hints/nicegui-kb/howto-test-nicegui-with-playwright.md
+      - ✅ Comprehensive guide with essential techniques and code examples
+      - ✅ Based on successful practical implementation and official documentation
+      - ✅ Researched both NiceGUI and Playwright official documentation via Context7
+    
+      KEY SECTIONS COVERED:
+      - Installation &amp; Setup (playwright, pytest-playwright)
+      - Two testing approaches: NiceGUI built-in vs Direct Playwright
+      - Essential wait strategies for NiceGUI architecture
+      - Complete testing script templates with process management
+      - Common testing patterns (forms, tabs, file uploads)
+      - Screenshot best practices and techniques
+      - Common pitfalls and solutions (WebSocket, dynamic content, quality parameters)
+      - pytest-playwright integration examples
+      - Performance considerations
+    
+      CRITICAL TECHNIQUES DOCUMENTED:
+      - WebSocket connection waiting: &quot;window.socket &amp;&amp; window.socket.connected&quot;
+      - Vue.js component waiting: &quot;window.Vue &amp;&amp; window.app&quot;
+      - Proper process management with process groups
+      - PNG screenshot quality parameter issue (don&#x27;t use quality with PNG)
+      - Custom runner scripts for apps without main() functions
+      - Viewport consistency for reproducible screenshots
+    
+      RESEARCH SOURCES:
+      - Official NiceGUI documentation (/zauberzeug/nicegui)
+      - Official Playwright Python documentation (/microsoft/playwright-python)
+      - 99+ NiceGUI code snippets analyzed
+      - 3000+ Playwright code snippets reviewed
+      - Real-world testing experience from PeiDocker project
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754048177851_b0tu4x2tb" time="2025/08/01 19:36">
+    <content>
+      PeiDocker NiceGUI Auto-Generated Project Directory Implementation (2025-08-01):
+    
+      FEATURE IMPLEMENTED:
+      - ✅ Auto-generate default project directory on first page load (before user interaction)
+      - ✅ Modified create_main_content() method in app.py to set input field value automatically
+      - ✅ Updated UI text and button labels for better user experience
+    
+      TECHNICAL CHANGES:
+      1. Added _generate_default_project_dir() helper method
+      2. Modified project_dir_input creation to include value=default_project_dir
+      3. Updated placeholder text: &quot;Auto-generated project directory (click Generate for new path)&quot;
+      4. Changed button text from &quot;🎲 Generate&quot; to &quot;🎲 Generate New&quot;
+      5. Updated generate_temp_directory() to use helper method
+    
+      DIRECTORY PATTERN:
+      - Format: /tmp/peidocker-YYYYMMDD-HHMMSS
+      - Example: /tmp/peidocker-20250801-193541
+      - Uses tempfile.gettempdir() for cross-platform compatibility
+    
+      TESTING RESULTS:
+      - ✅ Project directory auto-populated on page load
+      - ✅ &quot;Generate New&quot; button creates different timestamped path
+      - ✅ Screenshot increased from 30,752 to 31,853 bytes (content change confirmed)
+      - ✅ Page content length increased from 39,641 to 39,792 characters
+      - ✅ Comprehensive Playwright test confirms all functionality
+    
+      USER EXPERIENCE IMPROVEMENT:
+      - Users no longer need to click &quot;Generate&quot; to get a project directory
+      - Ready-to-use default path available immediately
+      - Still can generate new paths if desired
+      - Clear indication in placeholder text about auto-generation
+    
+      CODE LOCATION:
+      - File: /src/pei_docker/webgui/app.py
+      - Methods: _generate_default_project_dir(), create_main_content(), generate_temp_directory()
+      - Lines: ~173-177 (input field creation), ~377-386 (generation methods)
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754048523001_fy7w776zm" time="2025/08/01 19:42">
+    <content>
+      NiceGUI HTML Page Saving Techniques (from /context/hints/howto-nicegui-save-page-html.md):
+    
+      **Method 1: JavaScript-based HTML Extraction**
+      - Basic: `await ui.run_javascript(&quot;document.querySelector(&#x27;html&#x27;).outerHTML&quot;)`
+      - Enhanced: Get head/body separately for complete HTML structure
+      - Limitations: May miss CSS/JS dependencies, dynamic interactions may not work
+    
+      **Method 2: Browser Automation**
+      - Playwright: `await page.content()` + `await page.screenshot(path, full_page=True)`
+      - Selenium: `driver.page_source` + `driver.save_screenshot()`
+      - Benefits: Complete capture, includes static resources, visual screenshots
+    
+      **Method 3: Advanced Export with Static Resources**
+      - Export complete app with `export_dir.mkdir(exist_ok=True)`
+      - Copy static files: `shutil.copytree(static_dir, export_dir / &quot;_static&quot;)`
+      - Modify HTML paths: `html.replace(&#x27;/_static/&#x27;, &#x27;./_static/&#x27;)`
+    
+      **Essential Code Patterns:**
+      ```python
+      # JavaScript extraction
+      html = await ui.run_javascript(&quot;document.querySelector(&#x27;html&#x27;).outerHTML&quot;)
+      with open(&quot;saved_page.html&quot;, &quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
+      file.write(html)
+    
+      # Playwright automation
+      async with async_playwright() as p:
+      browser = await p.chromium.launch(headless=True)
+      page = await browser.new_page()
+      await page.goto(f&quot;http://localhost:{app.config.port}&quot;)
+      await page.wait_for_load_state(&#x27;networkidle&#x27;)
+      html_content = await page.content()
+      ```
+    
+      **Best Practices:**
+      - Always wait for page load (`networkidle` state)
+      - Handle dynamic content timing
+      - Properly close browser instances
+      - Use absolute/relative paths correctly
+    
+      **Dependencies:**
+      - Playwright: `pip install playwright &amp;&amp; playwright install chromium`
+      - Selenium: `pip install selenium webdriver-manager`
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754059415267_qceusdf7o" time="2025/08/01 22:43">
+    <content>
+      PeiDocker Web GUI CLI Usage - `pei-docker-gui` Command (from /workspace/code/PeiDocker/src/pei_docker/webgui/cli_launcher.py):
+    
+      **Basic Syntax:**
+      ```bash
+      pei-docker-gui start [OPTIONS]
+      ```
+    
+      **Key Options:**
+      - `--port &lt;port&gt;`: Server port (default: 8080), validates availability
+      - `--project-dir &lt;path&gt;`: Load/create project in specific directory
+      - `--jump-to-page &lt;page&gt;`: Navigate to specific page after startup
+    
+      **Valid Page Names for --jump-to-page:**
+      home, project, ssh, network, environment, storage, scripts, summary
+    
+      **Essential Usage Patterns:**
+    
+      Quick debugging - jump to specific page:
+      ```bash
+      pei-docker-gui start --jump-to-page network
+      ```
+    
+      Load existing project:
+      ```bash
+      pei-docker-gui start --project-dir /path/to/project
+      ```
+    
+      Create new project and navigate:
+      ```bash
+      pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+      ```
+    
+      **Key Behaviors:**
+      - Auto-creates default project in temp dir if --jump-to-page used without --project-dir
+      - Validates port availability before startup (exits on conflict)
+      - Validates project directory and page names with detailed error messages
+      - Uses 0.5s timer delay for proper GUI state initialization
+      - Project detection via user_config.yml file presence
+    
+      **Development Benefits:**
+      - Rapid navigation to specific configuration pages
+      - Automatic project creation for quick testing
+      - Ideal for debugging specific GUI components without manual clicking
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754117376262_wxjcd2den" time="2025/08/02 14:49">
+    <content>
+      PeiDocker Core Working Principles and Usage (from /README.md, /docs/index.md, /src/pei_docker/templates/config-template-full.yml):
+    
+      ## Core Philosophy
+      **&quot;Don&#x27;t keep your docker images around, keep the build files!&quot;** - Configuration-driven Docker automation framework that transforms YAML configurations into reproducible containerized environments without deep Dockerfile knowledge.
+    
+      ## Two-Stage Architecture
+      **Stage-1**: System-level setup (users, SSH, system packages via apt)
+      **Stage-2**: Application-level setup (custom apps, external storage, GUI tools)
+      - Base images: ubuntu:24.04 → pei-image:stage-1 → pei-image:stage-2
+      - External storage only available in stage-2
+    
+      ## CLI Workflow
+      ```bash
+      # 1. Create project
+      pei-docker-cli create -p ./build
+    
+      # 2. Configure (generates docker-compose.yml)
+      pei-docker-cli configure -p ./build
+    
+      # 3. Build images
+      docker compose build stage-1 --progress=plain
+      docker compose build stage-2 --progress=plain
+    
+      # 4. Run container
+      docker compose up stage-2
+      ```
+    
+      ## Key Configuration Fields (user_config.yml)
+      **Image Settings**: `base` (ubuntu:24.04), `output` (pei-image:stage-1/2)
+      **SSH Configuration**: `enable`, `port` (22), `host_port` (2222), `users` with passwords/keys
+      **Storage Types**: `auto-volume`, `manual-volume`, `host`, `image` for /soft/{app,data,workspace}
+      **Proxy Settings**: `address` (host.docker.internal), `port` (7890), `enable_globally`
+      **Device Types**: `cpu` or `gpu`
+      **Mount Volumes**: Custom volume mounting with `type`, `dst_path`, `host_path`
+    
+      ## SSH Key Management
+      - 4 methods: `pubkey_file`, `pubkey_text`, `privkey_file`, `privkey_text`
+      - Supports `~` auto-discovery (id_rsa, id_dsa, id_ecdsa, id_ed25519)
+      - Default users: `me` (uid:1000, pass:123456), `you` (uid:1001), `root`
+    
+      ## Custom Script Execution Points
+      **on_build**: During image building
+      **on_first_run**: Container&#x27;s first startup
+      **on_every_run**: Every container startup
+      **on_user_login**: When user SSH logins
+      **on_entry**: Custom entrypoint with arguments
+      - Supports shell parameters: `&#x27;script.sh --param=value --flag&#x27;`
+    
+      ## Storage Strategy (/soft → /hard linking)
+      - `/soft/{app,data,workspace}` → `/hard/volume/xxx` (if mounted) OR `/hard/image/xxx`
+      - Automatic switching between external volumes and in-image storage
+      - Flexible post-build storage reconfiguration
+    
+      ## Environment Variable Support
+      Docker Compose-style `${VAR:-default}` substitution throughout configurations
+    
+      ## Project Structure
+      ```
+      user_config.yml          # Main configuration
+      stage-1.Dockerfile       # System setup Dockerfile
+      stage-2.Dockerfile       # Application setup Dockerfile
+      compose-template.yml     # Docker Compose template
+      installation/
+      stage-1/custom/        # Custom system scripts
+      stage-2/custom/        # Custom application scripts
+      stage-*/system/        # System configuration files
+      ```
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754375321134_ytw2j4v2g" time="2025/08/05 14:28">
+    <content>
+      PeiDocker Data Model Refactoring Challenge (2025-08-05):
+    
+      IDENTIFIED DUPLICATION PROBLEM:
+      - peidocker-data-model: CLI models using attrs library (@define) in user_config.py
+      - business-data-model: GUI models using pydantic (BaseModel) in webgui/models/config.py
+      - Both represent same user_config.yml but with different validation libraries
+    
+      KEY INCOMPATIBILITIES:
+      - attrs vs pydantic have incompatible metaclasses (cannot inherit directly)
+      - Field name differences: enable vs enabled, different structure for users
+      - Validation approach: __attrs_post_init__ vs @field_validator
+      - Type representations: dict[str, SSHUserConfig] vs List[Dict[str, Any]]
+    
+      PROPOSED SOLUTION - ADAPTER PATTERN:
+      1. Create Protocol interfaces defining expected behavior
+      2. Build adapter classes wrapping attrs models for pydantic compatibility
+      3. Map field differences in adapters (enable→enabled, dict→list transforms)
+      4. Delegate validation to existing attrs validators
+      5. Gradual migration maintaining backward compatibility
+    
+      BENEFITS:
+      - Single source of truth for schema
+      - Eliminate ~300 lines duplicate code
+      - Consistent validation between CLI and GUI
+      - Simplified maintenance (one place for changes)
+      - Type safety preserved throughout
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754574458470_rr83vw5xw" time="2025/08/07 21:47">
+    <content>
+      PeiDocker Python Development Standards (2025-08-07):
+    
+      CODING GUIDELINES:
+      - ✅ Use context7 MCP for 3rd party library documentation when needed
+      - ✅ Use online search for best practices when in doubt
+      - ✅ NO unicode emojis in console output (print statements) - causes environment issues
+      - ✅ Unicode emojis OK in GUI code (NiceGUI web apps) - modern browser support
+      - ✅ NEVER modify pyproject.toml directly - use pixi installation commands instead
+      - ✅ Avoid relative imports - use absolute imports for clarity
+      - ✅ Use `pixi run -e dev` for development tasks, `pixi run` for deployment
+    
+      STRONGLY TYPED CODE REQUIREMENTS:
+      - ✅ Write strongly typed Python with proper type hints
+      - ✅ Use `mypy` to validate types after editing code
+      - ✅ Use `Any` as fallback when type is uncertain
+      - ✅ Use context7 MCP to research 3rd party library types
+      - ✅ Create minimal examples to inspect types if documentation inconsistent
+    
+      EXECUTION CONSTRAINTS:
+      - ✅ Timeout interactive processes within 10 seconds
+      - ✅ Timeout wait operations within 15 seconds max
+      - ✅ Environment: pixi-based Python package management
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754574773357_at8wymekw" time="2025/08/07 21:52">
+    <content>
+      PeiDocker WebGUI Proxy URL Bug Fix (2025-08-07):
+    
+      BUG IDENTIFIED:
+      - HTTP proxy input field showing &quot;http://None:None&quot; on startup when no proxy configured
+      - Root cause: NetworkConfigAdapter.http_proxy property in config_adapter.py:184-188
+      - Issue: When ProxyConfig.address or ProxyConfig.port are None, they format as string &quot;None&quot;
+    
+      FIX IMPLEMENTED:
+      - Added None check for port field in addition to address field
+      - Changed condition from: `if not self._proxy or not self._proxy.address:`
+      - To: `if not self._proxy or not self._proxy.address or not self._proxy.port:`
+      - Now returns empty string when either address OR port is None
+    
+      TECHNICAL DETAILS:
+      - ProxyConfig fields: `address: str | None = field(default=None)`, `port: int | None = field(default=None)`
+      - NetworkConfigAdapter binds to NiceGUI input field in network.py:53-58
+      - Fix ensures empty proxy configs display as empty string, not &quot;http://None:None&quot;
+    
+      TESTING:
+      - Created comprehensive test suite at tmp/tests/test_proxy_fix.py
+      - 6 test cases covering all None value combinations
+      - All tests pass - validates fix works correctly
+      - Follows Windows environment guidelines (no unicode emojis in console output)
+    
+      FILE MODIFIED:
+      - src/pei_docker/webgui/models/config_adapter.py (line 184)
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754589025074_66htedvjz" time="2025/08/08 01:50">
+    <content>
+      PeiDocker WebGUI Auto Port Selection Implementation (2025-08-07):
+    
+      FEATURE IMPLEMENTED:
+      - Modified pei-docker-gui CLI to automatically select a free port by default
+      - No longer defaults to port 8080 - uses OS-selected port when --port not specified
+      - When --port is specified but unavailable, finds next available port automatically
+    
+      TECHNICAL IMPLEMENTATION:
+      1. Added get_free_port() function using socket.bind((&#x27;&#x27;, 0)) for OS port assignment
+      2. Added find_free_port(start_port, max_tries) for sequential port search
+      3. Modified start_command() logic:
+      - If args.port is None: Use get_free_port() for automatic selection
+      - If args.port specified: Try that port, fallback to find_free_port() then get_free_port()
+      4. Changed argparse default from 8080 to None for --port argument
+    
+      KEY CODE LOCATIONS:
+      - File: src/pei_docker/webgui/cli_launcher.py
+      - Functions: get_free_port() (line 126), find_free_port() (line 147), start_command() (line 413)
+      - Port determination logic: lines 447-467
+    
+      USAGE PATTERNS:
+      - Default (auto-select): pei-docker-gui start
+      - Specific port: pei-docker-gui start --port 9000
+      - Output shows: &quot;No port specified, using auto-selected port XXXX&quot; or port conflict messages
+    
+      TESTING VERIFIED:
+      - Auto-selection works correctly when no --port specified
+      - Specific port used when available
+      - Automatic fallback when specified port is busy
+      - Type annotations correct: get_free_port()-&gt;int, find_free_port()-&gt;Optional[int]
+    
+      FOLLOWS NICEGUI BEST PRACTICES:
+      - Uses socket port 0 trick for atomic OS assignment (prevents race conditions)
+      - Cross-platform compatible (Windows, Linux, macOS)
+      - Provides clear console messages about port selection
+      - Integrates properly with ui.run(port=actual_port)
+    </content>
+    <tags>#其他</tags>
+  </item>
+</memory>

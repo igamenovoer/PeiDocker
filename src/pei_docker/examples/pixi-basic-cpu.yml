@@ -1,0 +1,42 @@
+# Basic pixi installation example for CPU-based development
+# This example installs pixi and common development packages
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-pixi-basic:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      developer:
+        password: 'dev123'
+        uid: 1100
+      root:
+        password: 'root123'
+
+  apt:
+    repo_source: tuna
+
+stage_2:
+  image:
+    output: pei-pixi-basic:stage-2
+  
+  # storage configurations - using image storage for this basic example
+  storage:
+    app:
+      type: image
+    workspace:
+      type: image
+    data:
+      type: image
+  
+  # custom scripts to install and configure pixi
+  custom:
+    on_first_run:
+      - 'stage-2/system/pixi/install-pixi.bash'
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/create-env-common.bash'

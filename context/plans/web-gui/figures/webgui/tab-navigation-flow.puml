@@ -1,0 +1,35 @@
+@startuml
+start
+:Initialize Application;
+:Load Project Directory;
+:Display Project Tab (default);
+
+while (User working?) is (yes)
+  :Select Tab;
+  :Display Tab Content;
+  :User modifies configuration;
+  :Validate input in real-time;
+  
+  if (Tab switch requested?) then (yes)
+    if (Current tab valid?) then (yes)
+      :Switch to requested tab;
+    else (no)
+      :Show validation errors;
+      :Stay on current tab;
+    endif
+  endif
+  
+  if (Save requested?) then (yes)
+    if (All tabs valid?) then (yes)
+      :Write Configuration;
+      :Update status bar;
+    else (no)
+      :Show validation summary;
+      :Highlight problematic tabs;
+    endif
+  endif
+endwhile (no)
+
+:Configuration Complete;
+stop
+@enduml

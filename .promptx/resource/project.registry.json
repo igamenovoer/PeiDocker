@@ -1,0 +1,164 @@
+{
+  "version": "2.0.0",
+  "source": "project",
+  "metadata": {
+    "version": "2.0.0",
+    "description": "project 级资源注册表",
+    "createdAt": "2025-08-07T18:53:26.098Z",
+    "updatedAt": "2025-08-07T18:53:26.103Z",
+    "resourceCount": 10
+  },
+  "resources": [
+    {
+      "id": "code-reviewer",
+      "source": "project",
+      "protocol": "role",
+      "name": "Code Reviewer 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/role/code-reviewer/code-reviewer.role.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.099Z",
+        "updatedAt": "2025-08-07T18:53:26.099Z",
+        "scannedAt": "2025-08-07T18:53:26.099Z",
+        "path": "role/code-reviewer/code-reviewer.role.md"
+      }
+    },
+    {
+      "id": "code-review-workflow",
+      "source": "project",
+      "protocol": "execution",
+      "name": "Code Review Workflow 执行模式",
+      "description": "执行模式，定义具体的行为模式",
+      "reference": "@project://.promptx/resource/role/code-reviewer/execution/code-review-workflow.execution.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.099Z",
+        "updatedAt": "2025-08-07T18:53:26.099Z",
+        "scannedAt": "2025-08-07T18:53:26.099Z",
+        "path": "role/code-reviewer/execution/code-review-workflow.execution.md"
+      }
+    },
+    {
+      "id": "analytical-thinking",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Analytical Thinking 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/code-reviewer/thought/analytical-thinking.thought.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.100Z",
+        "updatedAt": "2025-08-07T18:53:26.100Z",
+        "scannedAt": "2025-08-07T18:53:26.100Z",
+        "path": "role/code-reviewer/thought/analytical-thinking.thought.md"
+      }
+    },
+    {
+      "id": "detail-oriented",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Detail Oriented 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/code-reviewer/thought/detail-oriented.thought.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.100Z",
+        "updatedAt": "2025-08-07T18:53:26.100Z",
+        "scannedAt": "2025-08-07T18:53:26.100Z",
+        "path": "role/code-reviewer/thought/detail-oriented.thought.md"
+      }
+    },
+    {
+      "id": "nicegui-developer",
+      "source": "project",
+      "protocol": "role",
+      "name": "Nicegui Developer 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/role/nicegui-developer/nicegui-developer.role.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.101Z",
+        "updatedAt": "2025-08-07T18:53:26.101Z",
+        "scannedAt": "2025-08-07T18:53:26.101Z",
+        "path": "role/nicegui-developer/nicegui-developer.role.md"
+      }
+    },
+    {
+      "id": "nicegui-development-workflow",
+      "source": "project",
+      "protocol": "execution",
+      "name": "Nicegui Development Workflow 执行模式",
+      "description": "执行模式，定义具体的行为模式",
+      "reference": "@project://.promptx/resource/role/nicegui-developer/thought/nicegui-development-workflow.execution.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.101Z",
+        "updatedAt": "2025-08-07T18:53:26.101Z",
+        "scannedAt": "2025-08-07T18:53:26.101Z",
+        "path": "role/nicegui-developer/thought/nicegui-development-workflow.execution.md"
+      }
+    },
+    {
+      "id": "textual-development-workflow",
+      "source": "project",
+      "protocol": "execution",
+      "name": "Textual Development Workflow 执行模式",
+      "description": "执行模式，定义具体的行为模式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/execution/textual-development-workflow.execution.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.102Z",
+        "updatedAt": "2025-08-07T18:53:26.102Z",
+        "scannedAt": "2025-08-07T18:53:26.102Z",
+        "path": "role/textual-tui-developer/execution/textual-development-workflow.execution.md"
+      }
+    },
+    {
+      "id": "textual-tui-developer",
+      "source": "project",
+      "protocol": "role",
+      "name": "Textual Tui Developer 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/textual-tui-developer.role.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.102Z",
+        "updatedAt": "2025-08-07T18:53:26.102Z",
+        "scannedAt": "2025-08-07T18:53:26.102Z",
+        "path": "role/textual-tui-developer/textual-tui-developer.role.md"
+      }
+    },
+    {
+      "id": "textual-architecture-thinking",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Textual Architecture Thinking 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/textual-architecture-thinking.thought.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.102Z",
+        "updatedAt": "2025-08-07T18:53:26.102Z",
+        "scannedAt": "2025-08-07T18:53:26.102Z",
+        "path": "role/textual-tui-developer/thought/textual-architecture-thinking.thought.md"
+      }
+    },
+    {
+      "id": "tui-design-patterns",
+      "source": "project",
+      "protocol": "thought",
+      "name": "Tui Design Patterns 思维模式",
+      "description": "思维模式，指导AI的思考方式",
+      "reference": "@project://.promptx/resource/role/textual-tui-developer/thought/tui-design-patterns.thought.md",
+      "metadata": {
+        "createdAt": "2025-08-07T18:53:26.103Z",
+        "updatedAt": "2025-08-07T18:53:26.103Z",
+        "scannedAt": "2025-08-07T18:53:26.103Z",
+        "path": "role/textual-tui-developer/thought/tui-design-patterns.thought.md"
+      }
+    }
+  ],
+  "stats": {
+    "totalResources": 10,
+    "byProtocol": {
+      "role": 3,
+      "execution": 3,
+      "thought": 4
+    },
+    "bySource": {
+      "project": 10
+    }
+  }
+}

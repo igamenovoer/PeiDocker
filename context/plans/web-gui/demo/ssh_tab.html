@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn active">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    🔐 SSH Configuration
+                </div>
+                <p class="tab-description">
+                    Configure SSH access to your container including user accounts, authentication methods, and security settings.
+                </p>
+
+                <!-- SSH Enable/Disable -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🔌 SSH Service
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="ssh-enabled" checked onchange="toggleSSH()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Enable SSH Access</div>
+                                    <div class="form-help">
+                                        Allow remote access to the container via SSH
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="ssh-warning" style="display: none;" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                            <div class="flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span class="text-sm">
+                                    Disabling SSH means you'll need to use <code>docker exec</code> commands to access the container.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="ssh-config" class="grid grid-2">
+                    <!-- Left Column - Basic SSH Settings -->
+                    <div>
+                        <h3 class="card-header mb-4">Basic SSH Settings</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="ssh-container-port">
+                                SSH Container Port
+                            </label>
+                            <input 
+                                type="number" 
+                                id="ssh-container-port" 
+                                class="form-input" 
+                                value="22"
+                                min="1"
+                                max="65535"
+                            >
+                            <div class="form-help">
+                                Port number for SSH service inside the container
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="ssh-host-port">
+                                SSH Host Port
+                            </label>
+                            <input 
+                                type="number" 
+                                id="ssh-host-port" 
+                                class="form-input" 
+                                value="2222"
+                                min="1"
+                                max="65535"
+                            >
+                            <div class="form-help">
+                                Port number on host machine to access SSH (avoid conflicts with host SSH on port 22)
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="ssh-username">
+                                SSH Username
+                            </label>
+                            <input 
+                                type="text" 
+                                id="ssh-username" 
+                                class="form-input" 
+                                value="me"
+                                placeholder="username"
+                            >
+                            <div class="form-help">
+                                Username for SSH access to the container
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="ssh-password">
+                                SSH Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="ssh-password" 
+                                class="form-input" 
+                                value="123456"
+                                placeholder="Enter password"
+                            >
+                            <div class="form-help">
+                                Password for SSH user (avoid spaces and commas)
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="ssh-uid">
+                                SSH User UID
+                            </label>
+                            <input 
+                                type="number" 
+                                id="ssh-uid" 
+                                class="form-input" 
+                                value="1100"
+                                min="1"
+                            >
+                            <div class="form-help">
+                                User ID to avoid conflicts with system users (recommended: 1100+)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Advanced SSH Settings -->
+                    <div>
+                        <h3 class="card-header mb-4">Authentication & Security</h3>
+                        
+                        <!-- SSH Keys Section -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🔑 SSH Public Key Authentication
+                            </div>
+                            <div class="card-content">
+                                <div class="form-group">
+                                    <div class="flex items-center gap-4">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" class="toggle-input" id="public-key-enabled" onchange="togglePublicKey()">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <div>
+                                            <div class="form-label">Enable Public Key Authentication</div>
+                                            <div class="form-help">
+                                                Use SSH keys instead of password-only authentication
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="public-key-config" style="display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Key Source
+                                        </label>
+                                        <div class="flex gap-2 mb-4">
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="key-source" value="text" checked>
+                                                <span>Enter key text</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="key-source" value="system">
+                                                <span>Use system key (~)</span>
+                                            </label>
+                                        </div>
+                                        
+                                        <textarea 
+                                            class="form-textarea" 
+                                            placeholder="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..."
+                                            rows="3"
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Private Key Section -->
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                🔐 SSH Private Key
+                            </div>
+                            <div class="card-content">
+                                <div class="form-group">
+                                    <div class="flex items-center gap-4">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" class="toggle-input" id="private-key-enabled" onchange="togglePrivateKey()">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <div>
+                                            <div class="form-label">Specify Private Key</div>
+                                            <div class="form-help">
+                                                Provide private key file for the SSH user
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="private-key-config" style="display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="private-key-path">
+                                            Private Key File Path
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                id="private-key-path" 
+                                                class="form-input" 
+                                                placeholder="/path/to/private/key or ~"
+                                            >
+                                            <button class="btn btn-secondary">
+                                                📁 Browse
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Root Access Section -->
+                        <div class="card">
+                            <div class="card-header">
+                                👑 Root SSH Access
+                            </div>
+                            <div class="card-content">
+                                <div class="form-group">
+                                    <div class="flex items-center gap-4">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" class="toggle-input" id="root-ssh-enabled" onchange="toggleRootSSH()">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <div>
+                                            <div class="form-label">Allow Root SSH Login</div>
+                                            <div class="form-help">
+                                                Enable SSH access for root user (not recommended for production)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="root-ssh-config" style="display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="root-password">
+                                            Root Password
+                                        </label>
+                                        <input 
+                                            type="password" 
+                                            id="root-password" 
+                                            class="form-input" 
+                                            value="root"
+                                            placeholder="Enter root password"
+                                        >
+                                        <div class="form-help">
+                                            Password for root SSH access
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SSH Connection Preview -->
+                <div class="card mt-6">
+                    <div class="card-header">
+                        🔗 SSH Connection Details
+                    </div>
+                    <div class="card-content">
+                        <p class="mb-4 text-sm text-secondary">
+                            Use these commands to connect to your container via SSH:
+                        </p>
+                        <div class="preview-panel">
+                            <div class="font-mono text-sm">
+                                <div># Connect as regular user</div>
+                                <div>ssh -p 2222 me@localhost</div>
+                                <div style="margin-top: 0.5rem;"># Connect with specific key</div>
+                                <div>ssh -p 2222 -i ~/.ssh/id_rsa me@localhost</div>
+                                <div style="margin-top: 0.5rem;"># Port mapping in docker run command</div>
+                                <div>docker run -p 2222:22 my-awesome-project:stage-2</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>SSH tab: All valid</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function toggleSSH() {
+            const enabled = document.getElementById('ssh-enabled').checked;
+            const config = document.getElementById('ssh-config');
+            const warning = document.getElementById('ssh-warning');
+            
+            if (enabled) {
+                config.style.display = 'grid';
+                warning.style.display = 'none';
+            } else {
+                config.style.display = 'none';
+                warning.style.display = 'block';
+            }
+        }
+
+        function togglePublicKey() {
+            const enabled = document.getElementById('public-key-enabled').checked;
+            const config = document.getElementById('public-key-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function togglePrivateKey() {
+            const enabled = document.getElementById('private-key-enabled').checked;
+            const config = document.getElementById('private-key-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleRootSSH() {
+            const enabled = document.getElementById('root-ssh-enabled').checked;
+            const config = document.getElementById('root-ssh-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

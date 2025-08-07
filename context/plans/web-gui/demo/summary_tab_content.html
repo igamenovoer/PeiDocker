@@ -1,0 +1,229 @@
+<div class="tab-title">
+    📋 Configuration Summary
+</div>
+<p class="tab-description">
+    Review your complete PeiDocker configuration, validate all settings, and save your user_config.yml file.
+</p>
+
+<!-- Validation Status -->
+<div class="card mb-6">
+    <div class="card-header">
+        🔍 Validation Status
+    </div>
+    <div class="card-content">
+        <div class="grid grid-3">
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span>Project: Valid</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span>SSH: Valid</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span>Network: Valid</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span>Environment: Valid</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot error"></div>
+                <span>Storage: 2 errors</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot saved"></div>
+                <span>Scripts: Valid</span>
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+            <div class="flex items-center gap-2 mb-2">
+                <span>❌</span>
+                <span class="text-sm font-weight-600" style="color: #ef4444;">Configuration Errors</span>
+            </div>
+            <div class="text-sm" style="color: #ef4444;">
+                <div>• Storage Tab: Host directory /nonexistent does not exist</div>
+                <div>• Storage Tab: Mount path /invalid/path contains invalid characters</div>
+            </div>
+            <div class="mt-2">
+                <button class="btn btn-error text-sm" onclick="goToStorageTab()">
+                    Fix Storage Errors
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Left Column - Configuration Overview -->
+    <div>
+        <!-- Project Settings -->
+        <div class="card mb-6">
+            <div class="card-header">
+                🏗️ Project Settings
+            </div>
+            <div class="card-content">
+                <div class="grid grid-2 text-sm">
+                    <div>
+                        <div><strong>Name:</strong></div>
+                        <div><strong>Base Image:</strong></div>
+                        <div><strong>Directory:</strong></div>
+                    </div>
+                    <div>
+                        <div>my-awesome-project</div>
+                        <div>ubuntu:24.04</div>
+                        <div>/workspace/code/my-awesome-project</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SSH Configuration -->
+        <div class="card mb-6">
+            <div class="card-header">
+                🔐 SSH Configuration
+            </div>
+            <div class="card-content">
+                <div class="text-sm">
+                    <div class="mb-2">✅ <strong>Enabled</strong> (port 2222:22)</div>
+                    <div class="mb-2">👤 User: me (password auth, UID: 1100)</div>
+                    <div class="mb-2">🔑 Public key: Not configured</div>
+                    <div>👑 Root access: Disabled</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Configuration -->
+        <div class="card mb-6">
+            <div class="card-header">
+                🌐 Network Configuration
+            </div>
+            <div class="card-content">
+                <div class="text-sm">
+                    <div class="mb-2">🌐 Proxy: Not configured</div>
+                    <div class="mb-2">📦 APT Mirror: Default</div>
+                    <div>🔌 Additional ports: None</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - Actions and Export -->
+    <div>
+        <!-- Configuration Actions -->
+        <div class="card mb-6">
+            <div class="card-header">
+                💾 Save & Export
+            </div>
+            <div class="card-content">
+                <div class="mb-4">
+                    <button class="btn btn-success w-full" onclick="saveConfiguration()" disabled>
+                        💾 Save Configuration
+                    </button>
+                    <div class="form-help text-center mt-2">
+                        Fix validation errors before saving
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <button class="btn btn-warning w-full" onclick="configureProject()">
+                        ⚙️ Configure Project
+                    </button>
+                    <div class="form-help text-center mt-2">
+                        Run pei-docker-cli configure
+                    </div>
+                </div>
+
+                <div>
+                    <button class="btn btn-info w-full" onclick="downloadProject()">
+                        📦 Download Project
+                    </button>
+                    <div class="form-help text-center mt-2">
+                        Export project as ZIP file
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Preview -->
+        <div class="card">
+            <div class="card-header">
+                📄 Generated user_config.yml Preview
+            </div>
+            <div class="card-content">
+                <div class="preview-panel">
+                    <div class="font-mono text-xs">
+                        <div># PeiDocker Configuration</div>
+                        <div>stage_1:</div>
+                        <div>  image:</div>
+                        <div>    base: "ubuntu:24.04"</div>
+                        <div>    output: "my-awesome-project:stage-1"</div>
+                        <div>  ssh:</div>
+                        <div>    enable: true</div>
+                        <div>    port: 22</div>
+                        <div>    host_port: 2222</div>
+                        <div>    users:</div>
+                        <div>      - username: "me"</div>
+                        <div>        password: "123456"</div>
+                        <div>        uid: 1100</div>
+                        <div>stage_2:</div>
+                        <div>  image:</div>
+                        <div>    output: "my-awesome-project:stage-2"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function goToStorageTab() {
+        // This would switch to the storage tab in a real application
+        alert('This would switch to the Storage tab to fix validation errors.');
+    }
+
+    function saveConfiguration() {
+        if (hasValidationErrors()) {
+            alert('Please fix all validation errors before saving the configuration.');
+            return;
+        }
+        alert('Configuration saved successfully!');
+    }
+
+    function configureProject() {
+        if (confirm('Run pei-docker-cli configure to build project structure? This may take a few minutes.')) {
+            alert('Project configuration started. The process is running in the background.');
+        }
+    }
+
+    function downloadProject() {
+        const warnings = [];
+        if (hasValidationErrors()) {
+            warnings.push('Configuration has validation errors.');
+        }
+        if (!isProjectConfigured()) {
+            warnings.push('Project has not been configured yet.');
+        }
+        
+        if (warnings.length > 0) {
+            const warningMessage = 'Warning:\n' + warnings.join('\n') + '\n\nDo you want to continue with the download?';
+            if (confirm(warningMessage)) {
+                alert('Project ZIP file is being prepared for download...');
+            }
+        } else {
+            alert('Project ZIP file is being prepared for download...');
+        }
+    }
+
+    function hasValidationErrors() {
+        // In a real app, this would check actual validation state
+        return true; // Demo shows storage errors
+    }
+
+    function isProjectConfigured() {
+        // In a real app, this would check if configure has been run
+        return false; // Demo shows not configured
+    }
+</script>

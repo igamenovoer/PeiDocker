@@ -1,0 +1,31 @@
+# Include the license file
+include LICENSE
+
+# Include the readme
+include README.md
+
+# Include all files in the src directory
+recursive-include src/pei_docker *.py *.yml *.yaml *.sh *.bash *.txt *.md *.Dockerfile *.pub *.list
+
+# Include installation template files
+recursive-include src/pei_docker/installation *
+recursive-include src/pei_docker/project_files *
+recursive-include src/pei_docker/templates *
+recursive-include src/pei_docker/examples *
+
+# Include contribs
+recursive-include contribs *
+
+# Exclude compiled Python files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude *.backup
+
+# Exclude development files
+prune context
+prune tmp
+prune .promptx
+prune .claude
+prune tests

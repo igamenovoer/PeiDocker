@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn active">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    🏗️ Project Information
+                </div>
+                <p class="tab-description">
+                    Configure basic project settings and Docker image information. This forms the foundation of your containerized development environment.
+                </p>
+
+                <div class="grid grid-2">
+                    <!-- Left Column - Basic Settings -->
+                    <div>
+                        <h3 class="card-header mb-4">Basic Settings</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="project-name">
+                                Project Name *
+                            </label>
+                            <input 
+                                type="text" 
+                                id="project-name" 
+                                class="form-input" 
+                                value="my-awesome-project"
+                                placeholder="Enter project name"
+                                onkeyup="updatePreview()"
+                            >
+                            <div class="form-help">
+                                Used for Docker image naming and project identification
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="base-image">
+                                Base Docker Image
+                            </label>
+                            <input 
+                                type="text" 
+                                id="base-image" 
+                                class="form-input" 
+                                value="ubuntu:24.04"
+                                placeholder="docker-image:tag"
+                            >
+                            <div class="form-help">
+                                Docker Hub image to use as the base for your container
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="project-dir">
+                                Project Directory
+                            </label>
+                            <div class="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    id="project-dir" 
+                                    class="form-input" 
+                                    value="/workspace/code/my-awesome-project"
+                                    readonly
+                                >
+                                <button class="btn btn-secondary">
+                                    📁 Browse
+                                </button>
+                            </div>
+                            <div class="form-help">
+                                Directory where project files and configuration will be stored
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                🐳 Common Base Images
+                            </div>
+                            <div class="card-content">
+                                <div class="mb-4">
+                                    <button class="btn btn-secondary text-sm" onclick="setBaseImage('ubuntu:24.04')">
+                                        ubuntu:24.04 (recommended)
+                                    </button>
+                                </div>
+                                <div class="mb-4">
+                                    <button class="btn btn-secondary text-sm" onclick="setBaseImage('ubuntu:22.04')">
+                                        ubuntu:22.04
+                                    </button>
+                                </div>
+                                <div class="mb-4">
+                                    <button class="btn btn-secondary text-sm" onclick="setBaseImage('python:3.11-slim')">
+                                        python:3.11-slim
+                                    </button>
+                                </div>
+                                <div>
+                                    <button class="btn btn-secondary text-sm" onclick="setBaseImage('nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04')">
+                                        nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Preview and Validation -->
+                    <div>
+                        <h3 class="card-header mb-4">Generated Images</h3>
+                        
+                        <div class="preview-panel mb-6">
+                            <div class="preview-line" id="stage1-image">my-awesome-project:stage-1</div>
+                            <div class="preview-line" id="stage2-image">my-awesome-project:stage-2</div>
+                        </div>
+
+                        <div class="card mb-6">
+                            <div class="card-header">
+                                ✅ Image Validation
+                            </div>
+                            <div class="card-content">
+                                <div class="status-indicator mb-4">
+                                    <div class="status-dot saved"></div>
+                                    <span>Project name is valid</span>
+                                </div>
+                                <div class="status-indicator mb-4">
+                                    <div class="status-dot saved"></div>
+                                    <span>Base image exists on Docker Hub</span>
+                                </div>
+                                <div class="status-indicator">
+                                    <div class="status-dot saved"></div>
+                                    <span>Project directory is writable</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                📊 Project Structure
+                            </div>
+                            <div class="card-content">
+                                <div class="font-mono text-sm">
+                                    <div>my-awesome-project/</div>
+                                    <div style="margin-left: 1rem;">├── user_config.yml</div>
+                                    <div style="margin-left: 1rem;">├── stage-1/</div>
+                                    <div style="margin-left: 2rem;">│   ├── Dockerfile</div>
+                                    <div style="margin-left: 2rem;">│   └── scripts/</div>
+                                    <div style="margin-left: 1rem;">└── stage-2/</div>
+                                    <div style="margin-left: 2rem;">├── Dockerfile</div>
+                                    <div style="margin-left: 2rem;">└── scripts/</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docker Commands Preview -->
+                <div class="card mt-6">
+                    <div class="card-header">
+                        🚀 Generated Docker Commands
+                    </div>
+                    <div class="card-content">
+                        <p class="mb-4 text-sm text-secondary">
+                            These commands will be generated based on your configuration:
+                        </p>
+                        <div class="preview-panel">
+                            <div class="font-mono text-sm">
+                                <div># Build stage-1 image</div>
+                                <div>docker build -t my-awesome-project:stage-1 ./stage-1/</div>
+                                <div style="margin-top: 0.5rem;"># Build stage-2 image</div>
+                                <div>docker build -t my-awesome-project:stage-2 ./stage-2/</div>
+                                <div style="margin-top: 0.5rem;"># Run container</div>
+                                <div>docker run -d --name my-awesome-project my-awesome-project:stage-2</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>Project tab: All valid</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function updatePreview() {
+            const projectName = document.getElementById('project-name').value || 'my-project';
+            document.getElementById('stage1-image').textContent = `${projectName}:stage-1`;
+            document.getElementById('stage2-image').textContent = `${projectName}:stage-2`;
+        }
+
+        function setBaseImage(image) {
+            document.getElementById('base-image').value = image;
+        }
+    </script>
+</body>
+</html>

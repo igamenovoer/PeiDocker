@@ -1,0 +1,1 @@
+content moved to `context\design\terminology.md`

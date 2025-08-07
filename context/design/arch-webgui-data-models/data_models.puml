@@ -1,0 +1,141 @@
+@startuml data_models
+
+package "UI Data Models (NiceGUI Bindable)" {
+    class AppUIState {
+        +project: ProjectUI
+        +stage_1: StageUI
+        +stage_2: StageUI
+        +active_stage: int
+        +modified: bool
+        +last_saved: str
+        +active_tab: str
+        +has_errors: bool
+        +error_count: int
+        --
+        +mark_modified(): None
+        +mark_saved(): None
+        +get_active_stage(): StageUI
+        +merge_stages(): Dict[str, Any]
+    }
+    
+    class StageUI {
+        +environment: EnvironmentUI
+        +network: NetworkUI
+        +ssh: SSHTabUI
+        +storage: StorageUI
+        +scripts: ScriptsUI
+    }
+    
+    class EnvironmentUI {
+        +gpu_enabled: bool
+        +gpu_count: str
+        +cuda_version: str
+        +env_vars: Dict[str, str]
+        +device_type: str
+        +gpu_memory_limit: str
+    }
+    
+    class NetworkUI {
+        +proxy_enabled: bool
+        +http_proxy: str
+        +https_proxy: str
+        +no_proxy: str
+        +apt_mirror: str
+        +port_mappings: List[Dict[str, str]]
+    }
+    
+    class ProjectUI {
+        +project_name: str
+        +project_directory: str
+        +description: str
+        +base_image: str
+        +image_output_name: str
+        +template: str
+    }
+}
+
+package "Business Data Models (Pydantic)" {
+    class AppConfig {
+        +project: ProjectConfig
+        +stage_1: StageConfig
+        +stage_2: StageConfig
+        --
+        +to_user_config_yaml(): Dict[str, Any]
+    }
+    
+    class StageConfig {
+        +environment: EnvironmentConfig
+        +network: NetworkConfig
+        +ssh: SSHConfig
+        +storage: StorageConfig
+        +scripts: ScriptsConfig
+    }
+    
+    class EnvironmentConfig {
+        +gpu_enabled: bool
+        +gpu_count: str
+        +cuda_version: str
+        +env_vars: Dict[str, str]
+        +device_type: str
+        +gpu_memory_limit: str
+        --
+        +validate_env_vars(): Dict[str, str]
+        +validate_gpu_memory(): str
+    }
+    
+    class NetworkConfig {
+        +proxy_enabled: bool
+        +http_proxy: str
+        +https_proxy: str
+        +no_proxy: str
+        +apt_mirror: str
+        +port_mappings: List[Dict[str, str]]
+        --
+        +validate_proxy_url(): str
+        +validate_port_mappings(): List[Dict[str, str]]
+    }
+    
+    class ProjectConfig {
+        +project_name: str
+        +project_directory: str
+        +description: str
+        +base_image: str
+        +image_output_name: str
+        +template: str
+        --
+        +validate_project_name(): str
+        +validate_base_image(): str
+    }
+}
+
+class UIStateBridge {
+    --
+    +validate_ui_state(ui_state): Tuple[bool, List[str]]
+    +save_to_yaml(ui_state, file_path): Tuple[bool, List[str]]
+    +load_from_yaml(file_path, ui_state): Tuple[bool, List[str]]
+    +ui_to_config(ui_state): AppConfig
+    --
+    -_ui_project_to_pydantic(): ProjectConfig
+    -_ui_environment_to_pydantic(): EnvironmentConfig
+    -_ui_network_to_pydantic(): NetworkConfig
+    -_ui_stage_to_pydantic(): StageConfig
+    -_ui_to_user_config_format(): Dict[str, Any]
+    -_load_into_ui(): None
+}
+
+AppUIState *-- StageUI : contains
+StageUI *-- EnvironmentUI : contains
+StageUI *-- NetworkUI : contains
+AppUIState *-- ProjectUI : contains
+
+AppConfig *-- StageConfig : contains
+StageConfig *-- EnvironmentConfig : contains
+StageConfig *-- NetworkConfig : contains
+AppConfig *-- ProjectConfig : contains
+
+UIStateBridge ..> AppUIState : transforms
+UIStateBridge ..> AppConfig : validates
+UIStateBridge ..> "user_config.yml" : generates/loads
+
+note right of UIStateBridge : Bridge Pattern\nTransforms between\nUI and Business models
+@enduml

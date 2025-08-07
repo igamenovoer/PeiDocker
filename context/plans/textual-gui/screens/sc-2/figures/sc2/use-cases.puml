@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+actor "User" as user
+actor "Configuration Store" as config
+actor "File System" as fs
+
+rectangle "Simple Wizard Controller" {
+  usecase "Navigate Between Steps" as UC1
+  usecase "Track Progress" as UC2
+  usecase "Validate Step Input" as UC3
+  usecase "Manage Memory State" as UC4
+  usecase "Handle Keyboard Input" as UC5
+  usecase "Display Current Step" as UC6
+  usecase "Save Configuration" as UC7
+  usecase "Return to Main Menu" as UC8
+}
+
+user --> UC1
+user --> UC5
+user --> UC8
+UC1 --> UC2 : <<include>>
+UC1 --> UC3 : <<include>>
+UC3 --> UC4 : <<include>>
+UC6 --> UC2 : <<include>>
+UC7 --> config
+UC7 --> fs
+@enduml

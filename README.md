@@ -87,15 +87,18 @@ You don't have time to learn Dockerfiles, we get it.
 
 But don't keep your docker images around, they will be messed up eventually. If you ever want to make reproducible docker images but have no patience to learn Dockerfiles and docker-compose, PeiDocker is for you.
 
-PeiDocker (配 docker) helps you script and organize your docker image building process, it streamlines the building process and allows you to customize the image building and running behaviours using shell scripts. 
+PeiDocker (配 docker) helps you script and organize your docker image building process with both CLI and Web GUI interfaces. It streamlines the building process and allows you to customize the image building and running behaviours using shell scripts. 
 
 With PeiDocker, you can:
 
-- Build images with SSH support (currently only Ubuntu-based images are supported).
-- Install packages from public repository mirrors, or via proxy.
-- Install apps for your container, during or after building, into places such as docker volumes, bind mounts or in-image directory.
-- Run custom commands during image building, when the container starts, or when you SSH into the container.
-- **Use environment variables with fallback values** in configuration files for flexible deployments across different environments.
+- **Use the intuitive Web GUI** for visual project configuration
+- Build images with SSH support (currently only Ubuntu-based images are supported)
+- Configure separate port mappings for system services (stage-1) and applications (stage-2)
+- Install packages from public repository mirrors, or via proxy
+- Install apps for your container, during or after building, into places such as docker volumes, bind mounts or in-image directory
+- Run custom commands during image building, when the container starts, or when you SSH into the container
+- **Use environment variables with fallback values** in configuration files for flexible deployments across different environments
+- Export/import projects as ZIP files for easy sharing
 
 _For details, please refer to the [Documentation](https://igamenovoer.github.io/PeiDocker/)_
 
@@ -121,44 +124,78 @@ _For details, please refer to the [Documentation](https://igamenovoer.github.io/
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Download this project and cd into the project directory, and you are good to go!
+### Installation
+
+#### Option 1: Install from PyPI (Recommended)
+
+```sh
+pip install pei-docker
+```
+
+#### Option 2: Install from Source
+
+```sh
+git clone https://github.com/igamenovoer/PeiDocker.git
+cd PeiDocker
+pip install -e .
+```
 
 ### Prerequisites
 
-This is a python project which deals with docker and docker-compose, so you need to have docker and docker-compose installed on your machine.
-
-For python, you will need the following packages:
-
-```sh
-pip install click omegaconf attrs cattrs
-```
+- Docker and docker-compose installed on your machine
+- Python 3.11 or higher
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
+### Web GUI (Recommended for beginners)
+
+Start the web interface for visual project configuration:
+
+```sh
+# Start GUI on auto-selected port
+pei-docker-gui start
+
+# Or specify a custom port
+pei-docker-gui start --port 8080
+
+# Load an existing project
+pei-docker-gui start --project-dir /path/to/my/project
+```
+
+The web interface provides:
+- Visual project configuration with organized tabs
+- Real-time validation and error checking
+- Project import/export functionality
+- Interactive help and tooltips
+
+### Command Line Interface
+
 Create a new project:
 
 ```sh
-# cd to the root of the git repository
-cd /path/to/PeiDocker
-
 # Create a new project in ./build or any other directory
-python -m pei_docker.pei create -p ./build
+pei-docker-cli create -p ./build
 
 # Optional: Create without examples or contrib files
-python -m pei_docker.pei create -p ./build --no-with-examples --no-with-contrib
+pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
 ```
 
 Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs. Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
-python -m pei_docker.pei configure -p ./build
+# From within the project directory
+cd ./build
+pei-docker-cli configure
+
+# Or specify project directory explicitly
+pei-docker-cli configure -p ./build
 
 # Optional: Use a different config file
-python -m pei_docker.pei configure -p ./build -c my-custom-config.yml
+pei-docker-cli configure -p ./build -c my-custom-config.yml
 
 # Optional: Generate full compose file with extended sections
-python -m pei_docker.pei configure -p ./build -f
+pei-docker-cli configure -p ./build -f
 ```
 
 Build the docker images. There are two images to be built, namely `stage-1` and `stage-2`. `stage-1` is intended to be a base image, installing system apps using `apt install`, `stage-2` is intended to be a final image based on `stage-1`, installing custom apps using downloaded packages like `.deb`. External storage is only available in `stage-2`.

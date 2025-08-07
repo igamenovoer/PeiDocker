@@ -1,0 +1,29 @@
+@startuml
+start
+:SC-0: Application Startup;
+
+if (Docker Available?) then (no)
+  :Warning Dialog;
+  stop
+endif
+
+:SC-1: Project Directory Selection;
+
+partition "SC-2: Wizard Controller Framework" {
+  :**11 Linear Configuration Steps**
+  SC-3: Project Info → SC-4: SSH Config → SC-5: Proxy
+  SC-6: APT Config → SC-7: Ports → SC-8: Environment
+  SC-9: Devices → SC-10: Mounts → SC-11: Entry Point
+  SC-12: Scripts → SC-13: Summary;
+  note right: Linear progression only (Prev/Next between consecutive steps)
+  
+  if (Save Configuration?) then (yes)
+    :Write user_config.yml;
+    :Continue Navigation;
+  else (cancel)
+    stop
+  endif
+}
+
+stop
+@enduml

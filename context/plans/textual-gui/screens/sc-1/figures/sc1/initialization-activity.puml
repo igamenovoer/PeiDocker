@@ -1,0 +1,15 @@
+@startuml
+start
+:Display screen;
+if (CLI override provided?) then (yes)
+  :Pre-fill directory path (grayed out);
+  :Disable directory path input;
+  :Disable browse button;
+else (no)
+  :Load default directory path;
+  :Enable all controls;
+endif
+:Check directory status;
+:Validate initial state;
+stop
+@enduml

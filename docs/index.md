@@ -2,21 +2,87 @@
 
 Don't keep your docker images around, keep the build files! If you ever want to make reproducible docker images but have no patience to learn Dockerfiles and docker-compose, PeiDocker is for you.
 
-[PeiDocker (配 docker)](https://github.com/igamenovoer/PeiDocker) helps you script and organize your docker image building process without learning too much about Dockerfiles and docker-compose, it streamlines the building process and allows you to customize the image building and running behaviours using shell scripts. With PeiDocker, you can:
+[PeiDocker (配 docker)](https://github.com/igamenovoer/PeiDocker) helps you script and organize your docker image building process without learning too much about Dockerfiles and docker-compose. It provides both CLI and web-based GUI for managing Docker projects with advanced features. With PeiDocker, you can:
 
-- Build images with SSH support.
-- Install packages from public repository using proxy.
-- Easily choose to install apps into the image, your host directory, or docker volumes, you can also switch between them after the image is built.
-- Run custom commands during image building, such as setting up environment variables, installing packages, etc.
-- Run custom commands when the container starts.
+- Build images with SSH support and multiple authentication methods
+- Configure separate port mappings for system services (stage-1) and applications (stage-2)
+- Use the intuitive web GUI for visual project configuration
+- Export projects as ZIP files for easy sharing and backup
+- Install packages from public repository using proxy
+- Easily switch storage between Docker images, host directories, or volumes
+- Run custom commands during image building and container lifecycle
+- Manage environment variables with Docker Compose-style substitution
 
-## How to use
+## What's New
 
-* Install dependencies:
+### Recent Features (January 2025)
+
+- **NiceGUI Web Interface**: New browser-based GUI for visual project management
+- **Auto-port Selection**: GUI automatically finds available ports
+- **Separate Port Mappings**: Independent port configuration for stage-1 (system) and stage-2 (application)
+- **ZIP Export**: Export entire projects as ZIP files for sharing and backup
+- **Enhanced SSH Options**: Support for inline SSH keys (public/private text)
+- **Improved Architecture**: Modular codebase with better maintainability
+
+## Installation
+
+PeiDocker can be installed using pip or pixi (recommended):
+
+### Using Pixi (Recommended)
 
 ```sh
-pip install click omegaconf attrs cattrs
+# Install pixi if not already installed
+curl -fsSL https://pixi.sh/install.sh | bash
+
+# Clone the repository
+git clone https://github.com/igamenovoer/PeiDocker.git
+cd PeiDocker
+
+# Install project dependencies (this will also install the package in editable mode)
+pixi install
+
+# Run commands using pixi
+pixi run pei-docker-cli create -p ./build
+pixi run pei-docker-gui start
 ```
+
+### Using pip
+
+```sh
+pip install click omegaconf attrs cattrs nicegui
+```
+
+## Quick Start
+
+PeiDocker offers two ways to manage projects: via command line (CLI) or web interface (GUI).
+
+### Option 1: Web GUI (Recommended for beginners)
+
+The web-based GUI provides an intuitive interface for managing PeiDocker projects:
+
+```sh
+# Start the web GUI on an auto-selected free port
+pei-docker-gui start
+
+# Or specify a custom port
+pei-docker-gui start --port 8080
+
+# Load an existing project
+pei-docker-gui start --project-dir /path/to/my/project
+
+# Create a new project and jump to SSH configuration
+pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+```
+
+The web interface will open at `http://localhost:<port>` and provides:
+- Visual project configuration with organized tabs
+- Real-time validation and error checking
+- Project import/export functionality (ZIP download)
+- Interactive help and tooltips
+- Separate port configuration for stage-1 and stage-2
+- SSH key management with multiple authentication methods
+
+### Option 2: Command Line Interface
 
 * Create a new project:
 
@@ -25,23 +91,28 @@ pip install click omegaconf attrs cattrs
 cd /path/to/PeiDocker
 
 # Create a new project in ./build or any other directory
-python -m pei_docker.pei create -p ./build
+pei-docker-cli create -p ./build
 
 # Optional: Create without examples or contrib files
-python -m pei_docker.pei create -p ./build --no-with-examples --no-with-contrib
+pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
 ```
 
 * Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs.
 * Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
-python -m pei_docker.pei configure -p ./build
+# From within the project directory
+cd ./build
+pei-docker-cli configure
+
+# Or specify project directory explicitly
+pei-docker-cli configure -p ./build
 
 # Optional: Use a different config file
-python -m pei_docker.pei configure -p ./build -c my-custom-config.yml
+pei-docker-cli configure -p ./build -c my-custom-config.yml
 
 # Optional: Generate full compose file with extended sections
-python -m pei_docker.pei configure -p ./build -f
+pei-docker-cli configure -p ./build -f
 ```
 
 ## CLI Commands Reference
@@ -51,7 +122,7 @@ python -m pei_docker.pei configure -p ./build -f
 Creates a new PeiDocker project with template files and examples.
 
 ```sh
-python -m pei_docker.pei create [OPTIONS]
+pei-docker-cli create [OPTIONS]
 ```
 
 **Options:**
@@ -63,10 +134,10 @@ python -m pei_docker.pei create [OPTIONS]
 **Examples:**
 ```sh
 # Create project with all templates and examples
-python -m pei_docker.pei create -p ./my-project
+pei-docker-cli create -p ./my-project
 
 # Create minimal project without examples
-python -m pei_docker.pei create -p ./minimal-project --no-with-examples --no-with-contrib
+pei-docker-cli create -p ./minimal-project --no-with-examples --no-with-contrib
 ```
 
 ### `configure` command
@@ -74,25 +145,31 @@ python -m pei_docker.pei create -p ./minimal-project --no-with-examples --no-wit
 Processes the configuration file and generates docker-compose.yml and related files.
 
 ```sh
-python -m pei_docker.pei configure [OPTIONS]
+pei-docker-cli configure [OPTIONS]
 ```
 
 **Options:**
-- `-p, --project-dir DIRECTORY`: Project directory (required)
+- `-p, --project-dir DIRECTORY`: Project directory (default: current working directory)
 - `-c, --config FILE`: Config file name, relative to the project dir (default: `user_config.yml`)
-- `-f, --full-compose`: Generate full compose file with x-??? sections (default: false)
+- `-f, --full-compose`: Generate full compose file with extended sections (default: false)
 - `--help`: Show help message
 
 **Examples:**
 ```sh
-# Use default config file (user_config.yml)
-python -m pei_docker.pei configure -p ./my-project
+# Use current directory as project directory with default config
+pei-docker-cli configure
+
+# Use default config file (user_config.yml) in specific directory
+pei-docker-cli configure -p ./my-project
 
 # Use custom config file
-python -m pei_docker.pei configure -p ./my-project -c prod-config.yml
+pei-docker-cli configure -p ./my-project -c prod-config.yml
 
 # Generate full compose file with extended sections
-python -m pei_docker.pei configure -p ./my-project -f
+pei-docker-cli configure -p ./my-project -f
+
+# Use current directory with custom config file
+pei-docker-cli configure -c prod-config.yml
 ```
 
 For detailed CLI options and advanced usage, see the [CLI Reference](cli_reference.md).
@@ -217,14 +294,14 @@ stage_1:
         password: '123456'
         uid: 1000  # user ID (optional, defaults to auto-assigned)
 
-        # SSH key configuration (choose ONE of the following methods):
-        # Method 1: Reference a public key file (legacy, relative to installation directory)
+        # SSH key authentication (optional, choose ONE method):
+        # Method 1: Reference a public key file (relative to installation directory)
         pubkey_file: 'stage-1/system/ssh/keys/example-pubkey.pub'
         
         # Method 2: Provide public key text directly inline
         # pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...'
         
-        # Method 3: Provide private key text directly inline (public key will be generated)
+        # Method 3: Provide private key text directly (public key will be generated)
         # privkey_text: |
         #   -----BEGIN OPENSSH PRIVATE KEY-----
         #   b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2g...
@@ -268,13 +345,18 @@ stage_1:
     keep_proxy_after_build: false # keep proxy settings after build?
 
   # additional environment variables
+  # Supports Docker Compose-style variable substitution: ${VAR:-default}
   # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
   environment:
     - 'EXAMPLE_VAR_STAGE_1=example env var'
+    - 'API_URL=${API_URL:-http://localhost:8080}'
 
-  # additional port mapping
+  # port mapping for stage-1 (system-level services)
+  # Use this for databases, cache servers, monitoring tools, etc.
   # see https://docs.docker.com/compose/networking/
-  ports: []
+  ports: 
+    - "5432:5432"  # PostgreSQL example
+    - "6379:6379"  # Redis example
 
   # device settings
   device:
@@ -321,13 +403,20 @@ stage_2:
     output: pei-image:stage-2
 
   # additional environment variables
+  # Supports Docker Compose-style variable substitution: ${VAR:-default}
   # see https://docs.docker.com/compose/environment-variables/set-environment-variables/
   environment:  # use list instead of dict
     - 'EXAMPLE_VAR_STAGE_2=example env var'
+    - 'NODE_ENV=${NODE_ENV:-production}'
+    - 'APP_PORT=${APP_PORT:-3000}'
 
-  # port mapping, will be appended to the stage-1 port mapping
+  # port mapping for stage-2 (application-level services)
+  # Use this for web apps, APIs, microservices, etc.
+  # Note: These are independent from stage-1 ports (not appended)
   # see https://docs.docker.com/compose/networking/
-  ports: []    
+  ports: 
+    - "8080:8080"  # Web application example
+    - "3000:3000"  # Node.js app example    
 
   # device settings, will override the stage-1 device settings
   device:

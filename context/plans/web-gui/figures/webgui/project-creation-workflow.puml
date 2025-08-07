@@ -1,0 +1,27 @@
+@startuml
+start
+:User enters project directory path;
+if (Directory path specified?) then (no)
+  :Generate temporary directory path;
+  :Display generated path in input field;
+endif
+
+if (Directory exists and not empty?) then (yes)
+  :Display error message;
+  :Request different directory;
+  stop
+else (no or empty)
+  :Run pei-docker-cli create command;
+  if (Project created successfully?) then (yes)
+    :Initialize GUI state;
+    :Load default configuration;
+    :Enable configuration tabs;
+    :Display Project tab;
+  else (no)
+    :Display creation error;
+    :Return to project selection;
+    stop
+  endif
+endif
+stop
+@enduml

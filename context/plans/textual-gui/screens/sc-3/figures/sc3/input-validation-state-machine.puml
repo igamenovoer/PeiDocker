@@ -1,0 +1,35 @@
+@startuml
+[*] --> ValidatingInput
+ValidatingInput --> ValidName : project_name_valid
+ValidatingInput --> InvalidName : project_name_invalid
+ValidatingInput --> ValidImage : base_image_valid
+ValidatingInput --> InvalidImage : base_image_invalid
+
+ValidName --> GeneratingPreview : name_updated
+InvalidName --> ValidName : name_corrected
+InvalidName --> InvalidName : invalid_input_continues
+
+ValidImage --> ValidatingInput : validation_complete
+InvalidImage --> ValidImage : image_corrected
+
+GeneratingPreview --> UpdatePreview
+UpdatePreview --> ValidatingInput
+
+state ValidName {
+  [*] --> EnableNextButton
+}
+
+state InvalidName {
+  [*] --> DisableNextButton
+  DisableNextButton --> ShowErrorMessage
+}
+
+state ValidImage {
+  [*] --> ImageFormatValid
+}
+
+state InvalidImage {
+  [*] --> ImageFormatInvalid
+  ImageFormatInvalid --> ShowImageError
+}
+@enduml

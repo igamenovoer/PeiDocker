@@ -1,0 +1,12 @@
+@startuml
+[*] --> NoError
+NoError --> PathError : invalid_path_entered
+NoError --> NameError : invalid_name_entered
+NoError --> PermissionError : permission_check_failed
+NoError --> CreationError : directory_creation_failed
+
+PathError --> NoError : valid_path_entered
+NameError --> NoError : valid_name_entered
+PermissionError --> NoError : permission_granted
+CreationError --> NoError : creation_successful
+@enduml

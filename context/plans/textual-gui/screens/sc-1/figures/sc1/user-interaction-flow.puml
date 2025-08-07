@@ -1,0 +1,33 @@
+@startuml
+start
+repeat
+  :User enters directory path;
+  fork
+    :Validate path format;
+    :Check permissions;
+    :Show existence status;
+  fork again
+    :Check directory accessibility;
+  end fork
+  if (Validation passes?) then (yes)
+    :Enable Continue button;
+  else (no)
+    :Disable Continue button;
+    :Show error messages;
+  endif
+  
+  :Wait for user action;
+  if (User clicks Browse?) then (yes)
+    :Open directory dialog;
+    :Update path field;
+  else if (User clicks Back?) then (yes)
+    :Navigate to SC-0;
+    stop
+  else if (User clicks Continue?) then (yes)
+    :Execute pei-docker-cli create;
+    :Save state for next screens;
+    :Navigate to SC-2;
+    stop
+  endif
+repeat while (Continue editing?) is (yes)
+@enduml

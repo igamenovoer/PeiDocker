@@ -1,0 +1,25 @@
+@startuml
+[*] --> WaitingForInput
+WaitingForInput --> ProcessingEscape : ESC_pressed
+WaitingForInput --> ProcessingNavigation : TAB_or_SHIFT_TAB_pressed
+WaitingForInput --> ProcessingAction : ENTER_pressed
+WaitingForInput --> ProcessingText : regular_key_pressed
+
+ProcessingEscape --> CheckingEscapeCount
+CheckingEscapeCount --> ClearingInput : single_escape
+CheckingEscapeCount --> ReturningToMainMenu : double_escape
+ClearingInput --> WaitingForInput
+ReturningToMainMenu --> [*]
+
+ProcessingNavigation --> ChangingFocus
+ChangingFocus --> WaitingForInput
+
+ProcessingAction --> ExecutingAction
+ExecutingAction --> WaitingForInput : action_completed
+ExecutingAction --> ValidationError : validation_failed
+ValidationError --> WaitingForInput
+
+ProcessingText --> UpdatingInput
+UpdatingInput --> ValidatingInput
+ValidatingInput --> WaitingForInput
+@enduml

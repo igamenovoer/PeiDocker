@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeiDocker Web GUI - Active Project</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="saveConfiguration()">
+                        💾 Save
+                    </button>
+                    <button class="btn btn-warning" onclick="configureProject()">
+                        ⚙️ Configure
+                    </button>
+                    <button class="btn btn-info" onclick="downloadProject()">
+                        📦 Download
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Project Info Bar (initially hidden) -->
+        <div class="project-info-bar" id="project-info-bar" style="display: none;">
+            <div class="project-info">
+                <span class="project-label">Project:</span>
+                <span class="project-path"></span>
+                <span class="project-status">● Unsaved changes</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn active" onclick="switchTab('project')">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn" onclick="switchTab('ssh')">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn" onclick="switchTab('network')">
+                    🌐 Network
+                </button>
+                <button class="tab-btn" onclick="switchTab('environment')">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn has-errors" onclick="switchTab('storage')">
+                    💾 Storage
+                </button>
+                <button class="tab-btn" onclick="switchTab('scripts')">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn" onclick="switchTab('summary')">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dynamic Content Area -->
+            <div id="tab-content" class="tab-panel">
+                <!-- Tab content will be loaded here dynamically -->
+                <div class="tab-title">
+                    🏗️ Getting Started...
+                </div>
+                <p class="tab-description">
+                    Please wait while the Project tab loads.
+                </p>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Welcome to PeiDocker Web GUI</span>
+            </div>
+            <div class="status-right">
+                <span>PeiDocker v0.8.0</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration state management
+        let configState = {
+            modified: false,
+            lastSaved: null,
+            currentTab: 'project',
+            validationErrors: {
+                storage: true // Demo: storage tab has errors
+            }
+        };
+
+        // Tab content loading
+        async function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            configState.currentTab = tabName;
+            
+            try {
+                // Load tab content from separate file
+                const response = await fetch(`${tabName}_tab_content.html`);
+                if (response.ok) {
+                    const content = await response.text();
+                    
+                    // Extract and execute scripts from the loaded content
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = content;
+                    
+                    // Extract HTML content without scripts
+                    const scripts = tempDiv.querySelectorAll('script');
+                    const htmlContent = tempDiv.innerHTML;
+                    
+                    // Set the HTML content
+                    document.getElementById('tab-content').innerHTML = htmlContent;
+                    
+                    // Execute scripts manually
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        if (script.src) {
+                            newScript.src = script.src;
+                        } else {
+                            newScript.textContent = script.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                        // Remove the script after execution to avoid duplicates
+                        setTimeout(() => {
+                            if (newScript.parentNode) {
+                                newScript.parentNode.removeChild(newScript);
+                            }
+                        }, 100);
+                    });
+                    
+                    // Initialize tab-specific functionality after a short delay
+                    setTimeout(() => {
+                        initializeTabContent(tabName);
+                    }, 100);
+                } else {
+                    // Fallback to existing full tab file for demo
+                    window.location.href = `${tabName}_tab.html`;
+                }
+            } catch (error) {
+                console.error('Error loading tab content:', error);
+                // Fallback to existing full tab file
+                window.location.href = `${tabName}_tab.html`;
+            }
+        }
+
+        function initializeTabContent(tabName) {
+            // Initialize any tab-specific functionality
+            if (tabName === 'project') {
+                // Use setTimeout to ensure DOM elements are ready
+                setTimeout(() => {
+                    initializeProjectTab();
+                }, 10);
+            } else if (tabName === 'ssh') {
+                initializeSSHTab();
+            } else if (tabName === 'network') {
+                setTimeout(() => {
+                    initializeNetworkTab();
+                }, 10);
+            } else if (tabName === 'environment') {
+                setTimeout(() => {
+                    initializeEnvironmentTab();
+                }, 10);
+            } else if (tabName === 'storage') {
+                setTimeout(() => {
+                    initializeStorageTab();
+                }, 10);
+            }
+            // Add other tab initializations as needed
+        }
+
+        function initializeProjectTab() {
+            // Initialize project tab specific functionality
+            const projectNameInput = document.getElementById('project-name');
+            if (projectNameInput) {
+                projectNameInput.addEventListener('input', function() {
+                    markConfigurationModified();
+                    updatePreview();
+                });
+                
+                // Call updatePreview initially to set up the display
+                updatePreview();
+            }
+        }
+        
+        // Global updatePreview function that can be called from loaded content
+        function updatePreview() {
+            const projectName = document.getElementById('project-name');
+            if (!projectName) return;
+            
+            const nameValue = projectName.value.trim() || 'my-project';
+            const stage1Element = document.getElementById('stage1-image');
+            const stage2Element = document.getElementById('stage2-image');
+            
+            if (stage1Element) {
+                stage1Element.textContent = `${nameValue}:stage-1`;
+            }
+            if (stage2Element) {
+                stage2Element.textContent = `${nameValue}:stage-2`;
+            }
+        }
+        
+        // Make updatePreview available globally
+        window.updatePreview = updatePreview;
+
+        function initializeSSHTab() {
+            // Initialize SSH tab specific functionality
+            const sshToggle = document.getElementById('ssh-enabled');
+            if (sshToggle) {
+                sshToggle.addEventListener('change', function() {
+                    markConfigurationModified();
+                });
+            }
+        }
+
+        // SSH-specific functions (needed for dynamic content loading)
+        let userCounter = 1;
+
+        function generateRandomId() {
+            // Generate a random 6-character string for unique usernames
+            return Math.random().toString(36).substring(2, 8);
+        }
+
+        function toggleSSH() {
+            const sshEnabled = document.getElementById('ssh-enabled').checked;
+            const sshConfig = document.getElementById('ssh-config');
+            const sshWarning = document.getElementById('ssh-warning');
+            
+            if (sshEnabled) {
+                sshConfig.style.display = 'block';
+                sshWarning.style.display = 'none';
+            } else {
+                sshConfig.style.display = 'none';
+                sshWarning.style.display = 'block';
+            }
+        }
+
+        function toggleKeyInput(userId, keyType, value) {
+            const fileInput = document.getElementById(`${keyType}-file-${userId}`);
+            const textInput = document.getElementById(`${keyType}-text-${userId}`);
+            
+            if (value === 'file') {
+                fileInput.style.display = 'block';
+                textInput.style.display = 'none';
+            } else if (value === 'text') {
+                fileInput.style.display = 'none';
+                textInput.style.display = 'block';
+            } else {
+                fileInput.style.display = 'none';
+                textInput.style.display = 'none';
+            }
+        }
+
+        function addUser() {
+            const usersContainer = document.getElementById('ssh-users');
+            
+            // Check if the SSH users container exists
+            if (!usersContainer) {
+                console.error('SSH users container not found. Make sure the SSH tab is loaded.');
+                alert('Error: SSH tab content not loaded properly. Please switch to SSH tab first.');
+                return;
+            }
+            
+            const userDiv = document.createElement('div');
+            const randomId = generateRandomId();
+            const userId = `user${userCounter}`;
+            const defaultUsername = `user-${randomId}`;
+            const defaultUid = 1000 + userCounter;  // Always use 1000+ for regular users
+            
+            userDiv.className = 'card user-config mb-6';
+            userDiv.innerHTML = `
+                <div class="card-header">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                            <span>👤</span>
+                            <span>SSH User: ${defaultUsername}</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="removeUser(this)">🗑️ Remove</button>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    <div class="grid grid-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-input" value="${defaultUsername}" required onchange="markConfigurationModified()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-input" value="" placeholder="Enter secure password" onchange="markConfigurationModified()">
+                            <div class="form-help">Password for SSH login (required)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Optional UID Configuration -->
+                    <div class="mb-4">
+                        <div class="form-group">
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="uid-enabled-${userId}" onchange="toggleUidInput('${userId}', this.checked); markConfigurationModified()">
+                                <label class="form-label" for="uid-enabled-${userId}">Set custom User ID (UID)</label>
+                            </div>
+                            <div class="form-help mb-2">Advanced: Leave unchecked to use automatic UID assignment</div>
+                            
+                            <div id="uid-input-${userId}" style="display: none;">
+                                <input type="number" class="form-input" value="${defaultUid}" min="0" placeholder="${defaultUid}" onchange="markConfigurationModified()">
+                                <div class="form-help">Custom UID for file permissions mapping</div>
+                            </div>
+                        </div>
+                    </div>
+
+                <!-- Public Key Configuration -->
+                <div class="mb-4">
+                    <div class="form-group">
+                        <label class="form-label">Public Key (copy into container)</label>
+                        <div class="flex gap-2 mb-2">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="none" checked onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>None</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="file" onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>File path</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="pubkey-source-${userId}" value="text" onchange="toggleKeyInput('${userId}', 'pubkey', this.value); markConfigurationModified()">
+                                <span>Direct text</span>
+                            </label>
+                        </div>
+                        
+                        <div class="pubkey-file-input" id="pubkey-file-${userId}" style="display: none;">
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input" placeholder="~  or  /path/to/public.key  or  stage-1/keys/id_rsa.pub" onchange="markConfigurationModified()">
+                                <button class="btn btn-secondary">📁</button>
+                            </div>
+                            <div class="form-help">Use ~ for auto-discovery or specify file path relative to project directory</div>
+                        </div>
+                        
+                        <div class="pubkey-text-input" id="pubkey-text-${userId}" style="display: none;">
+                            <textarea class="form-textarea" rows="3" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDFFy2DpsaaLcixgYgT8+7GxVR5mRGOx7urSe4rKjZ5G user@host" oninput="markConfigurationModified()"></textarea>
+                            <div class="form-help">Paste your public key content directly</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Private Key Configuration -->
+                <div class="mb-4">
+                    <div class="form-group">
+                        <label class="form-label">Private Key (copy into container)</label>
+                        <div class="flex gap-2 mb-2">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="none" checked onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>None</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="file" onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>File path</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="privkey-source-${userId}" value="text" onchange="toggleKeyInput('${userId}', 'privkey', this.value); markConfigurationModified()">
+                                <span>Direct text</span>
+                            </label>
+                        </div>
+                        
+                        <div class="privkey-file-input" id="privkey-file-${userId}" style="display: none;">
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input" placeholder="~  or  /path/to/private.key  or  stage-1/keys/id_rsa" onchange="markConfigurationModified()">
+                                <button class="btn btn-secondary">📁</button>
+                            </div>
+                            <div class="form-help">Use ~ for auto-discovery or specify file path</div>
+                        </div>
+                        
+                        <div class="privkey-text-input" id="privkey-text-${userId}" style="display: none;">
+                            <textarea class="form-textarea" rows="8" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABA...&#10;-----END OPENSSH PRIVATE KEY-----" oninput="markConfigurationModified()"></textarea>
+                            <div class="form-help">Paste your private key content directly</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // Simply append the new user to the ssh-users container
+            // The "Add User" button is outside this container, so we just append
+            usersContainer.appendChild(userDiv);
+            
+            userCounter++;
+            markConfigurationModified();
+            
+            // Show success message
+            console.log(`Added new SSH user: ${defaultUsername}`);
+        }
+
+        function removeUser(button) {
+            const userDiv = button.closest('.user-config');
+            if (userDiv) {
+                userDiv.remove();
+                markConfigurationModified();
+            }
+        }
+
+        function toggleUidInput(userId, enabled) {
+            const uidInput = document.getElementById(`uid-input-${userId}`);
+            if (uidInput) {
+                uidInput.style.display = enabled ? 'block' : 'none';
+            }
+        }
+
+        // Make SSH functions globally available
+        window.toggleSSH = toggleSSH;
+        window.toggleKeyInput = toggleKeyInput;
+        window.addUser = addUser;  
+        window.removeUser = removeUser;
+        window.toggleUidInput = toggleUidInput;
+
+        // Network Tab Initialization and Functions
+        function initializeNetworkTab() {
+            // Initialize network tab specific functionality
+            console.log('Initializing Network Tab...');
+            
+            // Check if we have the port mapping elements
+            const portMappingsContainer = document.getElementById('port-mappings');
+            if (portMappingsContainer) {
+                console.log('Port mappings container found, initializing...');
+                
+                // Initialize port mapping functionality
+                // Reset counters and arrays for fresh initialization
+                if (typeof portMappingCount !== 'undefined') {
+                    portMappingCount = 0;
+                }
+                if (typeof portMappings !== 'undefined') {
+                    portMappings = [];
+                }
+                
+                // Re-run the DOMContentLoaded logic for port mappings
+                setTimeout(() => {
+                    initializePortMappings();
+                }, 50);
+            } else {
+                console.warn('Port mappings container not found in network tab');
+            }
+        }
+
+        function initializePortMappings() {
+            // Add one example mapping by default
+            if (typeof addPortMapping === 'function') {
+                addPortMapping('8080', '80');
+                
+                if (typeof updatePortMappingsSummary === 'function') {
+                    updatePortMappingsSummary();
+                }
+            } else {
+                console.error('addPortMapping function not available');
+            }
+        }
+
+        // Make network functions globally available
+        window.initializeNetworkTab = initializeNetworkTab;
+        window.initializePortMappings = initializePortMappings;
+
+        // Environment Tab Initialization and Functions
+        function initializeEnvironmentTab() {
+            // Initialize environment tab specific functionality
+            console.log('Initializing Environment Tab...');
+            
+            // Check if we have the environment variables container
+            const envVariablesContainer = document.getElementById('env-variables');
+            if (envVariablesContainer) {
+                console.log('Environment variables container found, initializing...');
+                
+                // Initialize any environment-specific functionality
+                const deviceTypeSelect = document.getElementById('device-type');
+                if (deviceTypeSelect) {
+                    deviceTypeSelect.addEventListener('change', function() {
+                        if (typeof updateDeviceConfig === 'function') {
+                            updateDeviceConfig();
+                        }
+                        markConfigurationModified();
+                    });
+                }
+                
+                // Add change listeners to all environment variable inputs
+                const envInputs = envVariablesContainer.querySelectorAll('input');
+                envInputs.forEach(input => {
+                    input.addEventListener('input', markConfigurationModified);
+                });
+            } else {
+                console.warn('Environment variables container not found in environment tab');
+            }
+        }
+
+        // Make environment functions globally available
+        window.initializeEnvironmentTab = initializeEnvironmentTab;
+
+        // Storage Tab Initialization and Functions
+        function initializeStorageTab() {
+            // Initialize storage tab specific functionality
+            console.log('Initializing Storage Tab...');
+            
+            // Check if we have the mount containers
+            const stage1Container = document.getElementById('stage1-mounts');
+            const stage2Container = document.getElementById('stage2-mounts');
+            
+            if (stage1Container && stage2Container) {
+                console.log('Storage mount containers found, initializing...');
+                
+                // Add any initial setup if needed
+                // The containers are now empty by default as per requirements
+                
+            } else {
+                console.warn('Storage mount containers not found in storage tab');
+            }
+        }
+
+        // Make storage functions globally available
+        window.initializeStorageTab = initializeStorageTab;
+
+        // Mount Management Functions
+        function generateUUID() {
+            // Generate a simple UUID-like string for mount names
+            return 'xxxxxxxx-xxxx'.replace(/[x]/g, function(c) {
+                var r = Math.random() * 16 | 0;
+                return r.toString(16);
+            });
+        }
+
+        function addMount(stage) {
+            const mountsContainer = document.getElementById(`${stage}-mounts`);
+            
+            if (!mountsContainer) {
+                console.error(`Mount container ${stage}-mounts not found`);
+                alert(`Error: ${stage} mounts container not found. Please switch to Storage tab first.`);
+                return;
+            }
+            
+            const uuid = generateUUID();
+            const mountName = `mount-${uuid}`;
+            const dstPath = `/mnt/mount-${uuid}`;
+            
+            const mountDiv = document.createElement('div');
+            mountDiv.className = 'card mb-4';
+            mountDiv.innerHTML = `
+                <div class="card-content">
+                    <div class="grid grid-2 gap-4">
+                        <!-- Mount Name -->
+                        <div class="form-group">
+                            <label class="form-label">Mount name:</label>
+                            <input type="text" class="form-input mount-name" value="${mountName}" onchange="markConfigurationModified()">
+                        </div>
+                        
+                        <!-- Mount Type -->
+                        <div class="form-group">
+                            <label class="form-label">Mount type:</label>
+                            <select class="form-select mount-type" onchange="updateMountFields(this); markConfigurationModified()">
+                                <option value="auto-volume" selected>auto-volume</option>
+                                <option value="manual-volume">manual-volume</option>
+                                <option value="host">host</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Destination Path -->
+                        <div class="form-group">
+                            <label class="form-label">Destination path:</label>
+                            <input type="text" class="form-input mount-dst-path" value="${dstPath}" onchange="markConfigurationModified()">
+                        </div>
+                        
+                        <!-- Host Path -->
+                        <div class="form-group">
+                            <label class="form-label">Host path:</label>
+                            <input type="text" class="form-input mount-host-path" disabled style="background-color: #f9fafb; color: #6b7280;" onchange="markConfigurationModified()">
+                            <div class="form-help text-xs">Only editable when type is 'host'</div>
+                        </div>
+                        
+                        <!-- Volume Name -->
+                        <div class="form-group">
+                            <label class="form-label">Volume name:</label>
+                            <input type="text" class="form-input mount-volume-name" disabled style="background-color: #f9fafb; color: #6b7280;" onchange="markConfigurationModified()">
+                            <div class="form-help text-xs">Only editable when type is 'manual-volume'</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-end">
+                        <button class="btn btn-error btn-sm" onclick="removeMount(this)">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            mountsContainer.appendChild(mountDiv);
+            markConfigurationModified();
+            
+            console.log(`Added new mount: ${mountName} to ${stage}`);
+        }
+
+        function removeMount(button) {
+            const mountDiv = button.closest('.card');
+            if (mountDiv) {
+                mountDiv.remove();
+                markConfigurationModified();
+            }
+        }
+
+        function updateMountFields(selectElement) {
+            const mountDiv = selectElement.closest('.card');
+            if (!mountDiv) return;
+            
+            const mountType = selectElement.value;
+            const hostPathInput = mountDiv.querySelector('.mount-host-path');
+            const volumeNameInput = mountDiv.querySelector('.mount-volume-name');
+            
+            // Reset all fields first
+            hostPathInput.disabled = true;
+            hostPathInput.style.backgroundColor = '#f9fafb';
+            hostPathInput.style.color = '#6b7280';
+            hostPathInput.value = '';
+            
+            volumeNameInput.disabled = true;
+            volumeNameInput.style.backgroundColor = '#f9fafb';
+            volumeNameInput.style.color = '#6b7280';
+            volumeNameInput.value = '';
+            
+            // Enable appropriate field based on type
+            if (mountType === 'host') {
+                hostPathInput.disabled = false;
+                hostPathInput.style.backgroundColor = '';
+                hostPathInput.style.color = '';
+            } else if (mountType === 'manual-volume') {
+                volumeNameInput.disabled = false;
+                volumeNameInput.style.backgroundColor = '';
+                volumeNameInput.style.color = '';
+            }
+            // For auto-volume, both fields remain disabled (null values)
+        }
+
+        // Make mount functions globally available
+        window.addMount = addMount;
+        window.removeMount = removeMount;
+        window.updateMountFields = updateMountFields;
+
+        // Storage Management Functions
+        function updateStorageFields(selectElement, storageType) {
+            const storageCard = selectElement.closest('.card');
+            if (!storageCard) return;
+            
+            const selectedType = selectElement.value;
+            const hostPathInput = storageCard.querySelector('.storage-host-path');
+            const volumeNameInput = storageCard.querySelector('.storage-volume-name');
+            
+            // Reset all fields first
+            hostPathInput.disabled = true;
+            hostPathInput.style.backgroundColor = '#f9fafb';
+            hostPathInput.style.color = '#6b7280';
+            hostPathInput.value = '';
+            
+            volumeNameInput.disabled = true;
+            volumeNameInput.style.backgroundColor = '#f9fafb';
+            volumeNameInput.style.color = '#6b7280';
+            volumeNameInput.value = '';
+            
+            // Enable appropriate field based on type
+            if (selectedType === 'host') {
+                hostPathInput.disabled = false;
+                hostPathInput.style.backgroundColor = '';
+                hostPathInput.style.color = '';
+            } else if (selectedType === 'manual-volume') {
+                volumeNameInput.disabled = false;
+                volumeNameInput.style.backgroundColor = '';
+                volumeNameInput.style.color = '';
+            }
+            // For auto-volume and image, both fields remain disabled (null values)
+        }
+
+        // Make storage functions globally available
+        window.updateStorageFields = updateStorageFields;
+
+        function markConfigurationModified() {
+            configState.modified = true;
+            updateStatusBar();
+        }
+        
+        // Make markConfigurationModified available globally
+        window.markConfigurationModified = markConfigurationModified;
+
+        function updateStatusBar() {
+            const statusSpan = document.querySelector('.status-left span');
+            const statusDot = document.querySelector('.status-dot');
+            
+            if (configState.modified) {
+                statusSpan.textContent = 'Configuration modified';
+                statusDot.className = 'status-dot modified';
+            } else {
+                statusSpan.textContent = 'All changes saved';
+                statusDot.className = 'status-dot saved';
+            }
+        }
+
+        // Show/hide project info bar based on project state
+        function updateProjectInfoBar(show, projectPath = '') {
+            const infoBar = document.getElementById('project-info-bar');
+            if (show) {
+                infoBar.style.display = 'block';
+                const pathSpan = document.querySelector('.project-path');
+                if (pathSpan && projectPath) {
+                    pathSpan.textContent = projectPath;
+                }
+            } else {
+                infoBar.style.display = 'none';
+            }
+        }
+
+        // Load initial tab content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load project tab by default
+            const projectTab = document.querySelector('[onclick="switchTab(\'project\')"]');
+            if (projectTab) {
+                projectTab.click();
+            }
+        });
+
+        // Override the activateProjectConfiguration from project tab to also update the header
+        window.activateProjectConfiguration = function(projectPath) {
+            // Show project info bar
+            updateProjectInfoBar(true, projectPath);
+            
+            // Call the original function if it exists in the loaded tab content
+            const event = new CustomEvent('projectActivated', { detail: { projectPath } });
+            document.dispatchEvent(event);
+        };
+
+        function saveConfiguration() {
+            if (confirm('Save current configuration to user_config.yml and create script files?')) {
+                // In a real NiceGUI app, this would trigger server-side save operation
+                alert('Configuration saved successfully! All changes written to project directory.');
+                // Update status indicators
+                updateProjectStatus('saved');
+            }
+        }
+
+        function configureProject() {
+            if (confirm('Run pei-docker-cli configure to build project structure? This may take a few minutes.')) {
+                // In a real NiceGUI app, this would trigger server-side configure process
+                alert('Project configuration started. The process is running in the background.');
+                // Update status to show configuration in progress
+                updateProjectStatus('configuring');
+            }
+        }
+
+        function downloadProject() {
+            // Check project state for warnings
+            const hasUnsavedChanges = getProjectState().hasUnsavedChanges;
+            const notConfigured = getProjectState().notConfigured;
+            
+            let warnings = [];
+            if (notConfigured) {
+                warnings.push('Project has not been configured yet.');
+            }
+            if (hasUnsavedChanges) {
+                warnings.push('You have unsaved changes.');
+            }
+            
+            if (warnings.length > 0) {
+                const warningMessage = 'Warning:\n' + warnings.join('\n') + '\n\nDo you want to continue with the download?';
+                if (confirm(warningMessage)) {
+                    // In a real NiceGUI app, this would trigger server-side ZIP creation and download
+                    alert('Project ZIP file is being prepared for download...');
+                    // Trigger actual download
+                    triggerProjectDownload();
+                }
+            } else {
+                alert('Project ZIP file is being prepared for download...');
+                triggerProjectDownload();
+            }
+        }
+
+        function newProject() {
+            if (confirm('Create a new project? Any unsaved changes will be lost.')) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Helper functions for realistic behavior
+        function getProjectState() {
+            // In a real NiceGUI app, this would get actual project state from server
+            return {
+                hasUnsavedChanges: true,  // Based on current UI state
+                notConfigured: true       // Based on project configuration status
+            };
+        }
+
+        function updateProjectStatus(status) {
+            // In a real NiceGUI app, this would update server-side state and refresh UI
+            console.log(`Project status updated to: ${status}`);
+        }
+
+        function triggerProjectDownload() {
+            // In a real NiceGUI app, this would trigger server-side ZIP creation and download
+            console.log('Project download triggered');
+        }
+    </script>
+</body>
+</html>

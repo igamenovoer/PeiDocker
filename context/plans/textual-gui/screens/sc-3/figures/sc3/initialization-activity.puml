@@ -1,0 +1,18 @@
+@startuml
+start
+:Receive control from SC-2 controller;
+:Load project directory from SC-1 state;
+:Extract directory name for auto-population;
+:Initialize form fields with defaults;
+if (Project name from directory valid?) then (yes)
+  :Pre-fill project name field;
+else (no)
+  :Set placeholder text;
+endif
+:Set default base image (ubuntu:24.04);
+:Initialize image suggestions list;
+:Set up real-time validation;
+:Enable form interactions;
+:Focus on first editable field;
+stop
+@enduml

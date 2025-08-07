@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn active">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn">
+                    💾 Storage
+                </button>
+                <button class="tab-btn">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    🌐 Network Configuration
+                </div>
+                <p class="tab-description">
+                    Configure network settings including proxy (applied globally to both stages), package repository mirrors, and port mappings for your container.
+                </p>
+
+                <!-- Proxy Configuration -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🔄 Proxy Configuration
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="proxy-enabled" onchange="toggleProxy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Use HTTP Proxy</div>
+                                    <div class="form-help">
+                                        Enable proxy globally for both stages
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="proxy-config" style="display: none;">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="proxy-port">
+                                            Proxy Port
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            id="proxy-port" 
+                                            class="form-input" 
+                                            placeholder="8080"
+                                            min="1"
+                                            max="65535"
+                                        >
+                                        <div class="form-help">
+                                            Port on host machine for proxy access
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="form-label">Proxy Scope</div>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="form-help">
+                                                Proxy will be enabled globally for both stages with persistent access (enable_globally: true, remove_after_build: false)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="preview-panel">
+                                        <div class="text-sm mb-2 font-weight-600">Environment Variables Set:</div>
+                                        <div class="font-mono text-xs">
+                                            <div>http_proxy=http://host.docker.internal:8080</div>
+                                            <div>https_proxy=http://host.docker.internal:8080</div>
+                                            <div>HTTP_PROXY=http://host.docker.internal:8080</div>
+                                            <div>HTTPS_PROXY=http://host.docker.internal:8080</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APT Repository Configuration -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        📦 APT Repository Mirror
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="apt-mirror-enabled" onchange="toggleAptMirror()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Use Custom APT Mirror</div>
+                                    <div class="form-help">
+                                        Use a different repository mirror for faster package downloads
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="apt-mirror-config" style="display: none;">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Available Mirrors</label>
+                                        <div class="flex flex-col gap-2">
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="tuna">
+                                                <span>🇨🇳 Tsinghua University (tuna)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="aliyun">
+                                                <span>🇨🇳 Alibaba Cloud (aliyun)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="163">
+                                                <span>🇨🇳 NetEase (163)</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="ustc">
+                                                <span>🇨🇳 USTC</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="cn">
+                                                <span>🇨🇳 Ubuntu Official China Mirror</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="apt-mirror" value="default" checked>
+                                                <span>🌍 Ubuntu Default (no change)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            📍 Mirror Information
+                                        </div>
+                                        <div class="card-content">
+                                            <div class="text-sm mb-2">
+                                                <strong>Benefits:</strong>
+                                            </div>
+                                            <ul class="text-sm text-secondary" style="margin-left: 1rem;">
+                                                <li>Faster package downloads</li>
+                                                <li>Reduced build time</li>
+                                                <li>Better regional connectivity</li>
+                                                <li>Reduced bandwidth costs</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Port Mapping Configuration -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🔌 Additional Port Mappings
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="port-mapping-enabled" onchange="togglePortMapping()" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Configure Additional Port Mappings</div>
+                                    <div class="form-help">
+                                        Map additional ports from host to container (SSH port is already configured)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="port-mapping-config">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Add Port Mapping</label>
+                                        <div class="flex gap-2 mb-4">
+                                            <input 
+                                                type="text" 
+                                                id="new-port-mapping" 
+                                                class="form-input" 
+                                                placeholder="8080:80 or 100-200:300-400"
+                                                onkeypress="handlePortMappingEnter(event)"
+                                            >
+                                            <button class="btn btn-primary" onclick="addPortMapping()">
+                                                ➕ Add
+                                            </button>
+                                        </div>
+                                        <div class="form-help">
+                                            Format: host_port:container_port or host_range:container_range
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="form-label">Examples</div>
+                                        <div class="text-sm text-secondary">
+                                            <div>• 8080:80 - Map host port 8080 to container port 80</div>
+                                            <div>• 3000:3000 - Map port 3000 to same port</div>
+                                            <div>• 100-200:300-400 - Map port range</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="form-label">Current Port Mappings</div>
+                                    <div id="port-mappings-list">
+                                        <div class="list-item">
+                                            <div class="list-item-content">2222:22 (SSH)</div>
+                                            <div class="list-item-actions">
+                                                <span class="text-xs text-secondary">Read-only</span>
+                                            </div>
+                                        </div>
+                                        <div class="list-item">
+                                            <div class="list-item-content">8080:80</div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removePortMapping(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="list-item">
+                                            <div class="list-item-content">3000:3000</div>
+                                            <div class="list-item-actions">
+                                                <button class="btn btn-error text-xs" onclick="removePortMapping(this)">
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        🔗 Network Configuration Summary
+                    </div>
+                    <div class="card-content">
+                        <div class="preview-panel">
+                            <div class="font-mono text-sm">
+                                <div># Docker run command with network configuration</div>
+                                <div>docker run -d \</div>
+                                <div>  --name my-awesome-project \</div>
+                                <div>  -p 2222:22 \</div>
+                                <div>  -p 8080:80 \</div>
+                                <div>  -p 3000:3000 \</div>
+                                <div>  my-awesome-project:stage-2</div>
+                                <div style="margin-top: 0.5rem;"># Access services:</div>
+                                <div># SSH: ssh -p 2222 me@localhost</div>
+                                <div># Web: http://localhost:8080</div>
+                                <div># App: http://localhost:3000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>Network tab: All valid</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function toggleProxy() {
+            const enabled = document.getElementById('proxy-enabled').checked;
+            const config = document.getElementById('proxy-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleAptMirror() {
+            const enabled = document.getElementById('apt-mirror-enabled').checked;
+            const config = document.getElementById('apt-mirror-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function togglePortMapping() {
+            const enabled = document.getElementById('port-mapping-enabled').checked;
+            const config = document.getElementById('port-mapping-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function addPortMapping() {
+            const input = document.getElementById('new-port-mapping');
+            const mapping = input.value.trim();
+            
+            if (mapping && validatePortMapping(mapping)) {
+                const listItem = document.createElement('div');
+                listItem.className = 'list-item';
+                listItem.innerHTML = `
+                    <div class="list-item-content">${mapping}</div>
+                    <div class="list-item-actions">
+                        <button class="btn btn-error text-xs" onclick="removePortMapping(this)">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('port-mappings-list').appendChild(listItem);
+                input.value = '';
+            } else {
+                alert('Invalid port mapping format. Use format: host_port:container_port');
+            }
+        }
+
+        function removePortMapping(button) {
+            button.closest('.list-item').remove();
+        }
+
+        function handlePortMappingEnter(event) {
+            if (event.key === 'Enter') {
+                addPortMapping();
+            }
+        }
+
+        function validatePortMapping(mapping) {
+            // Simple validation for demo purposes
+            const pattern = /^\d+(-\d+)?:\d+(-\d+)?$/;
+            return pattern.test(mapping);
+        }
+    </script>
+</body>
+</html>

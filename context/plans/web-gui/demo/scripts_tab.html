@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scripts Tab - PeiDocker Web GUI Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    🐳 PeiDocker Web GUI
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-success">
+                        💾 Save Configuration
+                    </button>
+                    <button class="btn btn-secondary">
+                        🔄 Reset All
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <div class="tab-nav-content">
+                <button class="tab-btn">
+                    🏗️ Project
+                </button>
+                <button class="tab-btn">
+                    🔐 SSH
+                </button>
+                <button class="tab-btn">
+                    🌐 Network
+                </button>
+                <button class="tab-btn">
+                    ⚙️ Environment
+                </button>
+                <button class="tab-btn">
+                    💾 Storage
+                </button>
+                <button class="tab-btn active">
+                    📜 Scripts
+                </button>
+                <button class="tab-btn">
+                    📋 Summary
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="tab-panel">
+                <div class="tab-title">
+                    📜 Custom Scripts Configuration
+                </div>
+                <p class="tab-description">
+                    Configure custom entry point scripts and lifecycle hook scripts for Stage-1 and Stage-2 sequential image builds.
+                </p>
+
+                <!-- Stage-1 Entry Point -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🚀 Stage-1 Entry Point
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage1-entry-enabled" onchange="toggleStage1Entry()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Set Custom Entry Point for Stage-1</div>
+                                    <div class="form-help">
+                                        Override the default entry point with a custom script
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="stage1-entry-config" style="display: none;">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Script Source</label>
+                                        <div class="flex flex-col gap-2">
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage1-entry-source" value="file" checked onchange="toggleStage1EntrySource()">
+                                                <span>Use existing script file</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage1-entry-source" value="inline" onchange="toggleStage1EntrySource()">
+                                                <span>Create new script inline</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- File Path Option -->
+                                    <div class="form-group" id="stage1-entry-file-option">
+                                        <label class="form-label" for="stage1-entry-script">
+                                            Entry Point Script (.sh) *
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                id="stage1-entry-script" 
+                                                class="form-input" 
+                                                placeholder="/path/to/entrypoint.sh"
+                                            >
+                                            <button class="btn btn-secondary">
+                                                📁 Browse
+                                            </button>
+                                        </div>
+                                        <div class="form-help">
+                                            Script will be copied to project directory and executed when container starts
+                                        </div>
+                                    </div>
+
+                                    <!-- Inline Script Option -->
+                                    <div class="form-group" id="stage1-entry-inline-option" style="display: none;">
+                                        <label class="form-label" for="stage1-entry-name">
+                                            Script Name *
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            id="stage1-entry-name" 
+                                            class="form-input" 
+                                            placeholder="entrypoint.sh"
+                                        >
+                                        <div class="form-help">
+                                            Name for the script file (will be created in project directory)
+                                        </div>
+                                        
+                                        <label class="form-label mt-4" for="stage1-entry-content">
+                                            Script Content *
+                                        </label>
+                                        <textarea 
+                                            id="stage1-entry-content" 
+                                            class="form-input" 
+                                            rows="8" 
+                                            placeholder="#!/bin/bash&#10;# Your entry point script here&#10;echo 'Container starting...'&#10;exec &quot;$@&quot;"
+                                            style="font-family: 'Courier New', monospace; resize: vertical;"
+                                        ></textarea>
+                                        <div class="form-help">
+                                            Bash script content. Remember to include #!/bin/bash at the top
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            ℹ️ Entry Point Information
+                                        </div>
+                                        <div class="card-content">
+                                            <div class="text-sm">
+                                                <div class="mb-2"><strong>Purpose:</strong></div>
+                                                <div class="mb-2">The entry point script replaces the default container command and is the first thing executed when the container starts.</div>
+                                                <div class="mb-2"><strong>Requirements:</strong></div>
+                                                <ul style="margin-left: 1rem;">
+                                                    <li>Must be a .sh shell script</li>
+                                                    <li>Must be executable</li>
+                                                    <li>Will be copied to project directory</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage-2 Entry Point -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🏁 Stage-2 Entry Point
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage2-entry-enabled" onchange="toggleStage2Entry()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Set Custom Entry Point for Stage-2</div>
+                                    <div class="form-help">
+                                        Override the stage-1 entry point for Stage-1 containers
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded">
+                            <div class="flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span class="text-sm">
+                                    <strong>Important:</strong> Stage-2 entry point will completely replace the Stage-1 entry point.
+                                </span>
+                            </div>
+                        </div>
+
+                        <div id="stage2-entry-config" style="display: none;">
+                            <div class="form-group mt-4">
+                                <label class="form-label">Script Source</label>
+                                <div class="flex flex-col gap-2">
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="stage2-entry-source" value="file" checked onchange="toggleStage2EntrySource()">
+                                        <span>Use existing script file</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="stage2-entry-source" value="inline" onchange="toggleStage2EntrySource()">
+                                        <span>Create new script inline</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- File Path Option -->
+                            <div class="form-group" id="stage2-entry-file-option">
+                                <label class="form-label" for="stage2-entry-script">
+                                    Entry Point Script (.sh) *
+                                </label>
+                                <div class="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        id="stage2-entry-script" 
+                                        class="form-input" 
+                                        placeholder="/path/to/stage1-entrypoint.sh"
+                                    >
+                                    <button class="btn btn-secondary">
+                                        📁 Browse
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Inline Script Option -->
+                            <div class="form-group" id="stage2-entry-inline-option" style="display: none;">
+                                <label class="form-label" for="stage2-entry-name">
+                                    Script Name *
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="stage2-entry-name" 
+                                    class="form-input" 
+                                    placeholder="stage1-entrypoint.sh"
+                                >
+                                <div class="form-help">
+                                    Name for the script file (will be created in project directory)
+                                </div>
+                                
+                                <label class="form-label mt-4" for="stage2-entry-content">
+                                    Script Content *
+                                </label>
+                                <textarea 
+                                    id="stage2-entry-content" 
+                                    class="form-input" 
+                                    rows="8" 
+                                    placeholder="#!/bin/bash&#10;# Your Stage-1 entry point script here&#10;echo 'Stage-1 container starting...'&#10;exec &quot;$@&quot;"
+                                    style="font-family: 'Courier New', monospace; resize: vertical;"
+                                ></textarea>
+                                <div class="form-help">
+                                    Bash script content. Remember to include #!/bin/bash at the top
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage-1 Custom Scripts -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🔧 Stage-1 Custom Scripts
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage1-scripts-enabled" onchange="toggleStage1Scripts()" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Configure Stage-1 Custom Scripts</div>
+                                    <div class="form-help">
+                                        Add lifecycle hook scripts for Stage-1 container events
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="stage1-scripts-config">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Script Type</label>
+                                        <select class="form-select" id="script-type-stage1">
+                                            <option value="on_build">on_build - Run during Stage-1 image building</option>
+                                            <option value="on_first_run">on_first_run - Run on first container startup</option>
+                                            <option value="on_every_run">on_every_run - Run on every container startup</option>
+                                            <option value="on_user_login">on_user_login - Run when user logs in via SSH</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Script Source</label>
+                                        <div class="flex flex-col gap-2 mb-3">
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage1-script-source" value="file" checked onchange="toggleStage1ScriptSource()">
+                                                <span>Use existing script file</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage1-script-source" value="inline" onchange="toggleStage1ScriptSource()">
+                                                <span>Create new script inline</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- File Path Option -->
+                                        <div id="stage1-script-file-option">
+                                            <label class="form-label" for="script-path-stage1">
+                                                Script Path (with optional arguments)
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="script-path-stage1" 
+                                                    class="form-input" 
+                                                    placeholder="stage-1/custom/setup.sh --verbose"
+                                                    onkeypress="handleScriptEnter(event, 'stage1')"
+                                                >
+                                                <button class="btn btn-secondary">
+                                                    📁 Browse
+                                                </button>
+                                            </div>
+                                            <div class="form-help">
+                                                Path to script file with optional command-line arguments
+                                            </div>
+                                        </div>
+
+                                        <!-- Inline Script Option -->
+                                        <div id="stage1-script-inline-option" style="display: none;">
+                                            <label class="form-label" for="inline-script-name-stage1">
+                                                Script Name *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="inline-script-name-stage1" 
+                                                class="form-input" 
+                                                placeholder="custom-script.sh"
+                                            >
+                                            <div class="form-help mb-3">
+                                                Name for the script file (will be created in project directory)
+                                            </div>
+                                            
+                                            <label class="form-label" for="inline-script-content-stage1">
+                                                Script Content *
+                                            </label>
+                                            <textarea 
+                                                id="inline-script-content-stage1" 
+                                                class="form-input" 
+                                                rows="6" 
+                                                placeholder="#!/bin/bash&#10;# Your custom script here&#10;echo 'Running custom script...'"
+                                                style="font-family: 'Courier New', monospace; resize: vertical;"
+                                            ></textarea>
+                                            <div class="form-help">
+                                                Bash script content. Script will execute with the selected lifecycle event.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button class="btn btn-primary w-full" onclick="addScriptStage1()">
+                                        ➕ Add Script
+                                    </button>
+
+                                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                        <div class="text-sm">
+                                            <strong>💡 Tip:</strong> Press Enter with empty path to finish current script type and move to the next one.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="form-label">Current Stage-1 Scripts</div>
+                                    
+                                    <div class="mb-4">
+                                        <div class="text-sm font-weight-600 mb-2">🏗️ on_build scripts:</div>
+                                        <div id="on_build-scripts-stage1">
+                                            <div class="list-item">
+                                                <div class="list-item-content">stage-1/custom/setup.sh --verbose</div>
+                                                <div class="list-item-actions">
+                                                    <button class="btn btn-error text-xs" onclick="removeScript(this)">
+                                                        🗑️ Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="list-item">
+                                                <div class="list-item-content">install-dependencies.sh (inline script)</div>
+                                                <div class="list-item-actions">
+                                                    <button class="btn btn-secondary text-xs" onclick="viewInlineScript(this, 'install-dependencies.sh')">
+                                                        👁️ View
+                                                    </button>
+                                                    <button class="btn btn-error text-xs" onclick="removeScript(this)">
+                                                        🗑️ Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <div class="text-sm font-weight-600 mb-2">🚀 on_first_run scripts:</div>
+                                        <div id="on_first_run-scripts-stage1">
+                                            <div class="text-center text-secondary py-2 text-sm">No scripts configured</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <div class="text-sm font-weight-600 mb-2">🔄 on_every_run scripts:</div>
+                                        <div id="on_every_run-scripts-stage1">
+                                            <div class="list-item">
+                                                <div class="list-item-content">stage-1/scripts/health-check.sh</div>
+                                                <div class="list-item-actions">
+                                                    <button class="btn btn-error text-xs" onclick="removeScript(this)">
+                                                        🗑️ Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <div class="text-sm font-weight-600 mb-2">👤 on_user_login scripts:</div>
+                                        <div id="on_user_login-scripts-stage1">
+                                            <div class="text-center text-secondary py-2 text-sm">No scripts configured</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage-2 Custom Scripts -->
+                <div class="card mb-6">
+                    <div class="card-header">
+                        🎯 Stage-2 Custom Scripts
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <div class="flex items-center gap-4">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="toggle-input" id="stage2-scripts-enabled" onchange="toggleStage2Scripts()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div class="form-label">Configure Stage-2 Custom Scripts</div>
+                                    <div class="form-help">
+                                        Add additional scripts for Stage-2 image building
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="stage2-scripts-config" style="display: none;">
+                            <div class="grid grid-2 mt-4">
+                                <div>
+                                    <div class="form-group">
+                                        <label class="form-label">Script Type</label>
+                                        <select class="form-select" id="script-type-stage2">
+                                            <option value="on_build">on_build - Run during Stage-1 image building</option>
+                                            <option value="on_first_run">on_first_run - Run on first container startup</option>
+                                            <option value="on_every_run">on_every_run - Run on every container startup</option>
+                                            <option value="on_user_login">on_user_login - Run when user logs in via SSH</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Script Source</label>
+                                        <div class="flex flex-col gap-2 mb-3">
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage2-script-source" value="file" checked onchange="toggleStage2ScriptSource()">
+                                                <span>Use existing script file</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="radio" name="stage2-script-source" value="inline" onchange="toggleStage2ScriptSource()">
+                                                <span>Create new script inline</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- File Path Option -->
+                                        <div id="stage2-script-file-option">
+                                            <label class="form-label" for="script-path-stage2">
+                                                Script Path (with optional arguments)
+                                            </label>
+                                            <div class="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="script-path-stage2" 
+                                                    class="form-input" 
+                                                    placeholder="stage-2/custom/init.sh"
+                                                    onkeypress="handleScriptEnter(event, 'stage2')"
+                                                >
+                                                <button class="btn btn-secondary">
+                                                    📁 Browse
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Inline Script Option -->
+                                        <div id="stage2-script-inline-option" style="display: none;">
+                                            <label class="form-label" for="inline-script-name-stage2">
+                                                Script Name *
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="inline-script-name-stage2" 
+                                                class="form-input" 
+                                                placeholder="custom-script.sh"
+                                            >
+                                            <div class="form-help mb-3">
+                                                Name for the script file (will be created in project directory)
+                                            </div>
+                                            
+                                            <label class="form-label" for="inline-script-content-stage2">
+                                                Script Content *
+                                            </label>
+                                            <textarea 
+                                                id="inline-script-content-stage2" 
+                                                class="form-input" 
+                                                rows="6" 
+                                                placeholder="#!/bin/bash&#10;# Your custom script here&#10;echo 'Running stage-2 custom script...'"
+                                                style="font-family: 'Courier New', monospace; resize: vertical;"
+                                            ></textarea>
+                                            <div class="form-help">
+                                                Bash script content. Script will execute with the selected lifecycle event.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button class="btn btn-primary w-full" onclick="addScriptStage2()">
+                                        ➕ Add Script
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <div class="form-label">Current Stage-2 Scripts</div>
+                                    <div class="text-center text-secondary py-4">
+                                        No stage-2 scripts configured
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scripts Configuration Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        📋 Scripts Execution Summary
+                    </div>
+                    <div class="card-content">
+                        <div class="grid grid-2">
+                            <div>
+                                <div class="form-label mb-2">Script Execution Timeline</div>
+                                <div class="preview-panel">
+                                    <div class="font-mono text-sm">
+                                        <div># 1. During Image Building (on_build)</div>
+                                        <div>RUN stage-1/custom/setup.sh --verbose</div>
+                                        <div style="margin-top: 0.5rem;"># 2. First Container Start (on_first_run)</div>
+                                        <div style="color: #6b7280;"># No scripts configured</div>
+                                        <div style="margin-top: 0.5rem;"># 3. Every Container Start (on_every_run)</div>
+                                        <div>./stage-1/scripts/health-check.sh</div>
+                                        <div style="margin-top: 0.5rem;"># 4. User SSH Login (on_user_login)</div>
+                                        <div style="color: #6b7280;"># No scripts configured</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-label mb-2">Script Descriptions</div>
+                                <div class="preview-panel">
+                                    <div class="text-sm">
+                                        <div class="mb-2">
+                                            <strong>🏗️ on_build:</strong> Scripts executed during Stage-1 and Stage-2 image building processes. Useful for installing dependencies, configuring services.
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>🚀 on_first_run:</strong> Scripts executed only on the first container startup. Good for initialization tasks.
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>🔄 on_every_run:</strong> Scripts executed every time the container starts. Ideal for health checks, service restarts.
+                                        </div>
+                                        <div>
+                                            <strong>👤 on_user_login:</strong> Scripts executed when a user logs in via SSH. Perfect for setting up user environment.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="form-label mb-2">📁 Script File Management</div>
+                            <div class="text-sm text-secondary">
+                                <div class="mb-2">
+                                    • All script files will be copied to the project directory during configuration save
+                                </div>
+                                <div class="mb-2">
+                                    • Script paths in user_config.yml will be relative to the project directory
+                                </div>
+                                <div class="mb-2">
+                                    • Ensure all scripts have proper execute permissions before adding them
+                                </div>
+                                <div>
+                                    • Test scripts independently before integrating them into the container lifecycle
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator">
+                    <div class="status-dot modified"></div>
+                    <span>Configuration modified</span>
+                </div>
+                <span>•</span>
+                <span>Last saved: Never</span>
+                <span>•</span>
+                <span>Scripts tab: All valid</span>
+            </div>
+            <div class="status-right">
+                <a href="index.html" class="btn btn-secondary text-xs">← Back to Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function toggleStage1Entry() {
+            const enabled = document.getElementById('stage1-entry-enabled').checked;
+            const config = document.getElementById('stage1-entry-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleStage2Entry() {
+            const enabled = document.getElementById('stage2-entry-enabled').checked;
+            const config = document.getElementById('stage2-entry-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleStage1Scripts() {
+            const enabled = document.getElementById('stage1-scripts-enabled').checked;
+            const config = document.getElementById('stage1-scripts-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function toggleStage2Scripts() {
+            const enabled = document.getElementById('stage2-scripts-enabled').checked;
+            const config = document.getElementById('stage2-scripts-config');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+
+        function addScriptStage1() {
+            const source = document.querySelector('input[name="stage1-script-source"]:checked').value;
+            const scriptType = document.getElementById('script-type-stage1').value;
+            let scriptDisplay, scriptPath;
+
+            if (source === 'file') {
+                scriptPath = document.getElementById('script-path-stage1').value.trim();
+                if (!scriptPath) {
+                    return; // Empty path - just ignore
+                }
+                scriptDisplay = scriptPath;
+            } else {
+                const scriptName = document.getElementById('inline-script-name-stage1').value.trim();
+                const scriptContent = document.getElementById('inline-script-content-stage1').value.trim();
+                
+                if (!scriptName || !scriptContent) {
+                    alert('Both script name and content are required for inline scripts');
+                    return;
+                }
+                scriptDisplay = `${scriptName} (inline script)`;
+            }
+
+            const container = document.getElementById(`${scriptType}-scripts-stage1`);
+            
+            // Remove empty message if it exists
+            const emptyMessage = container.querySelector('.text-center');
+            if (emptyMessage) {
+                emptyMessage.remove();
+            }
+
+            const listItem = document.createElement('div');
+            listItem.className = 'list-item';
+            listItem.innerHTML = `
+                <div class="list-item-content">${scriptDisplay}</div>
+                <div class="list-item-actions">
+                    <button class="btn btn-error text-xs" onclick="removeScript(this)">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(listItem);
+            
+            // Clear inputs
+            if (source === 'file') {
+                document.getElementById('script-path-stage1').value = '';
+            } else {
+                document.getElementById('inline-script-name-stage1').value = '';
+                document.getElementById('inline-script-content-stage1').value = '';
+            }
+        }
+
+        function addScriptStage2() {
+            const source = document.querySelector('input[name="stage2-script-source"]:checked').value;
+            const scriptType = document.getElementById('script-type-stage2').value;
+            let scriptDisplay, scriptPath;
+
+            if (source === 'file') {
+                scriptPath = document.getElementById('script-path-stage2').value.trim();
+                if (!scriptPath) {
+                    return; // Empty path - just ignore
+                }
+                scriptDisplay = scriptPath;
+            } else {
+                const scriptName = document.getElementById('inline-script-name-stage2').value.trim();
+                const scriptContent = document.getElementById('inline-script-content-stage2').value.trim();
+                
+                if (!scriptName || !scriptContent) {
+                    alert('Both script name and content are required for inline scripts');
+                    return;
+                }
+                scriptDisplay = `${scriptName} (inline script)`;
+            }
+
+            // For demo, just show a simple addition message
+            alert(`Added ${scriptType} script: ${scriptDisplay}`);
+            
+            // Clear inputs
+            if (source === 'file') {
+                document.getElementById('script-path-stage2').value = '';
+            } else {
+                document.getElementById('inline-script-name-stage2').value = '';
+                document.getElementById('inline-script-content-stage2').value = '';
+            }
+        }
+
+        function removeScript(button) {
+            const container = button.closest('.list-item').parentNode;
+            button.closest('.list-item').remove();
+            
+            // Add empty message if no items left
+            if (container.children.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'text-center text-secondary py-2 text-sm';
+                emptyMessage.textContent = 'No scripts configured';
+                container.appendChild(emptyMessage);
+            }
+        }
+
+        function handleScriptEnter(event, stage) {
+            if (event.key === 'Enter') {
+                if (stage === 'stage1') {
+                    addScriptStage1();
+                } else {
+                    addScriptStage2();
+                }
+            }
+        }
+
+        // New toggle functions for inline script creation
+        function toggleStage1EntrySource() {
+            const source = document.querySelector('input[name="stage1-entry-source"]:checked').value;
+            const fileOption = document.getElementById('stage1-entry-file-option');
+            const inlineOption = document.getElementById('stage1-entry-inline-option');
+            
+            if (source === 'file') {
+                fileOption.style.display = 'block';
+                inlineOption.style.display = 'none';
+            } else {
+                fileOption.style.display = 'none';
+                inlineOption.style.display = 'block';
+            }
+        }
+
+        function toggleStage2EntrySource() {
+            const source = document.querySelector('input[name="stage2-entry-source"]:checked').value;
+            const fileOption = document.getElementById('stage2-entry-file-option');
+            const inlineOption = document.getElementById('stage2-entry-inline-option');
+            
+            if (source === 'file') {
+                fileOption.style.display = 'block';
+                inlineOption.style.display = 'none';
+            } else {
+                fileOption.style.display = 'none';
+                inlineOption.style.display = 'block';
+            }
+        }
+
+        function toggleStage1ScriptSource() {
+            const source = document.querySelector('input[name="stage1-script-source"]:checked').value;
+            const fileOption = document.getElementById('stage1-script-file-option');
+            const inlineOption = document.getElementById('stage1-script-inline-option');
+            
+            if (source === 'file') {
+                fileOption.style.display = 'block';
+                inlineOption.style.display = 'none';
+            } else {
+                fileOption.style.display = 'none';
+                inlineOption.style.display = 'block';
+            }
+        }
+
+        function toggleStage2ScriptSource() {
+            const source = document.querySelector('input[name="stage2-script-source"]:checked').value;
+            const fileOption = document.getElementById('stage2-script-file-option');
+            const inlineOption = document.getElementById('stage2-script-inline-option');
+            
+            if (source === 'file') {
+                fileOption.style.display = 'block';
+                inlineOption.style.display = 'none';
+            } else {
+                fileOption.style.display = 'none';
+                inlineOption.style.display = 'block';
+            }
+        }
+
+        // Function to view inline script content
+        function viewInlineScript(button, scriptName) {
+            const demoContent = `#!/bin/bash
+# ${scriptName} - Auto-generated inline script
+echo "Installing dependencies for project..."
+
+# Update package lists
+apt-get update
+
+# Install common development tools
+apt-get install -y \\
+    curl \\
+    wget \\
+    git \\
+    build-essential \\
+    python3-pip
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs
+
+echo "Dependencies installation completed!"`;
+
+            // Create a modal-like dialog to show the script content
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 80%; max-height: 80%; overflow: auto;">
+                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0;">📜 ${scriptName}</h3>
+                        <button onclick="this.closest('[style*=position]').remove()" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer; margin-left: auto;">
+                            ✕ Close
+                        </button>
+                    </div>
+                    <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.4; margin: 0;">${demoContent}</pre>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+    </script>
+</body>
+</html>

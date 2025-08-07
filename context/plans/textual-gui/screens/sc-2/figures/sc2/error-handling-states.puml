@@ -1,0 +1,32 @@
+@startuml
+[*] --> NoError
+NoError --> ValidationError : invalid_input_entered
+NoError --> NavigationError : navigation_attempted_with_invalid_state
+NoError --> SaveError : save_operation_failed
+NoError --> SystemError : unexpected_system_error
+
+ValidationError --> NoError : input_corrected
+ValidationError --> ValidationError : user_continues_invalid_input
+
+NavigationError --> NoError : validation_passed
+NavigationError --> ValidationError : validation_still_failing
+
+SaveError --> NoError : save_retry_successful
+SaveError --> SaveError : save_retry_failed
+
+SystemError --> NoError : system_recovered
+SystemError --> FatalError : system_unrecoverable
+FatalError --> [*] : application_exit
+
+state ValidationError {
+  [*] --> DisplayingErrorMessage
+  DisplayingErrorMessage --> HighlightingInvalidFields
+  HighlightingInvalidFields --> DisablingNavigation
+}
+
+state SaveError {
+  [*] --> DisplayingSaveError
+  DisplayingSaveError --> OfferingRetry
+  OfferingRetry --> AttemptingRetry
+}
+@enduml

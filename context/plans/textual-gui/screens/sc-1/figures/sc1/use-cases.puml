@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+actor "User" as user
+actor "File System" as fs
+
+rectangle "Project Directory Selection Screen" {
+  usecase "Select Project Directory" as UC1
+  usecase "Browse for Directory" as UC2
+  usecase "Validate Directory Path" as UC3
+  usecase "Create Project Directory" as UC4
+}
+
+user --> UC1
+user --> UC2
+UC1 --> UC3 : <<include>>
+UC3 --> UC4 : <<extend>>
+UC3 --> fs
+UC4 --> fs
+@enduml

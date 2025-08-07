@@ -1,0 +1,54 @@
+# Pixi installation with external volumes for persistent storage
+# This example demonstrates using volumes to persist pixi installation and cache
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-pixi-volumes:stage-1
+  
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    
+    users:
+      developer:
+        password: 'dev123'
+        uid: 1100
+      root:
+        password: 'root123'
+
+  apt:
+    repo_source: tuna
+
+stage_2:
+  image:
+    output: pei-pixi-volumes:stage-2
+  
+  # storage configurations using volumes for persistence
+  storage:
+    app:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+    data:
+      type: auto-volume
+  
+  # additional mounts for pixi cache and home directories
+  mount:
+    # save home directories to volume for user settings persistence
+    home_developer:
+      type: auto-volume
+      dst_path: /home/developer
+    
+    home_root:
+      type: auto-volume
+      dst_path: /root
+  
+  # custom scripts to install and configure pixi with custom cache directory
+  custom:
+    on_first_run:
+      # Install pixi with cache directory in external storage for persistence
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/create-env-common.bash'
