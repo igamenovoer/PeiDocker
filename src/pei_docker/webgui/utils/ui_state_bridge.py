@@ -413,9 +413,10 @@ class UIStateBridge:
         # Build image config
         image = None
         if stage_num == 1:
+            output_name = ui_project.image_output_name or ui_project.project_name or "pei-image"
             image = AttrsImageConfig(
-                base=ui_project.base_image,
-                output=ui_project.image_output_name or ui_project.project_name or "pei-image"
+                base=ui_project.base_image or "ubuntu:22.04",
+                output=f"{output_name}:stage-1"
             )
         else:
             # Stage 2 only needs output name
@@ -447,10 +448,23 @@ class UIStateBridge:
                     )
                     users[username] = user_config
             
+            # Handle port values that might be int or str
+            ssh_port_value: int = 22  # Default value
+            if isinstance(ui_stage.ssh.port, str):
+                ssh_port_value = int(ui_stage.ssh.port) if ui_stage.ssh.port.isdigit() else 22
+            elif isinstance(ui_stage.ssh.port, int):
+                ssh_port_value = ui_stage.ssh.port
+                
+            ssh_host_port_value: int = 2222  # Default value
+            if isinstance(ui_stage.ssh.host_port, str):
+                ssh_host_port_value = int(ui_stage.ssh.host_port) if ui_stage.ssh.host_port.isdigit() else 2222
+            elif isinstance(ui_stage.ssh.host_port, int):
+                ssh_host_port_value = ui_stage.ssh.host_port
+            
             ssh = AttrsSSHConfig(
                 enable=ui_stage.ssh.enabled,
-                port=int(ui_stage.ssh.port) if ui_stage.ssh.port.isdigit() else 22,
-                host_port=int(ui_stage.ssh.host_port) if ui_stage.ssh.host_port.isdigit() else 2222,
+                port=ssh_port_value,
+                host_port=ssh_host_port_value,
                 users=users
             )
         
@@ -712,280 +726,36 @@ class UIStateBridge:
         }
     
     def _ui_to_user_config_format(self, ui_state: AppUIState) -> Dict[str, Any]:
-        """Convert UI state to user_config.yml format."""
-        # This method remains largely the same as it's converting to YAML format
-        # The previous implementation already handles the conversion correctly
+        """Convert UI state to user_config.yml format.
         
-        # Convert environment variables to list format
-        def env_vars_to_list(env_vars: Dict[str, str]) -> List[str]:
-            return [f"{k}={v}" for k, v in env_vars.items()]
-        
-        # Build stage-1 configuration
-        output_name = ui_state.project.image_output_name or ui_state.project.project_name or "pei-image"
-        stage_1: Dict[str, Any] = {
-            'image': {
-                'base': ui_state.project.base_image,
-                'output': f"{output_name}:stage-1"
+        Data flow: UI state -> peidocker-data-model (attrs) -> dict -> YAML format
+        This ensures consistency with save_to_yaml and eliminates code duplication.
+        """
+        try:
+            # Step 1: Convert UI state to attrs UserConfig (peidocker-data-model)
+            # This reuses all the existing conversion logic and validation
+            attrs_config = self._ui_to_attrs_config(ui_state)
+            
+            # Step 2: Convert attrs config to dict using cattrs
+            # This gives us the proper YAML-ready structure
+            config_dict = cattrs.unstructure(attrs_config)
+            
+            # Step 3: Add inline scripts metadata (not part of UserConfig structure)
+            config_dict = self._add_inline_scripts_metadata(config_dict, ui_state)
+            
+            # Step 4: Clean up the config dict (remove None values, empty dicts, etc.)
+            # This makes the YAML cleaner and more readable
+            config_dict = self._clean_config_dict(config_dict)
+            
+            return config_dict
+            
+        except Exception as e:
+            # If conversion fails, return a minimal config
+            # This ensures the summary tab doesn't break
+            return {
+                'stage_1': {'image': {'base': 'ubuntu:latest', 'output': 'pei-image:stage-1'}},
+                'stage_2': {'image': {'output': 'pei-image:stage-2'}}
             }
-        }
-        
-        # Add inline scripts metadata if any
-        inline_scripts_1: Dict[str, str] = {}
-        inline_scripts_2: Dict[str, str] = {}
-        
-        # Process stage-1 inline scripts
-        if ui_state.stage_1.scripts.entry_mode == "inline":
-            script_name = ui_state.stage_1.scripts.entry_inline_name
-            script_content = ui_state.stage_1.scripts.entry_inline_content
-            if script_name and script_content:
-                inline_scripts_1[script_name] = script_content
-                stage_1['entry_point'] = f"/pei-docker/scripts/{script_name}"
-        elif ui_state.stage_1.scripts.entry_mode == "file":
-            stage_1['entry_point'] = ui_state.stage_1.scripts.entry_file_path
-        
-        # Add environment configuration to stage-1
-        # Environment tab has separate sections for stage-1 and stage-2, save separately
-        if ui_state.stage_1.environment.env_vars:
-            stage_1['environment'] = env_vars_to_list(ui_state.stage_1.environment.env_vars)
-        
-        # Add device configuration to stage-1
-        if ui_state.stage_1.environment.device_type != DeviceTypes.CPU:
-            stage_1['device'] = {
-                'type': ui_state.stage_1.environment.device_type
-            }
-        
-        # Add network configuration to stage-1
-        # Following default behavior: write to both stages
-        if ui_state.stage_1.network.proxy_enabled and ui_state.stage_1.network.http_proxy:
-            proxy_config: Dict[str, Any] = {}
-            # Extract components from proxy URL
-            proxy_url = ui_state.stage_1.network.http_proxy
-            if '://' in proxy_url:
-                scheme, rest = proxy_url.split('://', 1)
-                use_https = scheme == 'https'
-            else:
-                rest = proxy_url
-                use_https = False
-            
-            if ':' in rest:
-                address, port_str = rest.rsplit(':', 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = 8080
-            else:
-                address = rest
-                port = 8080
-            
-            proxy_config['address'] = address
-            proxy_config['port'] = port
-            proxy_config['enable_globally'] = True
-            if use_https:
-                proxy_config['use_https'] = True
-            
-            stage_1['proxy'] = proxy_config
-        
-        if ui_state.stage_1.network.apt_mirror:
-            stage_1['apt'] = {
-                'repo_source': ui_state.stage_1.network.apt_mirror,
-                'use_proxy': ui_state.stage_1.network.proxy_enabled
-            }
-        
-        # Add port mappings to stage-1
-        if ui_state.stage_1.network.port_mappings:
-            # Filter out empty port mappings
-            valid_ports = [
-                f"{m['host']}:{m['container']}" 
-                for m in ui_state.stage_1.network.port_mappings
-                if m.get('host', '').strip() and m.get('container', '').strip()
-            ]
-            if valid_ports:
-                stage_1['ports'] = valid_ports
-        
-        # Add SSH configuration to stage-1 ONLY (per mapping rules)
-        if ui_state.stage_1.ssh.enabled:
-            # Convert users list to dict format expected by attrs
-            users_dict = {}
-            for user_data in ui_state.stage_1.ssh.users:
-                username = user_data.get('name', '')
-                if username:
-                    user_config = {}
-                    
-                    # Only include password if not empty
-                    password = user_data.get('password')
-                    if password:
-                        user_config['password'] = password
-                    
-                    # Only include uid if not empty (uid must be integer or omitted)
-                    uid = user_data.get('uid', '')
-                    if uid and uid.strip():
-                        try:
-                            user_config['uid'] = int(uid)
-                        except ValueError:
-                            # If not a valid integer, omit it
-                            pass
-                    
-                    # Handle SSH keys
-                    ssh_keys = user_data.get('ssh_keys', [])
-                    if ssh_keys and ssh_keys[0]:
-                        user_config['pubkey_text'] = ssh_keys[0]
-                    
-                    users_dict[username] = user_config
-            
-            stage_1['ssh'] = {
-                'enable': True,
-                'port': int(ui_state.stage_1.ssh.port),
-                'host_port': int(ui_state.stage_1.ssh.host_port),
-                'users': users_dict
-            }
-        
-        # Process stage-1 custom scripts
-        custom_scripts_1 = {}
-        lifecycle_1 = ui_state.stage_1.scripts.lifecycle_scripts
-        
-        for script_type in CustomScriptLifecycleTypes.get_all_types():
-            if script_type in lifecycle_1 and lifecycle_1[script_type]:
-                script_list = []
-                for script_data in lifecycle_1[script_type]:
-                    if isinstance(script_data, dict):
-                        if script_data.get('type') == ScriptTypes.FILE:
-                            script_list.append(script_data['path'])
-                        elif script_data.get('type') == ScriptTypes.INLINE:
-                            inline_name = script_data.get('name', '')
-                            if inline_name:
-                                script_list.append(f"/pei-docker/scripts/{inline_name}")
-                                inline_scripts_1[inline_name] = script_data.get('content', '')
-                if script_list:
-                    custom_scripts_1[script_type] = script_list
-        
-        if custom_scripts_1:
-            stage_1['custom'] = custom_scripts_1
-        
-        # Add stage-1 inline scripts to metadata
-        if inline_scripts_1:
-            stage_1['_inline_scripts'] = inline_scripts_1
-        
-        # Process stage-1 inline scripts metadata
-        if ui_state.stage_1.scripts._inline_scripts_metadata:
-            if '_inline_scripts' not in stage_1:
-                stage_1['_inline_scripts'] = {}
-            # Cast to Any to satisfy type checker - we know this is safe
-            metadata: Dict[str, Any] = dict(ui_state.stage_1.scripts._inline_scripts_metadata)
-            stage_1['_inline_scripts'].update(metadata)
-        
-        # Build stage-2 configuration
-        stage_2: Dict[str, Any] = {
-            'image': {
-                'output': f"{output_name}:stage-2"
-            }
-        }
-        
-        # Process stage-2 inline entry point
-        if ui_state.stage_2.scripts.entry_mode == "inline":
-            script_name = ui_state.stage_2.scripts.entry_inline_name
-            script_content = ui_state.stage_2.scripts.entry_inline_content
-            if script_name and script_content:
-                inline_scripts_2[script_name] = script_content
-                stage_2['entry_point'] = f"/pei-docker/scripts/{script_name}"
-        elif ui_state.stage_2.scripts.entry_mode == "file":
-            stage_2['entry_point'] = ui_state.stage_2.scripts.entry_file_path
-        
-        # Add environment configuration to stage-2
-        # Environment tab has separate sections for stage-1 and stage-2, save separately
-        if ui_state.stage_2.environment.env_vars:
-            stage_2['environment'] = env_vars_to_list(ui_state.stage_2.environment.env_vars)
-        
-        # Add device configuration to stage-2 (copy from GUI's single device setting)
-        # Following the principle: if GUI has single section, map to both stages
-        if ui_state.stage_2.environment.device_type != DeviceTypes.CPU:
-            stage_2['device'] = {
-                'type': ui_state.stage_2.environment.device_type
-            }
-        
-        # Add network configuration to stage-2 
-        # Following default behavior: write to both stages
-        if ui_state.stage_2.network.proxy_enabled and ui_state.stage_2.network.http_proxy:
-            stage2_proxy_config: Dict[str, Any] = {}
-            proxy_url = ui_state.stage_2.network.http_proxy
-            if '://' in proxy_url:
-                scheme, rest = proxy_url.split('://', 1)
-                use_https = scheme == 'https'
-            else:
-                rest = proxy_url
-                use_https = False
-            
-            if ':' in rest:
-                address, port_str = rest.rsplit(':', 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = 8080
-            else:
-                address = rest
-                port = 8080
-            
-            stage2_proxy_config['address'] = address
-            stage2_proxy_config['port'] = port
-            stage2_proxy_config['enable_globally'] = True
-            if use_https:
-                stage2_proxy_config['use_https'] = True
-            
-            stage_2['proxy'] = stage2_proxy_config
-        
-        # Add port mappings to stage-2
-        if ui_state.stage_2.network.port_mappings:
-            # Filter out empty port mappings
-            valid_ports = [
-                f"{m['host']}:{m['container']}" 
-                for m in ui_state.stage_2.network.port_mappings
-                if m.get('host', '').strip() and m.get('container', '').strip()
-            ]
-            if valid_ports:
-                stage_2['ports'] = valid_ports
-        
-        # Add storage configuration to stage-2
-        storage_config = self._build_yaml_storage_config(ui_state.stage_2.storage)
-        if storage_config:
-            stage_2['storage'] = storage_config
-        
-        # Process stage-2 custom scripts
-        custom_scripts_2 = {}
-        lifecycle_2 = ui_state.stage_2.scripts.lifecycle_scripts
-        
-        for script_type in CustomScriptLifecycleTypes.get_all_types():
-            if script_type in lifecycle_2 and lifecycle_2[script_type]:
-                script_list = []
-                for script_data in lifecycle_2[script_type]:
-                    if isinstance(script_data, dict):
-                        if script_data.get('type') == ScriptTypes.FILE:
-                            script_list.append(script_data['path'])
-                        elif script_data.get('type') == ScriptTypes.INLINE:
-                            inline_name = script_data.get('name', '')
-                            if inline_name:
-                                script_list.append(f"/pei-docker/scripts/{inline_name}")
-                                inline_scripts_2[inline_name] = script_data.get('content', '')
-                if script_list:
-                    custom_scripts_2[script_type] = script_list
-        
-        if custom_scripts_2:
-            stage_2['custom'] = custom_scripts_2
-        
-        # Add stage-2 inline scripts to metadata
-        if inline_scripts_2:
-            stage_2['_inline_scripts'] = inline_scripts_2
-        
-        # Process stage-2 inline scripts metadata
-        if ui_state.stage_2.scripts._inline_scripts_metadata:
-            if '_inline_scripts' not in stage_2:
-                stage_2['_inline_scripts'] = {}
-            # Cast to Any to satisfy type checker - we know this is safe
-            metadata_2: Dict[str, Any] = dict(ui_state.stage_2.scripts._inline_scripts_metadata)
-            stage_2['_inline_scripts'].update(metadata_2)
-        
-        return {
-            'stage_1': stage_1,
-            'stage_2': stage_2
-        }
     
     def _build_yaml_storage_config(self, storage: StorageUI) -> Dict[str, Any]:
         """Build storage configuration for YAML format."""
@@ -1503,7 +1273,11 @@ class UIStateBridge:
             
             # Add metadata from _inline_scripts_metadata if present
             if ui_state.stage_1.scripts._inline_scripts_metadata:
-                inline_scripts_1.update(dict(ui_state.stage_1.scripts._inline_scripts_metadata))
+                # _inline_scripts_metadata is Dict[str, Dict[str, str]]
+                # We need to flatten it to Dict[str, str] for inline_scripts
+                for name, metadata in ui_state.stage_1.scripts._inline_scripts_metadata.items():
+                    if name not in inline_scripts_1 and 'content' in metadata:
+                        inline_scripts_1[name] = metadata['content']
             
             if inline_scripts_1:
                 result['stage_1']['_inline_scripts'] = inline_scripts_1
@@ -1530,7 +1304,11 @@ class UIStateBridge:
             
             # Add metadata from _inline_scripts_metadata if present
             if ui_state.stage_2.scripts._inline_scripts_metadata:
-                inline_scripts_2.update(dict(ui_state.stage_2.scripts._inline_scripts_metadata))
+                # _inline_scripts_metadata is Dict[str, Dict[str, str]]
+                # We need to flatten it to Dict[str, str] for inline_scripts
+                for name, metadata in ui_state.stage_2.scripts._inline_scripts_metadata.items():
+                    if name not in inline_scripts_2 and 'content' in metadata:
+                        inline_scripts_2[name] = metadata['content']
             
             if inline_scripts_2:
                 result['stage_2']['_inline_scripts'] = inline_scripts_2
@@ -1548,15 +1326,15 @@ class UIStateBridge:
             if value is None:
                 return None
             elif isinstance(value, dict):
-                cleaned = {}
+                cleaned_dict: Dict[str, Any] = {}
                 for k, v in value.items():
                     cleaned_v = clean_value(v)
                     # Skip None values and empty dicts (except for special keys like _inline_scripts)
                     if cleaned_v is not None and (not isinstance(cleaned_v, dict) or cleaned_v or k.startswith('_')):
-                        cleaned[k] = cleaned_v
-                return cleaned if cleaned else None
+                        cleaned_dict[k] = cleaned_v
+                return cleaned_dict if cleaned_dict else None
             elif isinstance(value, list):
-                cleaned = []
+                cleaned_list: List[Any] = []
                 for item in value:
                     cleaned_item = clean_value(item)
                     # Skip None values and empty strings in lists
@@ -1565,10 +1343,10 @@ class UIStateBridge:
                         if isinstance(cleaned_item, str) and ':' in cleaned_item:
                             parts = cleaned_item.split(':')
                             if len(parts) == 2 and parts[0].strip() and parts[1].strip():
-                                cleaned.append(cleaned_item)
+                                cleaned_list.append(cleaned_item)
                         else:
-                            cleaned.append(cleaned_item)
-                return cleaned if cleaned else None
+                            cleaned_list.append(cleaned_item)
+                return cleaned_list if cleaned_list else None
             else:
                 return value
         

@@ -1,32 +1,23 @@
 """
 Summary tab for PeiDocker Web GUI - Refactored with data binding.
 
-This tab provides a complete configuration review, validation status,
-and actions for saving and exporting the project using the UIStateBridge
-to transform ui-data-model to business-data-model.
+This tab provides a read-only view of the configuration with validation status
+and YAML preview. All save/export actions are handled via the main app toolbar.
 """
 
 from typing import TYPE_CHECKING, List, Tuple, Dict, Optional, Any
-from pathlib import Path
-from nicegui import ui, app
+from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
-from pei_docker.webgui.constants import EntryModes, ScriptTypes
 import yaml
-import asyncio
-import tempfile
-import zipfile
 
 if TYPE_CHECKING:
     from pei_docker.webgui.app import PeiDockerWebGUI
 
 class SummaryTab(BaseTab):
-    """Summary and validation tab with proper data transformation."""
+    """Summary and validation tab for configuration review."""
     
     def __init__(self, app: 'PeiDockerWebGUI'):
         super().__init__(app)
-        self.save_button: Optional[ui.button] = None
-        self.configure_button: Optional[ui.button] = None
-        self.download_button: Optional[ui.button] = None
         self.config_preview_container: Optional[ui.column] = None
         self.validation_container: Optional[ui.column] = None
     
@@ -37,7 +28,7 @@ class SummaryTab(BaseTab):
             
             self.create_section_header(
                 '📋 Configuration Summary',
-                'Review your complete PeiDocker configuration and save your user_config.yml file'
+                'Review your complete PeiDocker configuration'
             )
             
             # Validation Status
@@ -45,9 +36,6 @@ class SummaryTab(BaseTab):
             
             # Generated user_config.yml Preview
             self._create_config_preview()
-            
-            # Actions section
-            self._create_actions_section()
             
             # Refresh the summary initially
             self.refresh_summary()
@@ -60,198 +48,11 @@ class SummaryTab(BaseTab):
             with ui.column().classes('w-full') as validation_container:
                 self.validation_container = validation_container
     
-    def _create_actions_section(self) -> None:
-        """Create the actions section with save, configure, and download buttons."""
-        with self.create_card('💾 Save & Export'):
-            # Save Configuration
-            with ui.column().classes('mb-4'):
-                self.save_button = ui.button('💾 Save Configuration', on_click=self._save_configuration) \
-                    .classes('w-full bg-green-600 hover:bg-green-700 text-white')
-                ui.label('Save user_config.yml and inline scripts to project directory').classes('text-center text-sm text-gray-600 mt-2')
-            
-            # Configure Project
-            with ui.column().classes('mb-4'):
-                self.configure_button = ui.button('⚙️ Configure Project', on_click=self._configure_project) \
-                    .classes('w-full bg-yellow-600 hover:bg-yellow-700 text-white')
-                ui.label('Save configuration and run pei-docker-cli configure').classes('text-center text-sm text-gray-600 mt-2')
-            
-            # Download Project
-            with ui.column():
-                self.download_button = ui.button('📥 Download Project', on_click=self._download_project) \
-                    .classes('w-full bg-blue-600 hover:bg-blue-700 text-white')
-                ui.label('Export project as ZIP file').classes('text-center text-sm text-gray-600 mt-2')
-    
     def _create_config_preview(self) -> None:
         """Create the configuration preview section."""
         with self.create_card('📄 Generated user_config.yml Preview'):
             with ui.column().classes('w-full') as preview_container:
                 self.config_preview_container = preview_container
-    
-    async def _save_configuration(self) -> None:
-        """Save the configuration to user_config.yml file."""
-        try:
-            # Get project directory
-            project_dir = self.app.ui_state.project.project_directory
-            if not project_dir:
-                ui.notify('Please set a project directory first', type='negative')
-                return
-            
-            # Ensure directory exists
-            project_path = Path(project_dir)
-            project_path.mkdir(parents=True, exist_ok=True)
-            
-            # Save configuration using UIStateBridge
-            config_file = project_path / 'user_config.yml'
-            success, errors = self.app.bridge.save_to_yaml(self.app.ui_state, str(config_file))
-            
-            if success:
-                # Save inline scripts
-                await self._save_inline_scripts(project_path)
-                
-                # Mark as saved
-                self.app.ui_state.mark_saved()
-                ui.notify('Configuration saved successfully!', type='positive')
-                
-                # Refresh preview
-                self.refresh_summary()
-            else:
-                error_msg = '\n'.join(errors) if errors else 'Unknown error'
-                ui.notify(f'Save failed: {error_msg}', type='negative', timeout=10000)
-            
-        except Exception as e:
-            ui.notify(f'Error saving configuration: {str(e)}', type='negative', timeout=10000)
-    
-    async def _save_inline_scripts(self, project_path: Path) -> None:
-        """Save inline scripts from the Scripts tab to files."""
-        installation_dir = project_path / 'installation'
-        installation_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Process inline scripts for both stages
-        for stage_num, stage_ui in [(1, self.app.ui_state.stage_1), (2, self.app.ui_state.stage_2)]:
-            scripts_ui = stage_ui.scripts
-            
-            # Entry point inline scripts
-            entry_mode = getattr(scripts_ui, f'stage{stage_num}_entry_mode')
-            if entry_mode == EntryModes.INLINE:
-                entry_name = getattr(scripts_ui, f'stage{stage_num}_entry_inline_name')
-                entry_content = getattr(scripts_ui, f'stage{stage_num}_entry_inline_content')
-                
-                if entry_name and entry_content:
-                    script_path = installation_dir / entry_name
-                    script_path.parent.mkdir(parents=True, exist_ok=True)
-                    
-                    # Write script with proper shebang if missing
-                    with open(script_path, 'w') as f:
-                        if not entry_content.startswith('#!'):
-                            f.write('#!/bin/bash\n')
-                        f.write(entry_content)
-                    
-                    # Make executable
-                    script_path.chmod(0o755)
-            
-            # Lifecycle inline scripts
-            lifecycle_scripts = getattr(scripts_ui, f'stage{stage_num}_lifecycle_scripts', {})
-            for lifecycle_type, scripts in lifecycle_scripts.items():
-                for script in scripts:
-                    if script.get('type') == ScriptTypes.INLINE:
-                        script_name = script.get('name', '')
-                        script_content = script.get('content', '')
-                        
-                        if script_name and script_content:
-                            script_path = installation_dir / script_name
-                            script_path.parent.mkdir(parents=True, exist_ok=True)
-                            
-                            with open(script_path, 'w') as f:
-                                if not script_content.startswith('#!'):
-                                    f.write('#!/bin/bash\n')
-                                f.write(script_content)
-                            
-                            script_path.chmod(0o755)
-    
-    async def _configure_project(self) -> None:
-        """Configure the project using pei-docker-cli."""
-        # Show confirmation dialog
-        dialog = ui.dialog()
-        with dialog, ui.card().classes('w-96'):
-            ui.label('Configure Project').classes('text-lg font-semibold mb-3')
-            ui.label('This will:').classes('mb-2')
-            ui.markdown("""
-1. Save the current configuration
-2. Run `pei-docker-cli configure` to generate Dockerfiles
-3. This may take a few minutes
-
-Continue?
-            """).classes('mb-4 text-sm')
-            
-            with ui.row().classes('gap-2 justify-end'):
-                ui.button('Cancel', on_click=dialog.close).classes('bg-gray-600 hover:bg-gray-700 text-white')
-                ui.button('Configure', on_click=lambda: self._do_configure(dialog)) \
-                    .classes('bg-yellow-600 hover:bg-yellow-700 text-white')
-        
-        dialog.open()
-    
-    async def _do_configure(self, dialog: ui.dialog) -> None:
-        """Actually run the configuration after confirmation."""
-        dialog.close()
-        
-        # First save the configuration
-        await self._save_configuration()
-        
-        # Get project directory
-        project_dir = self.app.ui_state.project.project_directory
-        if not project_dir:
-            ui.notify('No project directory set', type='negative')
-            return
-        
-        try:
-            # Run pei-docker-cli configure
-            success = await self.app.project_manager.configure_project(Path(project_dir))
-            
-            if success:
-                ui.notify('Project configured successfully!', type='positive')
-            else:
-                ui.notify('Configuration failed. Check the console for details.', type='negative')
-                
-        except Exception as e:
-            ui.notify(f'Error configuring project: {str(e)}', type='negative', timeout=10000)
-    
-    async def _download_project(self) -> None:
-        """Download the project as a ZIP file."""
-        # Get project directory
-        project_dir = self.app.ui_state.project.project_directory
-        if not project_dir:
-            ui.notify('Please set a project directory first', type='negative')
-            return
-        
-        project_path = Path(project_dir)
-        if not project_path.exists():
-            ui.notify('Project directory does not exist', type='negative')
-            return
-        
-        try:
-            # Create ZIP file
-            project_name = self.app.ui_state.project.project_name or 'peidocker-project'
-            temp_dir = Path(tempfile.gettempdir())
-            zip_path = temp_dir / f"{project_name}.zip"
-            
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for file_path in project_path.rglob('*'):
-                    if file_path.is_file():
-                        arcname = file_path.relative_to(project_path)
-                        zipf.write(file_path, arcname)
-            
-            # Serve the file for download
-            @app.get(f'/download/{project_name}.zip')
-            async def download():  # type: ignore
-                return ui.download(str(zip_path), f'{project_name}.zip')
-            
-            # Trigger download
-            ui.run_javascript(f'window.open("/download/{project_name}.zip", "_self")')
-            
-            ui.notify('Project exported successfully!', type='positive')
-            
-        except Exception as e:
-            ui.notify(f'Error exporting project: {str(e)}', type='negative', timeout=10000)
     
     def refresh_summary(self) -> None:
         """Refresh the summary display with current configuration."""
