@@ -523,4 +523,45 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754589025074_66htedvjz" time="2025/08/08 01:50">
+    <content>
+      PeiDocker WebGUI Auto Port Selection Implementation (2025-08-07):
+    
+      FEATURE IMPLEMENTED:
+      - Modified pei-docker-gui CLI to automatically select a free port by default
+      - No longer defaults to port 8080 - uses OS-selected port when --port not specified
+      - When --port is specified but unavailable, finds next available port automatically
+    
+      TECHNICAL IMPLEMENTATION:
+      1. Added get_free_port() function using socket.bind((&#x27;&#x27;, 0)) for OS port assignment
+      2. Added find_free_port(start_port, max_tries) for sequential port search
+      3. Modified start_command() logic:
+      - If args.port is None: Use get_free_port() for automatic selection
+      - If args.port specified: Try that port, fallback to find_free_port() then get_free_port()
+      4. Changed argparse default from 8080 to None for --port argument
+    
+      KEY CODE LOCATIONS:
+      - File: src/pei_docker/webgui/cli_launcher.py
+      - Functions: get_free_port() (line 126), find_free_port() (line 147), start_command() (line 413)
+      - Port determination logic: lines 447-467
+    
+      USAGE PATTERNS:
+      - Default (auto-select): pei-docker-gui start
+      - Specific port: pei-docker-gui start --port 9000
+      - Output shows: &quot;No port specified, using auto-selected port XXXX&quot; or port conflict messages
+    
+      TESTING VERIFIED:
+      - Auto-selection works correctly when no --port specified
+      - Specific port used when available
+      - Automatic fallback when specified port is busy
+      - Type annotations correct: get_free_port()-&gt;int, find_free_port()-&gt;Optional[int]
+    
+      FOLLOWS NICEGUI BEST PRACTICES:
+      - Uses socket port 0 trick for atomic OS assignment (prevents race conditions)
+      - Cross-platform compatible (Windows, Linux, macOS)
+      - Provides clear console messages about port selection
+      - Integrates properly with ui.run(port=actual_port)
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>
