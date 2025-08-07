@@ -31,24 +31,14 @@ stage_1:
         privkey_file: null   # Path to private key file (relative to installation directory)
         privkey_text: null   # Direct private key content (conflicts with privkey_file)
         
-        uid: 1000
+        # Explicitly specifing UID for the user, must be unique in the system
+        uid: 2000
         
       you:
         password: '654321'
-        pubkey_file: null
-        pubkey_text: null
-        privkey_file: null
-        privkey_text: null
-        privkey_file: null
-        privkey_text: null
-        uid: 1001
         
       root: # you can configure root user here
         password: root
-        pubkey_file: null
-        pubkey_text: null
-        privkey_file: null
-        privkey_text: null
         uid: 0  # root uid, always 0 regardless of what you put here
 
 # SSH Key Configuration Examples:

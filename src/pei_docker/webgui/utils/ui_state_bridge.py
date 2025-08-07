@@ -7,7 +7,6 @@ through the adapter layer, as well as YAML serialization/deserialization.
 """
 
 from typing import Dict, List, Tuple, Any, Optional
-import yaml
 from pathlib import Path
 import attrs
 import cattrs
@@ -60,7 +59,10 @@ class UIStateBridge:
             return False, errors
     
     def save_to_yaml(self, ui_state: AppUIState, file_path: str) -> Tuple[bool, List[str]]:
-        """Save UI state to YAML file with validation."""
+        """Save UI state to YAML file with validation.
+        
+        Data flow: GUI state -> ui-data-model -> peidocker-data-model -> OmegaConf -> YAML file
+        """
         errors = []
         
         # First validate
@@ -69,16 +71,24 @@ class UIStateBridge:
             return False, validation_errors
         
         try:
-            # Convert UI state to user_config.yml format
-            config_data = self._ui_to_user_config_format(ui_state)
+            # Step 1: Convert UI state to attrs UserConfig (peidocker-data-model)
+            attrs_config = self._ui_to_attrs_config(ui_state)
             
-            # Create directory if needed
+            # Step 2: Convert attrs config to dict using cattrs
+            config_dict = cattrs.unstructure(attrs_config)
+            
+            # Step 3: Process inline scripts and other metadata
+            config_dict = self._add_inline_scripts_metadata(config_dict, ui_state)
+            
+            # Step 4: Clean up the config dict (remove None values, empty dicts, etc.)
+            config_dict = self._clean_config_dict(config_dict)
+            
+            # Step 5: Create directory if needed
             Path(file_path).parent.mkdir(parents=True, exist_ok=True)
             
-            # Save to YAML - let YAML handle quoting automatically
-            with open(file_path, 'w', encoding='utf-8') as f:
-                yaml.dump(config_data, f, default_flow_style=False, 
-                         sort_keys=False, allow_unicode=True)
+            # Step 6: Save using OmegaConf for better structured data handling
+            conf = OmegaConf.create(config_dict)
+            OmegaConf.save(conf, file_path)
             
             return True, []
             
@@ -94,18 +104,14 @@ class UIStateBridge:
         errors = []
         
         try:
-            # Step 1: First load with yaml to handle duplicates (takes last value)
-            with open(file_path, 'r', encoding='utf-8') as f:
-                yaml_data = yaml.safe_load(f)
+            # Step 1: Load YAML file directly with OmegaConf (handles duplicates, takes last value)
+            config = OmegaConf.load(file_path)
             
-            if not yaml_data:
+            if not config:
                 errors.append("Empty configuration file")
                 return False, errors
             
-            # Step 2: Convert to OmegaConf for variable resolution
-            config = OmegaConf.create(yaml_data)
-            
-            # Step 3: Convert to Python dict and prepare for cattrs
+            # Step 2: Convert to Python dict and prepare for cattrs
             config_dict = OmegaConf.to_container(config, resolve=True)
             
             # Step 3: Apply pre-processing transformations (same as in config_processor.py)
@@ -495,8 +501,8 @@ class UIStateBridge:
         if ui_scripts.entry_mode == "file" and ui_scripts.entry_file_path:
             on_entry.append(ui_scripts.entry_file_path)
         elif ui_scripts.entry_mode == "inline" and ui_scripts.entry_inline_name:
-            # For inline scripts, we'll handle this in YAML generation
-            on_entry.append(f"_inline_{ui_scripts.entry_inline_name}")
+            # For inline scripts, use the proper path that will be written to disk
+            on_entry.append(f"/pei-docker/scripts/{ui_scripts.entry_inline_name}")
         
         # Extract lifecycle scripts
         lifecycle_scripts = ui_scripts.lifecycle_scripts
@@ -509,40 +515,54 @@ class UIStateBridge:
         # Note: attrs model uses on_build, not pre_build/post_build
         if 'pre_build' in lifecycle_scripts:
             for script_data in lifecycle_scripts['pre_build']:
-                if isinstance(script_data, dict) and 'path' in script_data:
-                    on_build.append(script_data['path'])
+                if isinstance(script_data, dict):
+                    if script_data.get('type') == 'file' and 'path' in script_data:
+                        on_build.append(script_data['path'])
+                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                        # For inline scripts, use the proper path
+                        on_build.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_build.append(script_data)
         
         if 'first_run' in lifecycle_scripts:
             for script_data in lifecycle_scripts['first_run']:
-                if isinstance(script_data, dict) and 'path' in script_data:
-                    on_first_run.append(script_data['path'])
+                if isinstance(script_data, dict):
+                    if script_data.get('type') == 'file' and 'path' in script_data:
+                        on_first_run.append(script_data['path'])
+                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                        on_first_run.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_first_run.append(script_data)
         
         if 'every_run' in lifecycle_scripts:
             for script_data in lifecycle_scripts['every_run']:
-                if isinstance(script_data, dict) and 'path' in script_data:
-                    on_every_run.append(script_data['path'])
+                if isinstance(script_data, dict):
+                    if script_data.get('type') == 'file' and 'path' in script_data:
+                        on_every_run.append(script_data['path'])
+                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                        on_every_run.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_every_run.append(script_data)
         
         if 'user_login' in lifecycle_scripts:
             for script_data in lifecycle_scripts['user_login']:
-                if isinstance(script_data, dict) and 'path' in script_data:
-                    on_user_login.append(script_data['path'])
+                if isinstance(script_data, dict):
+                    if script_data.get('type') == 'file' and 'path' in script_data:
+                        on_user_login.append(script_data['path'])
+                    elif script_data.get('type') == 'inline' and 'name' in script_data:
+                        on_user_login.append(f"/pei-docker/scripts/{script_data['name']}")
                 elif isinstance(script_data, str):
                     on_user_login.append(script_data)
         
         # Only create CustomScriptConfig if we have any scripts
         if any([on_entry, on_build, on_first_run, on_every_run, on_user_login]):
+            # AttrsCustomScriptConfig expects lists, not None for empty lists
             return AttrsCustomScriptConfig(
-                on_build=on_build,
-                on_first_run=on_first_run,
-                on_every_run=on_every_run,
-                on_user_login=on_user_login,
-                on_entry=on_entry
+                on_build=on_build if on_build else [],
+                on_first_run=on_first_run if on_first_run else [],
+                on_every_run=on_every_run if on_every_run else [],
+                on_user_login=on_user_login if on_user_login else [],
+                on_entry=on_entry if on_entry else []
             )
         
         return None
@@ -1399,3 +1419,109 @@ class UIStateBridge:
                             script_data['args'] = args
                         scripts_list.append(script_data)
                 scripts2.lifecycle_scripts[lifecycle_key] = scripts_list
+    
+    def _add_inline_scripts_metadata(self, config_dict: Dict[str, Any], ui_state: AppUIState) -> Dict[str, Any]:
+        """Add inline scripts metadata to the configuration dictionary.
+        
+        This preserves inline script content as metadata in the YAML for reconstruction.
+        """
+        result = config_dict.copy()
+        
+        # Process stage-1 inline scripts
+        if 'stage_1' in result:
+            inline_scripts_1 = {}
+            
+            # Check entry point
+            if ui_state.stage_1.scripts.entry_mode == "inline":
+                script_name = ui_state.stage_1.scripts.entry_inline_name
+                script_content = ui_state.stage_1.scripts.entry_inline_content
+                if script_name and script_content:
+                    inline_scripts_1[script_name] = script_content
+            
+            # Check lifecycle scripts
+            for lifecycle_key, scripts in ui_state.stage_1.scripts.lifecycle_scripts.items():
+                for script_data in scripts:
+                    if isinstance(script_data, dict) and script_data.get('type') == 'inline':
+                        name = script_data.get('name', '')
+                        content = script_data.get('content', '')
+                        if name and content:
+                            inline_scripts_1[name] = content
+            
+            # Add metadata from _inline_scripts_metadata if present
+            if ui_state.stage_1.scripts._inline_scripts_metadata:
+                inline_scripts_1.update(dict(ui_state.stage_1.scripts._inline_scripts_metadata))
+            
+            if inline_scripts_1:
+                result['stage_1']['_inline_scripts'] = inline_scripts_1
+        
+        # Process stage-2 inline scripts
+        if 'stage_2' in result:
+            inline_scripts_2 = {}
+            
+            # Check entry point
+            if ui_state.stage_2.scripts.entry_mode == "inline":
+                script_name = ui_state.stage_2.scripts.entry_inline_name
+                script_content = ui_state.stage_2.scripts.entry_inline_content
+                if script_name and script_content:
+                    inline_scripts_2[script_name] = script_content
+            
+            # Check lifecycle scripts
+            for lifecycle_key, scripts in ui_state.stage_2.scripts.lifecycle_scripts.items():
+                for script_data in scripts:
+                    if isinstance(script_data, dict) and script_data.get('type') == 'inline':
+                        name = script_data.get('name', '')
+                        content = script_data.get('content', '')
+                        if name and content:
+                            inline_scripts_2[name] = content
+            
+            # Add metadata from _inline_scripts_metadata if present
+            if ui_state.stage_2.scripts._inline_scripts_metadata:
+                inline_scripts_2.update(dict(ui_state.stage_2.scripts._inline_scripts_metadata))
+            
+            if inline_scripts_2:
+                result['stage_2']['_inline_scripts'] = inline_scripts_2
+        
+        return result
+    
+    def _clean_config_dict(self, config_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean up the configuration dictionary by removing None values and empty structures.
+        
+        This ensures the YAML output is clean and doesn't contain empty structures like
+        'proxy: {}' or port mappings like '- ':''.
+        """
+        def clean_value(value: Any) -> Any:
+            """Recursively clean a value."""
+            if value is None:
+                return None
+            elif isinstance(value, dict):
+                cleaned = {}
+                for k, v in value.items():
+                    cleaned_v = clean_value(v)
+                    # Skip None values and empty dicts (except for special keys like _inline_scripts)
+                    if cleaned_v is not None and (not isinstance(cleaned_v, dict) or cleaned_v or k.startswith('_')):
+                        cleaned[k] = cleaned_v
+                return cleaned if cleaned else None
+            elif isinstance(value, list):
+                cleaned = []
+                for item in value:
+                    cleaned_item = clean_value(item)
+                    # Skip None values and empty strings in lists
+                    if cleaned_item is not None and cleaned_item != '':
+                        # Special handling for port mappings - skip invalid ones
+                        if isinstance(cleaned_item, str) and ':' in cleaned_item:
+                            parts = cleaned_item.split(':')
+                            if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+                                cleaned.append(cleaned_item)
+                        else:
+                            cleaned.append(cleaned_item)
+                return cleaned if cleaned else None
+            else:
+                return value
+        
+        result = {}
+        for key, value in config_dict.items():
+            cleaned_value = clean_value(value)
+            if cleaned_value is not None:
+                result[key] = cleaned_value
+        
+        return result
