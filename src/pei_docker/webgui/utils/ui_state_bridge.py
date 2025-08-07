@@ -12,6 +12,7 @@ import attrs
 import cattrs
 from omegaconf import OmegaConf
 
+from pei_docker.webgui.constants import CustomScriptLifecycleTypes
 from pei_docker.webgui.models.ui_state import (
     AppUIState, StageUI, NetworkUI, SSHTabUI,
     StorageUI, ScriptsUI, ProjectUI
@@ -249,10 +250,10 @@ class UIStateBridge:
         """Load custom scripts from data model into UI state."""
         # Clear existing scripts
         ui_scripts.lifecycle_scripts = {
-            'on_build': [],
-            'on_first_run': [],
-            'on_every_run': [],
-            'on_user_login': []
+            CustomScriptLifecycleTypes.ON_BUILD: [],
+            CustomScriptLifecycleTypes.ON_FIRST_RUN: [],
+            CustomScriptLifecycleTypes.ON_EVERY_RUN: [],
+            CustomScriptLifecycleTypes.ON_USER_LOGIN: []
         }
         
         # Load entry point
@@ -280,22 +281,22 @@ class UIStateBridge:
         # Load on_build scripts
         if custom.on_build:
             for script in custom.on_build:
-                ui_scripts.lifecycle_scripts['on_build'].append(create_script_entry(script))
+                ui_scripts.lifecycle_scripts[CustomScriptLifecycleTypes.ON_BUILD].append(create_script_entry(script))
         
         # Load on_first_run scripts
         if custom.on_first_run:
             for script in custom.on_first_run:
-                ui_scripts.lifecycle_scripts['on_first_run'].append(create_script_entry(script))
+                ui_scripts.lifecycle_scripts[CustomScriptLifecycleTypes.ON_FIRST_RUN].append(create_script_entry(script))
         
         # Load on_every_run scripts
         if custom.on_every_run:
             for script in custom.on_every_run:
-                ui_scripts.lifecycle_scripts['on_every_run'].append(create_script_entry(script))
+                ui_scripts.lifecycle_scripts[CustomScriptLifecycleTypes.ON_EVERY_RUN].append(create_script_entry(script))
         
         # Load on_user_login scripts
         if custom.on_user_login:
             for script in custom.on_user_login:
-                ui_scripts.lifecycle_scripts['on_user_login'].append(create_script_entry(script))
+                ui_scripts.lifecycle_scripts[CustomScriptLifecycleTypes.ON_USER_LOGIN].append(create_script_entry(script))
     
     def _load_storage_into_ui(self, storage_dict: Dict[str, AttrsStorageOption], ui_storage: StorageUI) -> None:
         """Load storage configuration from data model into UI state."""
@@ -512,9 +513,9 @@ class UIStateBridge:
         on_every_run = []
         on_user_login = []
         
-        # Note: attrs model uses on_build, not pre_build/post_build
-        if 'pre_build' in lifecycle_scripts:
-            for script_data in lifecycle_scripts['pre_build']:
+        # Use constants for lifecycle types to avoid typos
+        if CustomScriptLifecycleTypes.ON_BUILD in lifecycle_scripts:
+            for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_BUILD]:
                 if isinstance(script_data, dict):
                     if script_data.get('type') == 'file' and 'path' in script_data:
                         on_build.append(script_data['path'])
@@ -524,8 +525,8 @@ class UIStateBridge:
                 elif isinstance(script_data, str):
                     on_build.append(script_data)
         
-        if 'first_run' in lifecycle_scripts:
-            for script_data in lifecycle_scripts['first_run']:
+        if CustomScriptLifecycleTypes.ON_FIRST_RUN in lifecycle_scripts:
+            for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_FIRST_RUN]:
                 if isinstance(script_data, dict):
                     if script_data.get('type') == 'file' and 'path' in script_data:
                         on_first_run.append(script_data['path'])
@@ -534,8 +535,8 @@ class UIStateBridge:
                 elif isinstance(script_data, str):
                     on_first_run.append(script_data)
         
-        if 'every_run' in lifecycle_scripts:
-            for script_data in lifecycle_scripts['every_run']:
+        if CustomScriptLifecycleTypes.ON_EVERY_RUN in lifecycle_scripts:
+            for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_EVERY_RUN]:
                 if isinstance(script_data, dict):
                     if script_data.get('type') == 'file' and 'path' in script_data:
                         on_every_run.append(script_data['path'])
@@ -544,8 +545,8 @@ class UIStateBridge:
                 elif isinstance(script_data, str):
                     on_every_run.append(script_data)
         
-        if 'user_login' in lifecycle_scripts:
-            for script_data in lifecycle_scripts['user_login']:
+        if CustomScriptLifecycleTypes.ON_USER_LOGIN in lifecycle_scripts:
+            for script_data in lifecycle_scripts[CustomScriptLifecycleTypes.ON_USER_LOGIN]:
                 if isinstance(script_data, dict):
                     if script_data.get('type') == 'file' and 'path' in script_data:
                         on_user_login.append(script_data['path'])
@@ -798,11 +799,10 @@ class UIStateBridge:
         custom_scripts_1 = {}
         lifecycle_1 = ui_state.stage_1.scripts.lifecycle_scripts
         
-        for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
-            ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
-            if ui_key in lifecycle_1 and lifecycle_1[ui_key]:
+        for script_type in CustomScriptLifecycleTypes.get_all_types():
+            if script_type in lifecycle_1 and lifecycle_1[script_type]:
                 script_list = []
-                for script_data in lifecycle_1[ui_key]:
+                for script_data in lifecycle_1[script_type]:
                     if isinstance(script_data, dict):
                         if script_data.get('type') == 'file':
                             script_list.append(script_data['path'])
@@ -897,11 +897,10 @@ class UIStateBridge:
         custom_scripts_2 = {}
         lifecycle_2 = ui_state.stage_2.scripts.lifecycle_scripts
         
-        for script_type in ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']:
-            ui_key = script_type.replace('on_', '') if script_type != 'on_build' else 'pre_build'
-            if ui_key in lifecycle_2 and lifecycle_2[ui_key]:
+        for script_type in CustomScriptLifecycleTypes.get_all_types():
+            if script_type in lifecycle_2 and lifecycle_2[script_type]:
                 script_list = []
-                for script_data in lifecycle_2[ui_key]:
+                for script_data in lifecycle_2[script_type]:
                     if isinstance(script_data, dict):
                         if script_data.get('type') == 'file':
                             script_list.append(script_data['path'])
@@ -1355,7 +1354,7 @@ class UIStateBridge:
         scripts2.lifecycle_scripts.clear()
         
         # Use the correct UI keys that match what the scripts tab expects
-        lifecycle_keys = ['on_build', 'on_first_run', 'on_every_run', 'on_user_login']
+        lifecycle_keys = CustomScriptLifecycleTypes.get_all_types()
         
         # Load stage-1 lifecycle scripts
         for lifecycle_key in lifecycle_keys:

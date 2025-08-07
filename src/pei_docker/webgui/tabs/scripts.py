@@ -8,6 +8,7 @@ for Stage-1 and Stage-2 sequential image builds.
 from typing import TYPE_CHECKING, Dict, List, Optional, Any, Tuple
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
+from pei_docker.webgui.constants import CustomScriptLifecycleTypes
 import uuid
 
 if TYPE_CHECKING:
@@ -23,13 +24,8 @@ class ScriptsTab(BaseTab):
         self.stage1_lifecycle_containers: Dict[str, ui.column] = {}
         self.stage2_lifecycle_containers: Dict[str, ui.column] = {}
         
-        # Lifecycle types
-        self.lifecycle_types: List[Tuple[str, str]] = [
-            ('on_build', 'Runs during image building'),
-            ('on_first_run', 'Runs on first container start (respective stage)'),
-            ('on_every_run', 'Runs on every container start (respective stage)'),
-            ('on_user_login', 'Runs when user logs in via SSH (respective stage)')
-        ]
+        # Lifecycle types using constants to avoid typos
+        self.lifecycle_types: List[Tuple[str, str]] = CustomScriptLifecycleTypes.get_types_with_descriptions()
     
     def render(self) -> ui.element:
         """Render the scripts tab content."""
