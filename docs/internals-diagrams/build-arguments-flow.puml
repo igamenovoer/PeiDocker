@@ -1,0 +1,14 @@
+@startuml
+participant "docker-compose.yml" as compose
+participant "Dockerfile" as docker
+participant "Shell Scripts" as scripts
+participant "Container" as container
+
+compose -> docker: ARG BASE_IMAGE
+compose -> docker: ARG SSH_USER_NAME
+compose -> docker: ARG PEI_HTTP_PROXY_1
+docker -> scripts: ENV variables
+scripts -> container: Configure system
+scripts -> container: Create users
+scripts -> container: Install packages
+@enduml

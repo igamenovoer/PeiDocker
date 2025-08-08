@@ -1,214 +1,198 @@
 # CLI Reference
 
 PeiDocker provides two command-line tools:
-- `pei-docker-cli` - Main CLI for project management
+- `pei-docker-cli` - CLI for project management
 - `pei-docker-gui` - Web GUI launcher
 
-## `pei-docker-cli`
+## pei-docker-cli
 
 **Usage:** `pei-docker-cli [OPTIONS] COMMAND [ARGS]...`
 
-### Options
-
-| Option | Description |
-| --- | --- |
-| `--help` | Show this message and exit. |
-
 ### Commands
 
 | Command | Description |
 | --- | --- |
-| `create` | Creates a new PeiDocker project. |
-| `configure` | Configures a PeiDocker project. |
-| `remove` | Removes Docker images and containers created by this project. |
+| `create` | Create new project |
+| `configure` | Generate docker-compose.yml from user_config.yml |
+| `remove` | Remove Docker images and containers |
 
----
+### create
 
-## `create`
+Creates new PeiDocker project with template files.
 
 **Usage:** `pei-docker-cli create [OPTIONS]`
 
-### Options
+**Options:**
+- `-p, --project-dir DIRECTORY` - Project directory (required)
+- `-e, --with-examples` - Include example files (default: enabled)
+- `--with-contrib` - Include contrib directory (default: enabled)
 
-| Option | Description |
-| --- | --- |
-| `-p`, `--project-dir DIRECTORY` | project directory (required) |
-| `-e`, `--with-examples` | copy example files to the project dir |
-| `--with-contrib` | copy contrib directory to the project dir |
-| `--help` | Show this message and exit. |
+**Examples:**
+```sh
+# Create with all files
+pei-docker-cli create -p ./my-project
 
----
+# Minimal project
+pei-docker-cli create -p ./minimal --no-with-examples --no-with-contrib
+```
 
-## `configure`
+### configure
+
+Generates docker-compose.yml and Dockerfiles from user_config.yml.
 
 **Usage:** `pei-docker-cli configure [OPTIONS]`
 
-### Options
+**Options:**
+- `-p, --project-dir DIRECTORY` - Project directory (default: current)
+- `-c, --config FILE` - Config file name (default: user_config.yml)
+- `-f, --full-compose` - Generate extended compose file
 
-| Option | Description |
-| --- | --- |
-| `-p`, `--project-dir DIRECTORY` | project directory (default: current working directory) |
-| `-c`, `--config FILE` | config file name, relative to the project dir |
-| `-f`, `--full-compose` | generate full compose file with x-??? sections |
-| `--help` | Show this message and exit. |
+**Examples:**
+```sh
+# Use current directory
+pei-docker-cli configure
 
----
+# Specify directory
+pei-docker-cli configure -p ./my-project
 
-## `remove`
+# Custom config file
+pei-docker-cli configure -c prod-config.yml
+
+# Full compose file
+pei-docker-cli configure -f
+```
+
+### remove
+
+Removes Docker images and containers created by project.
 
 **Usage:** `pei-docker-cli remove [OPTIONS]`
 
-### Options
+**Options:**
+- `-p, --project-dir DIRECTORY` - Project directory (required)
+- `-y, --yes` - Skip confirmation
 
-| Option | Description |
-| --- | --- |
-| `-p`, `--project-dir DIRECTORY` | project directory (required) |
-| `-y`, `--yes` | skip confirmation prompts |
-| `--help` | Show this message and exit. |
+**Examples:**
+```sh
+# Remove with confirmation
+pei-docker-cli remove -p ./my-project
 
----
+# Remove without confirmation
+pei-docker-cli remove -p ./my-project -y
+```
 
-## `pei-docker-gui`
+## pei-docker-gui
 
-Modern web-based graphical interface for managing PeiDocker projects, built with NiceGUI framework.
+Web interface for PeiDocker project configuration.
 
 **Usage:** `pei-docker-gui [OPTIONS] COMMAND [ARGS]...`
 
-### Commands
+### start
 
-| Command | Description |
-| --- | --- |
-| `start` | Start the NiceGUI web application server |
-
----
-
-## `start` (GUI)
+Starts web interface server.
 
 **Usage:** `pei-docker-gui start [OPTIONS]`
 
-Starts the web interface for visual project configuration. The GUI provides a comprehensive wizard-style interface for creating and managing PeiDocker projects.
+**Options:**
+- `--port PORT` - Server port (default: auto-select)
+- `--project-dir PATH` - Project directory to load/create
+- `--jump-to-page PAGE` - Start on specific page
+- `--native` - Run in OS window (requires pywebview)
 
-### Options
+**Page Options:**
 
-| Option | Description | Default |
-| --- | --- | --- |
-| `--port PORT` | Port to run the web application | Auto-select free port |
-| `--project-dir PATH` | Project directory to load/create on startup | None |
-| `--jump-to-page PAGE` | Navigate to specific page after startup | `home` |
-| `--native` | Run in native desktop mode with OS window (requires pywebview) | False |
-| `--help` | Show this message and exit. | - |
-
-### Page Options for `--jump-to-page`
-
-| Page | Description | Key Features |
-| --- | --- | --- |
-| `home` | Main welcome page | Project creation, loading, recent projects |
-| `project` | Project configuration page | Docker image settings, base image selection |
-| `ssh` | SSH configuration page | User management, authentication methods, key generation |
-| `network` | Network and port configuration | Port mappings (stage-1/2), proxy settings |
-| `environment` | Environment variables page | Docker Compose-style substitution, stage-specific vars |
-| `storage` | Volume and mount configuration | Storage strategies, volume management, bind mounts |
-| `scripts` | Custom scripts configuration | Build/runtime scripts, parameter support |
-| `summary` | Complete project overview | Configuration review, export, docker-compose generation |
-
-### Project Directory Behavior
-
-The `--project-dir` option determines the startup behavior:
-
-| Scenario | Behavior |
+| Page | Function |
 | --- | --- |
-| Directory exists with `user_config.yml` | Load existing PeiDocker project |
-| Directory exists but empty | Create new project in that location |
-| Directory doesn't exist | Create directory and new project |
-| Directory contains non-PeiDocker files | Show error and exit |
-| No `--project-dir` specified | Start with project management screen |
+| `home` | Project management |
+| `project` | Docker image settings |
+| `ssh` | SSH configuration |
+| `network` | Port and proxy settings |
+| `environment` | Environment variables |
+| `storage` | Volume configuration |
+| `scripts` | Custom scripts |
+| `summary` | Configuration overview |
 
-### Examples
+**Project Directory Behavior:**
 
+| Condition | Action |
+| --- | --- |
+| Has `user_config.yml` | Load project |
+| Empty directory | Create new project |
+| Non-existent | Create directory and project |
+| Has other files | Show error |
+| Not specified | Show project selector |
+
+**Examples:**
 ```sh
-# Start GUI on auto-selected port
+# Auto-select port
 pei-docker-gui start
 
-# Start on specific port
+# Specific port
 pei-docker-gui start --port 8080
 
-# Load existing project
+# Load project
 pei-docker-gui start --project-dir /path/to/project
 
-# Create new project and jump to SSH config
-pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+# New project, jump to SSH
+pei-docker-gui start --project-dir /tmp/new --jump-to-page ssh
 
-# Quick debugging - jump to network page
-pei-docker-gui start --jump-to-page network
-
-# Run in native desktop mode
+# Native window mode
 pei-docker-gui start --native
-
-# Full example with all options
-pei-docker-gui start --port 9090 --project-dir ./my-project --jump-to-page storage --native
 ```
 
-### GUI Features
+## GUI Configuration Pages
 
-**Visual Configuration:**
-- Tab-based navigation with progress indicators
-- Real-time validation with error highlighting
-- Contextual help and tooltips
-- Configuration templates for quick setup
-
-**Project Management:**
-- Create new projects with wizard interface
-- Load and modify existing projects
-- Import/export projects as ZIP files
-- Recent projects list with quick access
-
-**SSH Configuration:**
-- Multiple user management
+### SSH Configuration
+- Multiple users
 - Password authentication
-- SSH key file references
-- Inline public/private key input
-- Automatic public key generation from private keys
-- Custom UID assignment
+- SSH key files (public/private)
+- Inline key input
+- UID assignment
 
-**Network Configuration:**
-- Separate port mappings for stage-1 and stage-2
-- Visual port conflict detection
-- Proxy configuration with global settings
-- Environment-specific network setup
+### Network Configuration  
+- Stage-1 ports (system services)
+- Stage-2 ports (applications)
+- Proxy settings
+- Global proxy enable/disable
 
-**Storage Management:**
-- Four storage strategies: auto-volume, manual-volume, host, image
-- Visual volume configuration
-- Bind mount management
-- Storage location preview
+### Storage Management
+- Storage types: auto-volume, manual-volume, host, image
+- Volume configuration
+- Bind mount paths
+- Stage-2 directories: /soft/app, /soft/data, /soft/workspace
 
-**Script Management:**
-- Custom scripts for different lifecycle events
-- Script parameter support with shell syntax
-- Script file validation
-- Stage-specific script organization
+### Script Management
+- Lifecycle hooks: on_build, on_first_run, on_every_run, on_user_login
+- Script parameters
+- Stage-specific scripts
 
-**Environment Variables:**
-- Visual editor with syntax highlighting
-- Docker Compose-style variable substitution
-- Stage-specific environment configuration
-- Default value support
+### Environment Variables
+- Docker Compose syntax: `${VAR:-default}`
+- Stage-specific variables
+- List format
 
-### Native Desktop Mode
+## Features
 
-When using `--native` flag:
-- Opens in OS-native window instead of browser
-- Provides native file dialogs for better file selection
-- Requires `pywebview` package to be installed
-- Offers desktop application experience
-- Supports all standard GUI features
+### Auto-port Selection
+Automatically finds available port when not specified or port is in use.
 
-### Notes
+### Project Validation
+Validates configuration before generating docker-compose.yml.
 
-- **Auto-port Selection**: If no port is specified, the system automatically finds an available port
-- **Port Fallback**: If the specified port is in use, the next available port is automatically selected
-- **Browser Launch**: The web interface automatically opens in your default browser (unless using `--native`)
-- **Project Validation**: Configuration is validated before server startup to prevent runtime errors
-- **Temp Projects**: Jump-to-page without project-dir creates temporary projects with timestamps
-- **ZIP Export/Import**: Complete project backup and restoration via ZIP files
-- **Real-time Updates**: All configuration changes are immediately validated and saved
+### ZIP Export/Import
+Export project as ZIP for backup or sharing.
+
+### Native Mode
+With `--native` flag and pywebview installed:
+- OS window instead of browser
+- Native file dialogs
+- Desktop application interface
+
+## Notes
+
+- Generated files: docker-compose.yml, stage-1.Dockerfile, stage-2.Dockerfile
+- Template files should not be modified
+- Scripts in installation/ directory are copied to /pei-from-host in image
+- Stage-1 builds base image with system packages
+- Stage-2 builds application image with custom packages
+- External storage only available in stage-2

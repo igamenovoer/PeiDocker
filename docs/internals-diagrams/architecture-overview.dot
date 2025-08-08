@@ -1,0 +1,31 @@
+digraph peidocker_flow {
+    rankdir=TB;
+    node [shape=box];
+    
+    subgraph cluster_input {
+        label="Input";
+        style=dashed;
+        user_config [label="user_config.yml"];
+        templates [label="Template Files"];
+    }
+    
+    subgraph cluster_processor {
+        label="Config Processor";
+        style=dashed;
+        processor [label="PeiConfigProcessor"];
+        generated [label="Generated Scripts"];
+    }
+    
+    subgraph cluster_build {
+        label="Docker Build";
+        style=dashed;
+        stage1 [label="Stage-1 Image\n(System)"];
+        stage2 [label="Stage-2 Image\n(Application)"];
+    }
+    
+    user_config -> processor;
+    templates -> processor;
+    processor -> generated;
+    generated -> stage1;
+    stage1 -> stage2;
+}

@@ -8,6 +8,7 @@ use_directory_urls: true
 nav:
 - Introduction: index.md
 - CLI Reference: cli_reference.md
+- Build Internals: build-internals.md
 - Examples:
   - Basic: examples/basic.md
   - Advanced: examples/advanced.md

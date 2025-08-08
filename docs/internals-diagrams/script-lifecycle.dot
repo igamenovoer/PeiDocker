@@ -1,0 +1,15 @@
+digraph lifecycle {
+    rankdir=LR;
+    node [shape=box];
+    
+    build [label="Build Time\non_build scripts"];
+    start [label="Container Start\nentrypoint.sh"];
+    first [label="First Run\non_first_run scripts"];
+    every [label="Every Run\non_every_run scripts"];
+    login [label="User Login\non_user_login scripts"];
+    
+    build -> start [label="docker run"];
+    start -> first [label="if first"];
+    start -> every [label="always"];
+    every -> login [label="ssh login"];
+}
