@@ -49,6 +49,11 @@ Options for 'start' Command
     - scripts: Custom scripts configuration
     - summary: Complete project configuration overview
 
+--native
+    Run the GUI in native mode with OS-native window (requires pywebview).
+    This enables native file dialogs and desktop app features instead of
+    running in browser. The webview package must be installed for this to work.
+
 Usage Examples
 --------------
 
@@ -71,6 +76,10 @@ Create new project and jump to SSH config::
 Quick debugging - jump to network page with default project::
 
     pei-docker-gui start --jump-to-page network
+
+Start in native desktop app mode::
+
+    pei-docker-gui start --native
 
 Notes
 -----
@@ -141,7 +150,7 @@ def get_free_port() -> int:
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(('', 0))  # Bind to any available port
-        port = s.getsockname()[1]  # Get the assigned port number
+        port: int = s.getsockname()[1]  # Get the assigned port number
     return port
 
 
@@ -423,6 +432,7 @@ def start_command(args: argparse.Namespace) -> None:
         - port: Server port number (None for auto-select)
         - project_dir: Optional project directory path  
         - jump_to_page: Optional page name for navigation
+        - native: Boolean flag to run in native desktop mode
 
     Notes
     -----
@@ -430,21 +440,26 @@ def start_command(args: argparse.Namespace) -> None:
     1. Determine port: auto-select if None, or use/find alternative for specified port
     2. Validate project directory path and permissions
     3. Validate page name if jump-to-page specified
-    4. Configure NiceGUI application with timer-based state setup
-    5. Start server on 0.0.0.0 with selected port
+    4. Check webview availability if native mode requested
+    5. Configure NiceGUI application with timer-based state setup
+    6. Start server on 0.0.0.0 with selected port (or native mode)
 
     The server runs with auto-detect dark mode, no reload, and 🐳 favicon.
     State setup is delayed by 0.5 seconds to ensure proper GUI initialization.
     
     By default (when no --port specified), uses an OS-selected free port.
     If a specific port is requested but unavailable, automatically finds an alternative.
+    
+    Native mode runs the app in a desktop window using pywebview instead of browser.
 
     Raises
     ------
     SystemExit
-        Exits with code 1 if project directory is invalid or page name is invalid.
+        Exits with code 1 if project directory is invalid, page name is invalid,
+        or native mode requested but pywebview not installed.
     """
     # Determine which port to use
+    actual_port: int
     if args.port is None:
         # No port specified - use OS-selected free port
         actual_port = get_free_port()
@@ -457,14 +472,27 @@ def start_command(args: argparse.Namespace) -> None:
         else:
             print(f"Port {desired_port} is already in use, searching for an available port...", file=sys.stderr)
             # Try to find a free port starting from the desired port
-            actual_port = find_free_port(desired_port)
+            found_port = find_free_port(desired_port)
             
-            if actual_port is None:
+            if found_port is None:
                 # If sequential search fails, try to get any free port from OS
                 print("Could not find free port sequentially, requesting any available port from OS...", file=sys.stderr)
                 actual_port = get_free_port()
+            else:
+                actual_port = found_port
                 
             print(f"Using port {actual_port} instead", file=sys.stderr)
+    
+    # Check for native mode requirements
+    native_mode = getattr(args, 'native', False)
+    if native_mode:
+        try:
+            import webview  # type: ignore
+            print("Native mode enabled - application will run in desktop window", file=sys.stderr)
+        except ImportError:
+            print("Error: Native mode requires 'pywebview' package to be installed.", file=sys.stderr)
+            print("Install it with: pixi run pip install pywebview", file=sys.stderr)
+            sys.exit(1)
     
     # Validate project directory if specified
     if args.project_dir:
@@ -497,8 +525,12 @@ def start_command(args: argparse.Namespace) -> None:
             ), once=True)
     
     # Run the application
-    print(f"Starting PeiDocker Web GUI on port {actual_port}...")
-    print(f"Open http://localhost:{actual_port} in your browser")
+    if native_mode:
+        print(f"Starting PeiDocker Web GUI in native mode...")
+        print(f"A desktop window will open for the application")
+    else:
+        print(f"Starting PeiDocker Web GUI on port {actual_port}...")
+        print(f"Open http://localhost:{actual_port} in your browser")
     
     ui.run(
         host='0.0.0.0',
@@ -506,7 +538,8 @@ def start_command(args: argparse.Namespace) -> None:
         title='PeiDocker Web GUI',
         favicon='🐳',
         dark=None,  # Auto-detect from system
-        reload=False
+        reload=False,
+        native=native_mode  # Enable native mode if requested
     )
 
 
@@ -557,6 +590,11 @@ def main() -> None:
         type=str,
         choices=['home', 'project', 'ssh', 'network', 'environment', 'storage', 'scripts', 'summary'],
         help='Page to navigate to after starting (creates default project if no --project-dir specified)'
+    )
+    start_parser.add_argument(
+        '--native',
+        action='store_true',
+        help='Run in native desktop app mode with OS-native window (requires pywebview package)'
     )
     
     # Parse arguments

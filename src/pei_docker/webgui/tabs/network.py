@@ -8,6 +8,7 @@ APT repository mirrors, and port mappings using NiceGUI's data binding.
 from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
+from pei_docker.webgui.constants import AptMirrors
 import re
 
 if TYPE_CHECKING:
@@ -68,11 +69,11 @@ class NetworkTab(BaseTab):
                     apt_select = ui.select(
                         options={
                             '': 'Default Ubuntu Mirrors',
-                            'https://mirrors.tuna.tsinghua.edu.cn/ubuntu/': 'Tsinghua University (tuna)',
-                            'http://mirrors.aliyun.com/ubuntu/': 'Alibaba Cloud (aliyun)',
-                            'http://mirrors.163.com/ubuntu/': 'NetEase (163)',
-                            'http://mirrors.ustc.edu.cn/ubuntu/': 'USTC',
-                            'http://cn.archive.ubuntu.com/ubuntu/': 'Ubuntu CN Mirror'
+                            AptMirrors.TUNA: 'Tsinghua University (tuna)',
+                            AptMirrors.ALIYUN: 'Alibaba Cloud (aliyun)',
+                            AptMirrors.MIRRORS_163: 'NetEase (163)',
+                            AptMirrors.USTC: 'USTC',
+                            AptMirrors.CN_ARCHIVE: 'Ubuntu CN Mirror'
                         },
                         value=''
                     ).classes('w-full').bind_value(network_1, 'apt_mirror')

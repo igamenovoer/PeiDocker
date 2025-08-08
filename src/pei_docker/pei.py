@@ -97,50 +97,82 @@ def cli() -> None:
     """
     pass
     
+def get_available_quick_templates() -> list[str]:
+    """
+    Get list of available quick templates from the templates/quick directory.
+    
+    Returns
+    -------
+    list[str]
+        List of template names (without 'config-' prefix and '.yml' suffix)
+    """
+    this_dir : str = os.path.dirname(os.path.realpath(__file__))
+    quick_templates_dir = os.path.join(this_dir, 'templates', 'quick')
+    
+    templates = []
+    if os.path.exists(quick_templates_dir):
+        for file in os.listdir(quick_templates_dir):
+            if file.startswith('config-') and file.endswith('.yml'):
+                # Extract template name from config-<name>.yml
+                template_name = file[7:-4]  # Remove 'config-' prefix and '.yml' suffix
+                templates.append(template_name)
+    
+    return sorted(templates)
+
+def format_quick_templates_help() -> str:
+    """
+    Format the list of available quick templates for the help text.
+    
+    Returns
+    -------
+    str
+        Formatted help text listing available quick templates
+    """
+    templates = get_available_quick_templates()
+    if templates:
+        templates_list = ', '.join(templates)
+        return f'use quick template (available: {templates_list})'
+    else:
+        return 'use quick template (none available)'
+
 @click.command()
 @click.option('--project-dir', '-p', help='project directory', required=True, 
               type=click.Path(exists=False, file_okay=False))
 @click.option('--with-examples', '-e', is_flag=True, default=True, 
               help='copy example files to the project dir')
-def create(project_dir : str, with_examples : bool) -> None:
+@click.option('--quick', '-q', default=None, 
+              help=format_quick_templates_help())
+def create(project_dir : str, with_examples : bool, quick : str | None) -> None:
     """
     Create a new PeiDocker project with template files and directory structure.
     
+    \b
     Sets up a complete project directory containing:
-    - Installation scripts and templates for Stage-1 and Stage-2
-    - Configuration template (user_config.yml)
-    - Docker Compose template
-    - Example configurations (optional)
-    - Project file structure for custom scripts and resources
+      - Installation scripts and templates for Stage-1 and Stage-2
+      - Configuration templates (user_config.yml and reference_config.yml)
+      - Docker Compose template
+      - Example configurations (optional)
+      - Project file structure for custom scripts and resources
     
-    Parameters
-    ----------
-    project_dir : str
-        Path where the project directory will be created. Directory will be
-        created if it doesn't exist. Contents will be merged if directory exists.
-    with_examples : bool
-        Whether to include example configuration files. Default is True.
-        Examples help users understand configuration options and patterns.
-        
-    Examples
-    --------
-    Create project with examples:
-        pei-docker-cli create -p ./my-project
-        
-    Create project without examples:
-        pei-docker-cli create -p ./my-project --no-with-examples
-        
-    Notes
-    -----
-    The created project structure follows PeiDocker's two-stage architecture:
-    - installation/stage-1/: System-level setup scripts and templates
-    - installation/stage-2/: Application-level configuration scripts
-    - examples/: Sample configuration files for various use cases
-    - user_config.yml: Main configuration template
-    - compose-template.yml: Docker Compose template
+    \b
+    The created project structure:
+      installation/stage-1/  - System-level setup scripts
+      installation/stage-2/  - Application-level configuration
+      examples/              - Sample configuration files
+      user_config.yml        - Main configuration
+      reference_config.yml   - Full template reference
+      compose-template.yml   - Docker Compose template
     
-    After creation, edit user_config.yml and run 'configure' to generate
-    the final docker-compose.yml file.
+    \b
+    Examples:
+      # Create with full template (default)
+      pei-docker-cli create -p ./my-project
+      
+      # Create with minimal quick template
+      pei-docker-cli create -p ./my-project --quick minimal
+      
+      # Create with CN development template
+      pei-docker-cli create -p ./my-project --quick cn-dev
     """
     logging.info(f'Creating PeiDocker project in {project_dir}')
     os.makedirs(project_dir, exist_ok=True)
@@ -163,12 +195,34 @@ def create(project_dir : str, with_examples : bool) -> None:
             logging.info(f'Copying file {s} to {d}')
             shutil.copy2(s, d)
             
-    # copy config and compose template files to the output dir
+    # Always copy full template as reference_config.yml
     src_config_template : str = f'{this_dir}/{Defaults.ConfigTemplatePath}'
-    dst_config_template : str = f'{project_dir}/{Defaults.OutputConfigName}'
-    logging.info(f'Copying config template {src_config_template} to {dst_config_template}')
-    shutil.copy2(src_config_template, dst_config_template)
+    dst_reference_config : str = f'{project_dir}/reference_config.yml'
+    logging.info(f'Copying full config template to {dst_reference_config} as reference')
+    shutil.copy2(src_config_template, dst_reference_config)
     
+    # Copy appropriate template to user_config.yml based on --quick option
+    dst_user_config : str = f'{project_dir}/{Defaults.OutputConfigName}'
+    
+    if quick:
+        # Validate quick template exists
+        quick_template_path = f'{this_dir}/templates/quick/config-{quick}.yml'
+        if not os.path.exists(quick_template_path):
+            available = get_available_quick_templates()
+            if available:
+                logging.error(f'Quick template "{quick}" not found. Available templates: {", ".join(available)}')
+            else:
+                logging.error(f'Quick template "{quick}" not found. No quick templates available.')
+            sys.exit(1)
+        
+        logging.info(f'Using quick template "{quick}" for {dst_user_config}')
+        shutil.copy2(quick_template_path, dst_user_config)
+    else:
+        # Use full template for user_config.yml (default behavior)
+        logging.info(f'Copying full config template to {dst_user_config}')
+        shutil.copy2(src_config_template, dst_user_config)
+    
+    # Copy compose template
     src_compose_template : str = f'{this_dir}/{Defaults.ComposeTemplatePath}'
     dst_compose_template : str = f'{project_dir}/{Defaults.OutputComposeTemplateName}'
     logging.info(f'Copying compose template {src_compose_template} to {dst_compose_template}')

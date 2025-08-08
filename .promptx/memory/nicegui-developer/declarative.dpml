@@ -564,4 +564,78 @@
     </content>
     <tags>#其他</tags>
   </item>
+  <item id="mem_1754628971564_qj478x5kr" time="2025/08/08 12:56">
+    <content>
+      PeiDocker CLI Quick Template Feature Implementation (2025-01-08):
+    
+      FEATURE IMPLEMENTED:
+      - Added --quick option to pei-docker-cli create command for minimal configuration templates
+      - Always copies full template to reference_config.yml for user reference
+      - Dynamically scans templates/quick/ directory for available templates
+      - Proper error handling with exit code for invalid templates
+    
+      KEY IMPLEMENTATION DETAILS:
+      1. Added get_available_quick_templates() - scans templates/quick/ directory
+      2. Added format_quick_templates_help() - generates dynamic help text
+      3. Modified create() function to handle dual file output (user_config.yml + reference_config.yml)
+      4. Uses sys.exit(1) for proper error code on invalid template
+    
+      AVAILABLE QUICK TEMPLATES:
+      - minimal: Basic minimal configuration (698 bytes)
+      - cn-dev: China development environment
+      - cn-ml: China ML environment with GPU support
+    
+      HELP TEXT FORMATTING:
+      - Use \b in Click docstrings for paragraph breaks
+      - Avoid unicode characters in console output (Windows compatibility)
+      - Proper indentation for lists and examples
+      - Clean separation of sections
+    
+      FILES MODIFIED:
+      - src/pei_docker/pei.py (lines 100-176, 219-250)
+    
+      USAGE:
+      pei-docker-cli create -p ./project          # Full template to both files
+      pei-docker-cli create -p ./project --quick minimal  # Minimal to user_config, full to reference
+      pei-docker-cli create -p ./project --quick cn-dev   # CN dev template
+    </content>
+    <tags>#其他</tags>
+  </item>
+  <item id="mem_1754629588492_5y32qvftq" time="2025/08/08 13:06">
+    <content>
+      PeiDocker WebGUI Project Creation with Minimal Template (2025-01-08):
+    
+      FEATURE MODIFIED:
+      - Changed webgui project creation to use --quick minimal template by default
+      - Faster project creation with minimal configuration instead of full template
+      - Reference config still provided for users who need full options
+    
+      IMPLEMENTATION DETAILS:
+      1. Updated pei_utils_create.py:
+      - Added get_available_quick_templates() function
+      - Modified create_project_direct() to accept optional quick parameter
+      - Always creates reference_config.yml with full template
+      - Creates user_config.yml with specified quick template or full if not specified
+    
+      2. Updated webgui/app.py:
+      - Modified create_project() to pass &#x27;minimal&#x27; as quick parameter
+      - Line 360: Added &#x27;minimal&#x27; parameter to create_project_direct call
+    
+      FILES MODIFIED:
+      - src/pei_docker/pei_utils_create.py (added quick template support)
+      - src/pei_docker/webgui/app.py (line 360 - pass &#x27;minimal&#x27; parameter)
+    
+      BEHAVIOR CHANGE:
+      - Before: WebGUI created projects with full 12KB config template
+      - After: WebGUI creates projects with minimal 698-byte template + reference
+      - Users get faster start with essential configs only
+      - Full template still available as reference_config.yml
+    
+      TESTING:
+      - All unit tests pass
+      - Type checking passes with mypy
+      - Function signature verified to include quick parameter
+    </content>
+    <tags>#其他</tags>
+  </item>
 </memory>

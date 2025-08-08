@@ -8,13 +8,38 @@ allowing it to be called from other Python code like the GUI.
 import os
 import shutil
 import logging
+import sys
+from typing import Optional
 from pei_docker.config_processor import Defaults
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s]\t%(message)s')
 
 
-def create_project_direct(project_dir: str, with_examples: bool = True) -> None:
+def get_available_quick_templates() -> list[str]:
+    """
+    Get list of available quick templates from the templates/quick directory.
+    
+    Returns
+    -------
+    list[str]
+        List of template names (without 'config-' prefix and '.yml' suffix)
+    """
+    this_dir: str = os.path.dirname(os.path.realpath(__file__))
+    quick_templates_dir = os.path.join(this_dir, 'templates', 'quick')
+    
+    templates = []
+    if os.path.exists(quick_templates_dir):
+        for file in os.listdir(quick_templates_dir):
+            if file.startswith('config-') and file.endswith('.yml'):
+                # Extract template name from config-<name>.yml
+                template_name = file[7:-4]  # Remove 'config-' prefix and '.yml' suffix
+                templates.append(template_name)
+    
+    return sorted(templates)
+
+
+def create_project_direct(project_dir: str, with_examples: bool = True, quick: Optional[str] = None) -> None:
     """
     Create a new PeiDocker project with template files and directory structure.
     
@@ -27,6 +52,9 @@ def create_project_direct(project_dir: str, with_examples: bool = True) -> None:
         Path where the project directory will be created.
     with_examples : bool
         Whether to include example configuration files. Default is True.
+    quick : str, optional
+        Name of quick template to use for user_config.yml. If not specified,
+        the full template is used. Available templates: minimal, cn-dev, cn-ml
     """
     logging.info(f'Creating PeiDocker project in {project_dir}')
     os.makedirs(project_dir, exist_ok=True)
@@ -45,12 +73,34 @@ def create_project_direct(project_dir: str, with_examples: bool = True) -> None:
             logging.info(f'Copying file {s} to {d}')
             shutil.copy2(s, d)
     
-    # copy config and compose template files to the output dir
+    # Always copy full template as reference_config.yml
     src_config_template: str = f'{this_dir}/{Defaults.ConfigTemplatePath}'
-    dst_config_template: str = f'{project_dir}/{Defaults.OutputConfigName}'
-    logging.info(f'Copying config template {src_config_template} to {dst_config_template}')
-    shutil.copy2(src_config_template, dst_config_template)
+    dst_reference_config: str = f'{project_dir}/reference_config.yml'
+    logging.info(f'Copying full config template to {dst_reference_config} as reference')
+    shutil.copy2(src_config_template, dst_reference_config)
     
+    # Copy appropriate template to user_config.yml based on quick option
+    dst_user_config: str = f'{project_dir}/{Defaults.OutputConfigName}'
+    
+    if quick:
+        # Validate quick template exists
+        quick_template_path = f'{this_dir}/templates/quick/config-{quick}.yml'
+        if not os.path.exists(quick_template_path):
+            available = get_available_quick_templates()
+            if available:
+                logging.error(f'Quick template "{quick}" not found. Available templates: {", ".join(available)}')
+            else:
+                logging.error(f'Quick template "{quick}" not found. No quick templates available.')
+            raise ValueError(f'Quick template "{quick}" not found')
+        
+        logging.info(f'Using quick template "{quick}" for {dst_user_config}')
+        shutil.copy2(quick_template_path, dst_user_config)
+    else:
+        # Use full template for user_config.yml (default behavior)
+        logging.info(f'Copying full config template to {dst_user_config}')
+        shutil.copy2(src_config_template, dst_user_config)
+    
+    # Copy compose template
     src_compose_template: str = f'{this_dir}/{Defaults.ComposeTemplatePath}'
     dst_compose_template: str = f'{project_dir}/{Defaults.OutputComposeTemplateName}'
     logging.info(f'Copying compose template {src_compose_template} to {dst_compose_template}')

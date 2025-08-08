@@ -60,6 +60,10 @@ class ConfigLoader:
                 2
             )
         
+        # Synchronize apt_mirror from stage_1 to stage_2 (UI keeps them in sync)
+        # APT config only exists in stage_1, but the UI binds the same value to both stages
+        ui_state.stage_2.network.apt_mirror = ui_state.stage_1.network.apt_mirror
+        
         # Mark as not modified after loading
         ui_state.modified = False
     

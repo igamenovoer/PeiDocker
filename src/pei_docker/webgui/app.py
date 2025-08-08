@@ -19,6 +19,14 @@ from functools import partial
 from nicegui import ui, app
 from nicegui.events import ValueChangeEventArguments
 
+# Optional import for native dialog support
+try:
+    import webview  # type: ignore
+    HAS_WEBVIEW = True
+except ImportError:
+    HAS_WEBVIEW = False
+    webview = None  # type: ignore
+
 from pei_docker.webgui.models.ui_state import AppUIState
 from pei_docker.webgui.utils.ui_state_bridge import UIStateBridge
 from pei_docker.webgui.utils.utils import ProjectManager
@@ -201,7 +209,7 @@ class PeiDockerWebGUI:
                     ).classes('w-full').props('data-testid="project-dir-input"')
                     
                     with ui.row().classes('gap-2 w-full'):
-                        ui.button('📂 Browse', on_click=self.browse_directory) \
+                        ui.button('📂 Browse', on_click=lambda: self.browse_directory(project_dir_input)) \
                             .classes('bg-gray-500 hover:bg-gray-600')
                         ui.button('🎲 Generate New', on_click=lambda: self.generate_temp_directory(project_dir_input)) \
                             .classes('bg-blue-500 hover:bg-blue-600')
@@ -348,15 +356,16 @@ class PeiDockerWebGUI:
     
     # Project management methods
     async def create_project(self, project_dir: str) -> None:
-        """Create a new project using pei-docker-cli create command."""
+        """Create a new project using pei-docker-cli create command with minimal template."""
         try:
-            # Use pei-docker-cli create logic to properly create the project
+            # Use pei-docker-cli create logic to properly create the project with minimal template
             # This creates the project directory and all necessary files including user_config.yml
             await asyncio.get_event_loop().run_in_executor(
                 None, 
                 create_project_direct, 
                 project_dir, 
-                True  # with_examples=True
+                True,  # with_examples=True
+                'minimal'  # quick='minimal' - use minimal template for faster setup
             )
             
             # Notify that project was created
@@ -549,9 +558,55 @@ class PeiDockerWebGUI:
         self.ui_state.reset()
         self.update_ui_state()
     
-    def browse_directory(self) -> None:
-        """Browse for directory (placeholder)."""
-        ui.notify('📂 Directory browser not yet implemented', type='warning')
+    async def browse_directory(self, input_field: ui.input) -> None:
+        """Browse for directory and update the input field with selected path."""
+        try:
+            # Check if we can use native dialog
+            if HAS_WEBVIEW and hasattr(app, 'native') and app.native and app.native.main_window:
+                # Try native dialog (works in native mode)
+                try:
+                    result = await app.native.main_window.create_file_dialog(
+                        dialog_type=webview.FOLDER_DIALOG  # type: ignore
+                    )
+                    
+                    if result and len(result) > 0:
+                        selected_path = Path(result[0])
+                        input_field.set_value(str(selected_path))
+                        ui.notify(f'Selected: {selected_path.name}', type='positive')
+                    else:
+                        ui.notify('No folder selected', type='info')
+                        
+                except Exception as e:
+                    # Fall back to manual input dialog if native fails
+                    await self._show_manual_directory_dialog(input_field)
+            else:
+                # Web mode - show manual input dialog
+                await self._show_manual_directory_dialog(input_field)
+                
+        except Exception as e:
+            ui.notify(f'Error selecting folder: {str(e)}', type='negative')
+    
+    async def _show_manual_directory_dialog(self, input_field: ui.input) -> None:
+        """Show a manual directory input dialog for web mode."""
+        with ui.dialog() as dialog, ui.card():
+            ui.label('Enter Directory Path').classes('text-lg font-bold mb-2')
+            ui.label('Please enter the full path to your project directory:').classes('text-sm text-gray-600 mb-4')
+            
+            # Get current value or use default
+            current_value = input_field.value or self._generate_default_project_dir()
+            path_input = ui.input(
+                placeholder='e.g., C:\\Projects\\my-peidocker-project',
+                value=current_value
+            ).classes('w-96')
+            
+            with ui.row().classes('gap-2 mt-4'):
+                ui.button('Cancel', on_click=dialog.close).classes('bg-gray-500')
+                ui.button('OK', on_click=lambda: dialog.submit(path_input.value)).classes('bg-blue-600')
+        
+        result = await dialog
+        if result:
+            input_field.set_value(result)
+            ui.notify(f'Path set to: {result}', type='positive')
     
     def generate_temp_directory(self, input_field: ui.input) -> None:
         """Generate a new temporary directory."""
