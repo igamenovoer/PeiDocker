@@ -91,16 +91,119 @@ PeiDocker (配 docker) helps you script and organize your docker image building 
 
 With PeiDocker, you can:
 
-- **Use the intuitive Web GUI** with visual configuration wizard, real-time validation, and auto-port selection
-- **Native desktop mode** for OS-native window experience (optional, requires pywebview)
-- Build images with SSH support including multiple authentication methods (password, public/private keys)
-- Configure separate port mappings for system services (stage-1) and applications (stage-2)
-- Install packages from public repository mirrors, or via proxy
-- Install apps for your container, during or after building, into places such as docker volumes, bind mounts or in-image directory
-- Run custom commands during image building, when the container starts, or when you SSH into the container
-- **Use environment variables with fallback values** in configuration files for flexible deployments across different environments
-- Export/import projects as ZIP files for easy sharing and backup
-- **Advanced template system** with minimal config mode for quick setups
+- **Custom Script Hooks**: Run custom scripts during image build, first run, each time the container starts or when you SSH into the container, without knowing Dockerfiles
+
+- **Painless Configuration**: Quickly setup SSH configurations for multiple users and authentication methods, changing apt repositories, pip repositories, mounts using docker volumes, system-wide proxy, etc.
+
+- **Dynamic Storage Support**: Use external storage in development, and transparently switch to internal storage in deployment
+
+- **Configure With GUI**: Use the modern web interface to create your reusable docker building files without writing Dockerfiles
+
+### Examples
+
+Given the below `user_config.yml` file, PeiDocker will generate a `docker-compose.yml` file for you, using which you will build two docker images `pei-cn-demo:stage-1` and `pei-cn-demo:stage-2` with many useful features.
+
+```yaml
+# pei-docker configuration file as demo
+# in-container paths are relative to /installation directory
+
+stage_1:
+  # input/output image settings
+  image:
+    base: ubuntu:24.04
+    output: pei-cn-demo:stage-1
+
+  # ssh settings
+  ssh:
+    enable: true
+
+    # you can configure ssh port in container (default is 22 if not set)
+    # useful if you want to use network-mode=host, avoid conflicting with host services
+    port: 333
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
+
+    # ssh users, the key is user name
+    users:
+      me:
+        password: '123456'
+
+        # using this will add your public key to the container as authorized key, you can also specify a file path
+        # pubkey_file: '~' 
+
+        # you can also use inline public key text
+        # pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC...'
+        
+      root: # allow you to ssh as root
+        password: root
+
+  # apt settings
+  apt:
+    # use 'tuna' or 'aliyun' apt mirror for faster downloads in China
+    repo_source: 'aliyun'
+    keep_repo_after_build: true # keep the apt source file after build
+
+  # custom scripts
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
+    
+stage_2:
+
+  # input/output image settings
+  image:
+    output: pei-cn-demo:stage-2
+
+  # dynamic storage settings
+  # they define the physical location of `/soft/app`, `/soft/data` and `/soft/workspace` point to, your these paths can be switched among different storage locations, so that you can use external storage in development, and move them to internal storage in deployment
+  storage:
+    app:  # /soft/app will be kept as part of the image
+      type: image
+    data: # mounting /your/data/path to /soft/data in container
+      type: host
+      host_path: /your/data/path
+    workspace: # /soft/workspace will be mounted to a docker automatic volume
+      type: auto-volume
+
+  # mount external volumes to container
+  mount:
+    # mounting docker automatic volume to /home/me
+    # so that you do not have to commit your docker image everytime some configuration changes
+    home_me:
+      type: auto-volume   # auto-volume, manual-volume, host
+      dst_path: /home/me
+
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      # install pixi, a lightweight python package manager
+      - 'stage-2/system/pixi/install-pixi.bash'
+
+      # configure pixi to use tuna mirror in China
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
+```
+
+After you build the images, if you start `pei-cn-demo:stage-1` or `pei-cn-demo:stage-2` with `docker compose`, you will have fully functional docker containers with the following features:
+
+#### pei-cn-demo:stage-1 container features
+
+- SSH server running on port 333 inside container, mapped to port 2222 on host, with a user `me` and password `123456`, you can also login as root with password `root`
+- `apt` source is switched to `aliyun` mirror for faster downloads in China
+- development tools installed via `install-dev-tools.sh` script, into system dirs
+
+#### pei-cn-demo:stage-2 container features
+
+- includes all features of `stage-1`
+- `/soft/data` is mounted to `/your/data/path` on host, so you can use external storage in development
+- `/soft/workspace` is mounted to a docker automatic volume, so you can use it as a persistent workspace
+- `/home/me` is mounted to a docker automatic volume, so during use of the container you can persist your user-specific settings without committing the image
+- `pixi` package manager installed, with `tuna` mirror configured, so you can install python packages easily, via the `on_build` scripts
+
+You can further customize the `user_config.yml` file to add more features, mainly using the `custom` section to run your own scripts during build, first run, container starts or login, so you ONLY need to master bash scripting to maintain your docker images build process, no need to learn Dockerfiles!
 
 _For details, please refer to the [Documentation](https://igamenovoer.github.io/PeiDocker/)_
 
@@ -131,7 +234,12 @@ _For details, please refer to the [Documentation](https://igamenovoer.github.io/
 #### Option 1: Install from PyPI (Recommended)
 
 ```sh
+# for ordinary python users, or conda users
 pip install pei-docker
+
+# if you are using pixi, you need to install via pipx
+pixi global install pipx  # install pipx if you haven't done so
+pipx install pei-docker # then install pei-docker
 ```
 
 #### Option 2: Install from Source
@@ -150,12 +258,12 @@ pip install -e .
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### Web GUI (Recommended for beginners)
+### Web GUI (Experimental)
 
 The modern web interface provides an intuitive way to manage PeiDocker projects:
 
 ```sh
-# Start GUI on auto-selected port
+# Start GUI on auto-selected port, in browser
 pei-docker-gui start
 
 # Or specify a custom port
@@ -164,33 +272,10 @@ pei-docker-gui start --port 8080
 # Load an existing project
 pei-docker-gui start --project-dir /path/to/my/project
 
-# Jump directly to specific configuration page
-pei-docker-gui start --jump-to-page ssh
-
 # Run in native desktop mode (requires pywebview)
+# You need this to use the "Browse" feature to locate directories
 pei-docker-gui start --native
 ```
-
-**Key Features:**
-- **Visual Configuration Wizard**: Step-by-step interface with organized tabs for all settings
-- **Real-time Validation**: Instant feedback on configuration errors and warnings
-- **Auto-port Selection**: Automatically finds available ports if default is in use
-- **Multiple SSH Auth Methods**: Support for password, public key files, inline keys, and private keys
-- **Project Import/Export**: Download/upload projects as ZIP files for easy sharing
-- **Jump-to-Page**: Quick navigation to specific configuration sections for debugging
-- **Minimal Config Mode**: Streamlined templates for quick project setup
-- **Native Desktop Mode**: Optional OS-native window experience (when pywebview is installed)
-- **Interactive Help**: Contextual tooltips and documentation links throughout the interface
-
-**Available Pages:**
-- `home` - Welcome page with project management
-- `project` - Basic project settings and Docker image configuration
-- `ssh` - SSH server and user authentication setup
-- `network` - Port mappings and proxy configuration
-- `environment` - Environment variables with Docker Compose-style substitution
-- `storage` - Volume and bind mount configuration
-- `scripts` - Custom script management for build and runtime
-- `summary` - Complete project overview with export functionality
 
 ### Command Line Interface
 
@@ -198,33 +283,27 @@ Create a new project:
 
 ```sh
 # Create a new project in ./build or any other directory
-pei-docker-cli create -p ./build
-
-# Optional: Create without examples or contrib files
-pei-docker-cli create -p ./build --no-with-examples --no-with-contrib
+pei-docker-cli create -p /your/build/dir
 ```
 
-Edit the configuration file `user_config.yml` in the project directory (e.g.,`./build`) according to your needs. Generate the `docker-compose.yml` file in the project directory:
+Edit the configuration file `user_config.yml` in the project directory (e.g.,`/your/build/dir`) according to your needs. Generate the `docker-compose.yml` file in the project directory:
 
 ```sh
 # From within the project directory
-cd ./build
+cd /your/build/dir
 pei-docker-cli configure
 
 # Or specify project directory explicitly
-pei-docker-cli configure -p ./build
+pei-docker-cli configure -p /your/build/dir
 
 # Optional: Use a different config file
-pei-docker-cli configure -p ./build -c my-custom-config.yml
-
-# Optional: Generate full compose file with extended sections
-pei-docker-cli configure -p ./build -f
+pei-docker-cli configure -p /your/build/dir -c my-custom-config.yml
 ```
 
 Build the docker images. There are two images to be built, namely `stage-1` and `stage-2`. `stage-1` is intended to be a base image, installing system apps using `apt install`, `stage-2` is intended to be a final image based on `stage-1`, installing custom apps using downloaded packages like `.deb`. External storage is only available in `stage-2`.
 
 ```sh
-cd ./build
+cd /your/build/dir
 
 # Using docker compose to build the images. 
 # To see all the output, use --progress=plain
@@ -242,7 +321,7 @@ docker compose build stage-2 --progress=plain
 Run the docker container:
 
 ```sh
-# inside project directory, such as ./build
+# inside project directory, such as /your/build/dir
 
 # Typically you will run the stage-2 container
 # You can also up the stage-1 container as well.

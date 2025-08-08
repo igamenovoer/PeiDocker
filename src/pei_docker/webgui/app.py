@@ -639,17 +639,41 @@ class PeiDockerWebGUI:
             self._update_tab_styling()
 
 
-# Main entry point
-def create_app() -> None:
-    """Create and setup the PeiDocker Web GUI application."""
+# Development entry point (production uses cli_launcher.py)
+def create_app(port: int = 8080, native: bool = False) -> None:
+    """Create and setup the PeiDocker Web GUI application.
+    
+    Note: This is for development/testing only. Production deployments
+    should use `pei-docker-gui start` command which provides auto-port
+    selection and additional features.
+    
+    Parameters
+    ----------
+    port : int
+        Port to run the application (default: 8080)
+    native : bool
+        Run in native desktop mode if pywebview is available
+    """
     gui = PeiDockerWebGUI()
     
     @ui.page('/')
     def index() -> None:
         gui.setup_ui()
     
-    ui.run(title='PeiDocker Web GUI', port=8080)
+    ui.run(
+        title='PeiDocker Web GUI',
+        port=port,
+        host='0.0.0.0',
+        favicon='🐳',
+        dark=None,  # Auto-detect
+        reload=False,
+        native=native
+    )
 
 
 if __name__ == '__main__':
+    # For development: python app.py
+    # For production: pei-docker-gui start
+    print("Starting development server on port 8080...")
+    print("For production use: pei-docker-gui start")
     create_app()

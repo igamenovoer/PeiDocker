@@ -102,7 +102,7 @@ from contextlib import closing
 from nicegui import ui, app
 
 # Import the main app and models
-from pei_docker.webgui.app import create_app, PeiDockerWebGUI, TabName, AppState
+from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
 
 
 def check_port_available(port: int) -> bool:

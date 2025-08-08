@@ -1,0 +1,81 @@
+# pei-docker configuration file as demo
+# in-container paths are relative to /installation directory
+
+stage_1:
+  # input/output image settings
+  image:
+    base: ubuntu:24.04
+    output: pei-cn-demo:stage-1
+
+  # ssh settings
+  ssh:
+    enable: true
+
+    # you can configure ssh port in container (default is 22 if not set)
+    # useful if you want to use network-mode=host, avoid conflicting with host services
+    port: 333
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
+
+    # ssh users, the key is user name
+    users:
+      me:
+        password: '123456'
+
+        # using this will add your public key to the container as authorized key, you can also specify a file path
+        # pubkey_file: '~' 
+
+        # you can also use inline public key text
+        # pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC...'
+        
+      root: # allow you to ssh as root
+        password: root
+
+  # apt settings
+  apt:
+    # use 'tuna' or 'aliyun' apt mirror for faster downloads in China
+    repo_source: 'aliyun'
+    keep_repo_after_build: true # keep the apt source file after build
+
+  # custom scripts
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
+    
+stage_2:
+
+  # input/output image settings
+  image:
+    output: pei-cn-demo:stage-2
+
+  # dynamic storage settings
+  # they define the physical location of `/soft/app`, `/soft/data` and `/soft/workspace` point to, your these paths can be switched among different storage locations, so that you can use external storage in development, and move them to internal storage in deployment
+  storage:
+    app:  # /soft/app will be kept as part of the image
+      type: image
+    data: # mounting /your/data/path to /soft/data in container
+      type: host
+      host_path: /your/data/path
+    workspace: # /soft/workspace will be mounted to a docker automatic volume
+      type: auto-volume
+
+  # mount external volumes to container
+  mount:
+    # mounting docker automatic volume to /home/me
+    # so that you do not have to commit your docker image everytime some configuration changes
+    home_me:
+      type: auto-volume   # auto-volume, manual-volume, host
+      dst_path: /home/me
+
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      # install pixi, a lightweight python package manager
+      - 'stage-2/system/pixi/install-pixi.bash'
+
+      # configure pixi to use tuna mirror in China
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China

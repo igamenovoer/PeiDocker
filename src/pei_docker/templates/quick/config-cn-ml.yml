@@ -6,7 +6,7 @@
 stage_1:
   # input/output image settings
   image:
-    base: ubuntu:24.04
+    base: nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
     output: pei-cn-ml:stage-1
 
   # ssh settings
@@ -106,7 +106,7 @@ stage_2:
     # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
     on_build: 
       # install pixi, a lightweight python package manager
-      - 'stage-2\system\pixi\install-pixi.bash'
+      - 'stage-2/system/pixi/install-pixi.bash'
 
       # configure pixi to use tuna mirror in China
-      - 'stage-2\system\pixi\set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
+      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
