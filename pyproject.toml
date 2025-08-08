@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pei-docker"
-version = "1.1.0"
+version = "1.1.1"
 description = "A sophisticated Docker automation framework that transforms YAML configurations into reproducible containerized environments"
 authors = [
     {name = "igamenovoer", email = "igamenovoer@xx.com"}
