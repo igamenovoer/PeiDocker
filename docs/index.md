@@ -15,14 +15,37 @@ Don't keep your docker images around, keep the build files! If you ever want to 
 
 ## What's New
 
-### Recent Features (January 2025)
+### Version 2.0 - Major GUI Update (January 2025)
 
-- **NiceGUI Web Interface**: New browser-based GUI for visual project management
-- **Auto-port Selection**: GUI automatically finds available ports
-- **Separate Port Mappings**: Independent port configuration for stage-1 (system) and stage-2 (application)
-- **ZIP Export**: Export entire projects as ZIP files for sharing and backup
-- **Enhanced SSH Options**: Support for inline SSH keys (public/private text)
-- **Improved Architecture**: Modular codebase with better maintainability
+**Web GUI Enhancements:**
+- **Modern NiceGUI Framework**: Complete rewrite using NiceGUI for improved performance and user experience
+- **Visual Configuration Wizard**: Intuitive step-by-step interface with tab-based navigation
+- **Native Desktop Mode**: Optional OS-native window mode with `--native` flag (requires pywebview)
+- **Auto-port Selection**: Intelligent port detection automatically finds available ports
+- **Jump-to-Page Navigation**: Direct access to specific configuration sections via CLI parameter
+- **Real-time Validation**: Instant configuration validation with helpful error messages
+
+**Configuration Features:**
+- **Separate Port Mappings**: Independent port configuration for stage-1 (system services) and stage-2 (applications)
+- **Enhanced SSH Management**: 
+  - Support for multiple authentication methods
+  - Inline SSH key input (both public and private)
+  - Automatic public key generation from private keys
+  - Multi-user configuration with custom UIDs
+- **Advanced Storage Options**: Visual configuration for auto-volume, manual-volume, host, and in-image storage
+- **Script Parameters**: Support for shell-like parameters in custom scripts
+- **Environment Variable Substitution**: Docker Compose-style `${VAR:-default}` syntax support
+
+**Project Management:**
+- **ZIP Import/Export**: Complete project backup and sharing via ZIP files
+- **Minimal Config Templates**: Quick-start templates for common Docker setups
+- **Project Validation**: Pre-startup validation to catch configuration errors early
+- **Configuration Generation**: One-click generation of docker-compose.yml and Dockerfiles
+
+**Developer Experience:**
+- **Improved Architecture**: Modular codebase with clear separation of concerns
+- **Better Error Handling**: Comprehensive error messages and recovery suggestions
+- **Enhanced Documentation**: Inline help, tooltips, and contextual documentation links
 
 ## Installation
 
@@ -58,7 +81,7 @@ PeiDocker offers two ways to manage projects: via command line (CLI) or web inte
 
 ### Option 1: Web GUI (Recommended for beginners)
 
-The web-based GUI provides an intuitive interface for managing PeiDocker projects:
+The modern web-based GUI provides a comprehensive interface for managing PeiDocker projects:
 
 ```sh
 # Start the web GUI on an auto-selected free port
@@ -72,15 +95,49 @@ pei-docker-gui start --project-dir /path/to/my/project
 
 # Create a new project and jump to SSH configuration
 pei-docker-gui start --project-dir /tmp/new-project --jump-to-page ssh
+
+# Run in native desktop mode (requires pywebview)
+pei-docker-gui start --native
 ```
 
-The web interface will open at `http://localhost:<port>` and provides:
-- Visual project configuration with organized tabs
-- Real-time validation and error checking
-- Project import/export functionality (ZIP download)
-- Interactive help and tooltips
-- Separate port configuration for stage-1 and stage-2
-- SSH key management with multiple authentication methods
+The web interface will open at `http://localhost:<port>` (or in a native window with `--native`) and provides:
+
+**Core Features:**
+- **Visual Configuration Wizard**: Step-by-step guided setup with organized tabs
+- **Real-time Validation**: Instant feedback with error highlighting and suggestions
+- **Auto-port Selection**: Automatically finds available ports when defaults are in use
+- **Project Import/Export**: ZIP file download/upload for easy project sharing and backup
+- **Interactive Help**: Contextual tooltips and inline documentation throughout
+
+**Configuration Capabilities:**
+- **Project Settings**: Docker image configuration, base images, and output naming
+- **SSH Management**: 
+  - Multiple authentication methods (password, public key file, inline keys)
+  - Direct private key input with automatic public key generation
+  - Multi-user configuration with custom UIDs
+- **Network Configuration**:
+  - Separate port mappings for stage-1 (system) and stage-2 (application)
+  - Proxy settings with global enable/disable options
+  - Environment-specific network configurations
+- **Storage Management**:
+  - Auto-volume, manual-volume, host mount, and in-image storage options
+  - Visual volume and bind mount configuration
+  - Storage strategy switching without data loss
+- **Script Automation**:
+  - Custom scripts for build, first-run, every-run, and user-login events
+  - Script parameter support with shell-like syntax
+  - Stage-specific script organization
+- **Environment Variables**:
+  - Docker Compose-style variable substitution (`${VAR:-default}`)
+  - Stage-specific environment configuration
+  - Visual editor with syntax highlighting
+
+**Advanced Features:**
+- **Jump-to-Page Navigation**: Direct access to specific configuration sections
+- **Minimal Config Templates**: Quick-start templates for common use cases
+- **Native Desktop Mode**: OS-native window experience when pywebview is installed
+- **Project Validation**: Pre-startup validation to prevent runtime errors
+- **Configuration Export**: Generate docker-compose.yml and Dockerfiles with a single click
 
 ### Option 2: Command Line Interface
 
@@ -213,7 +270,10 @@ ssh me@127.0.0.1 -p 2222
 
 * That's it, you are good to go.
 
-For more detailed configuration options and advanced features, see the [Examples](examples/basic.md) section.
+For more detailed information:
+- [Web GUI Complete Guide](webgui_guide.md) - Comprehensive guide to the web interface
+- [Examples](examples/basic.md) - Basic configuration examples
+- [Advanced Examples](examples/advanced.md) - Complex configuration scenarios
 
 * If you prefer to run the image using `docker run` instead of `docker compose`, you can convert the `docker-compose.yml` to commands using [Decomposerize](https://www.decomposerize.com/).
 * If you have trouble connecting to docker.io when building the image, you can either set the global proxy for docker, or pull the base image manually and tag it with a local name. For detail, see [stack overflow](https://stackoverflow.com/questions/68520864/how-to-disable-loading-metadata-while-executing-docker-build).

@@ -87,18 +87,20 @@ You don't have time to learn Dockerfiles, we get it.
 
 But don't keep your docker images around, they will be messed up eventually. If you ever want to make reproducible docker images but have no patience to learn Dockerfiles and docker-compose, PeiDocker is for you.
 
-PeiDocker (配 docker) helps you script and organize your docker image building process with both CLI and Web GUI interfaces. It streamlines the building process and allows you to customize the image building and running behaviours using shell scripts. 
+PeiDocker (配 docker) helps you script and organize your docker image building process with both CLI and modern Web GUI interfaces. It streamlines the building process and allows you to customize the image building and running behaviours using shell scripts. 
 
 With PeiDocker, you can:
 
-- **Use the intuitive Web GUI** for visual project configuration
-- Build images with SSH support (currently only Ubuntu-based images are supported)
+- **Use the intuitive Web GUI** with visual configuration wizard, real-time validation, and auto-port selection
+- **Native desktop mode** for OS-native window experience (optional, requires pywebview)
+- Build images with SSH support including multiple authentication methods (password, public/private keys)
 - Configure separate port mappings for system services (stage-1) and applications (stage-2)
 - Install packages from public repository mirrors, or via proxy
 - Install apps for your container, during or after building, into places such as docker volumes, bind mounts or in-image directory
 - Run custom commands during image building, when the container starts, or when you SSH into the container
 - **Use environment variables with fallback values** in configuration files for flexible deployments across different environments
-- Export/import projects as ZIP files for easy sharing
+- Export/import projects as ZIP files for easy sharing and backup
+- **Advanced template system** with minimal config mode for quick setups
 
 _For details, please refer to the [Documentation](https://igamenovoer.github.io/PeiDocker/)_
 
@@ -150,7 +152,7 @@ pip install -e .
 
 ### Web GUI (Recommended for beginners)
 
-Start the web interface for visual project configuration:
+The modern web interface provides an intuitive way to manage PeiDocker projects:
 
 ```sh
 # Start GUI on auto-selected port
@@ -161,13 +163,34 @@ pei-docker-gui start --port 8080
 
 # Load an existing project
 pei-docker-gui start --project-dir /path/to/my/project
+
+# Jump directly to specific configuration page
+pei-docker-gui start --jump-to-page ssh
+
+# Run in native desktop mode (requires pywebview)
+pei-docker-gui start --native
 ```
 
-The web interface provides:
-- Visual project configuration with organized tabs
-- Real-time validation and error checking
-- Project import/export functionality
-- Interactive help and tooltips
+**Key Features:**
+- **Visual Configuration Wizard**: Step-by-step interface with organized tabs for all settings
+- **Real-time Validation**: Instant feedback on configuration errors and warnings
+- **Auto-port Selection**: Automatically finds available ports if default is in use
+- **Multiple SSH Auth Methods**: Support for password, public key files, inline keys, and private keys
+- **Project Import/Export**: Download/upload projects as ZIP files for easy sharing
+- **Jump-to-Page**: Quick navigation to specific configuration sections for debugging
+- **Minimal Config Mode**: Streamlined templates for quick project setup
+- **Native Desktop Mode**: Optional OS-native window experience (when pywebview is installed)
+- **Interactive Help**: Contextual tooltips and documentation links throughout the interface
+
+**Available Pages:**
+- `home` - Welcome page with project management
+- `project` - Basic project settings and Docker image configuration
+- `ssh` - SSH server and user authentication setup
+- `network` - Port mappings and proxy configuration
+- `environment` - Environment variables with Docker Compose-style substitution
+- `storage` - Volume and bind mount configuration
+- `scripts` - Custom script management for build and runtime
+- `summary` - Complete project overview with export functionality
 
 ### Command Line Interface
 
