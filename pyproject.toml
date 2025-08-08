@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pei-docker"
-version = "1.0.0"
+version = "1.1.0"
 description = "A sophisticated Docker automation framework that transforms YAML configurations into reproducible containerized environments"
 authors = [
     {name = "igamenovoer", email = "igamenovoer@xx.com"}
@@ -36,7 +36,7 @@ dependencies = [
     "omegaconf>=2.3.0,<3",
     "attrs>=25.3.0,<26",
     "click>=8.2.1,<9",
-    "nicegui>=2.21.1,<3",
+    "nicegui>=2.21.1,<3", "pywebview>=5.4,<6",
 ]
 
 [project.optional-dependencies]

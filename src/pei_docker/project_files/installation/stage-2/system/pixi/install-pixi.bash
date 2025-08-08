@@ -1,5 +1,76 @@
 #!/bin/bash
 
+#############################################################################
+# Pixi Python Package Manager Installation Script
+#############################################################################
+#
+# DESCRIPTION:
+#   This script installs Pixi (Python package manager) for all eligible users
+#   on the system. It automatically detects users with passwords, installs Pixi
+#   to their home directories, and configures their shell environment.
+#
+# USAGE:
+#   ./install-pixi.bash [OPTIONS]
+#
+# OPTIONS:
+#   --cache-dir=PATH      Set custom Pixi cache directory
+#                         (applies to all users and future users)
+#                         Example: --cache-dir=/shared/pixi-cache
+#
+#   --install-dir=PATH    Set custom Pixi installation directory
+#                         (overrides default ~/.pixi for all users)
+#                         Example: --install-dir=/opt/pixi
+#
+#   --verbose             Enable verbose output for debugging
+#                         Shows detailed information about each step
+#
+# EXAMPLES:
+#   # Basic installation (installs to ~/.pixi for each user)
+#   ./install-pixi.bash
+#
+#   # Install with custom cache directory
+#   ./install-pixi.bash --cache-dir=/shared/pixi-cache
+#
+#   # Install to custom directory with verbose output
+#   ./install-pixi.bash --install-dir=/opt/pixi --verbose
+#
+#   # Full customization
+#   ./install-pixi.bash --install-dir=/opt/pixi --cache-dir=/tmp/pixi --verbose
+#
+# BEHAVIOR:
+#   - Scans /etc/passwd for users with UID >= 1000 and valid home directories
+#   - Only installs for users who have passwords set (can SSH login)
+#   - Installs Pixi using the official installer from https://pixi.sh/install.sh
+#   - Updates each user's ~/.bashrc to add Pixi to PATH
+#   - Configures /etc/skel/.bashrc for future users
+#   - Skips installation if Pixi is already present for a user
+#   - Sets appropriate file permissions and ownership
+#
+# REQUIREMENTS:
+#   - Root privileges (must be run as root or with sudo)
+#   - Internet connection (downloads Pixi installer)
+#   - curl command available
+#   - Bash shell environment
+#
+# OUTPUT:
+#   - Progress messages showing installation status for each user
+#   - Success/failure indicators (✓/✗) for each installation
+#   - Warnings for users without passwords (skipped)
+#   - Summary of installation directories and configuration
+#
+# FILES MODIFIED:
+#   - ~/.bashrc for each eligible user (adds PATH and cache config)
+#   - /etc/skel/.bashrc (for future users)
+#   - Creates ~/.pixi/ directory structure for each user
+#
+# DEPENDENCIES:
+#   - May source pixi-utils.bash if available in the same directory
+#   - Falls back to embedded function definitions if utilities not found
+#
+# AUTHOR: PeiDocker Project
+# VERSION: 1.0
+#############################################################################
+
 # prevent interactive prompts
 export DEBIAN_FRONTEND=noninteractive
 

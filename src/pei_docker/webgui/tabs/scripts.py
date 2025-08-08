@@ -45,20 +45,21 @@ class ScriptsTab(BaseTab):
             with ui.card().classes('w-full p-3 mb-4 bg-blue-50 border-blue-200'):
                 ui.label('ℹ️ Important: Script Path Access Rules').classes('text-base font-semibold text-blue-800 mb-2')
                 
-                with ui.column().classes('text-sm space-y-2'):
-                    with ui.column():
-                        ui.label('🏗️ Stage-1 Scripts:').classes('font-semibold')
-                        with ui.column().classes('ml-4'):
-                            ui.markdown('• Can **ONLY** reference paths starting with `stage-1/`').classes('text-sm')
-                            ui.markdown('• **Cannot access** any `stage-2/` paths (stage-2 doesn\'t exist yet)').classes('text-sm')
-                            ui.markdown('• Examples: `stage-1/custom/script.sh`, `stage-1/system/setup.sh`').classes('text-sm')
-                    
-                    with ui.column():
-                        ui.label('🏗️ Stage-2 Scripts:').classes('font-semibold')
-                        with ui.column().classes('ml-4'):
-                            ui.markdown('• Can reference paths starting with **both** `stage-1/` and `stage-2/`').classes('text-sm')
-                            ui.markdown('• Has access to all stage-1 resources plus stage-2 resources').classes('text-sm')
-                            ui.markdown('• Examples: `stage-2/custom/app.sh`, `stage-1/system/base.sh`').classes('text-sm')
+                ui.markdown('''**🏗️ Stage-1 Scripts:**
+                            
+• Can **ONLY** reference paths starting with `stage-1/`
+
+• **Cannot access** any `stage-2/` paths (stage-2 doesn't exist yet)
+
+• Examples: `stage-1/custom/script.sh`, `stage-1/system/setup.sh`
+
+**🏗️ Stage-2 Scripts:**
+
+• Can reference paths starting with **both** `stage-1/` and `stage-2/`
+
+• Has access to all stage-1 resources plus stage-2 resources
+
+• Examples: `stage-2/custom/app.sh`, `stage-1/system/base.sh`''').classes('text-sm')
             
             # Stage-1 Scripts
             self._create_stage_scripts_section('stage1', '🏗️ Stage-1 Image Scripts', 'stage-1', 

@@ -1,0 +1,29 @@
+# basic pei-docker configuration file, with minimal settings
+# all paths are relative to /installation directory
+
+stage_1:
+  # input/output image settings
+  image:
+    base: ubuntu:24.04
+    output: pei-image:stage-1
+
+  # ssh settings
+  ssh:
+    enable: true
+
+    # port in container, if given, this port WILL be set inside container as SSH port
+    port: 22  
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
+
+    # ssh users, the key is user name, value is user info
+    users:
+      me:
+        password: '123456'
+    
+stage_2:
+
+  # input/output image settings
+  image:
+    output: pei-image:stage-2

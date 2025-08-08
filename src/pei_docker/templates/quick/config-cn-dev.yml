@@ -1,0 +1,102 @@
+# pei-docker configuration file for machine learning development environment in CN
+# with gpu support
+
+# all paths are relative to /installation directory
+
+stage_1:
+  # input/output image settings
+  image:
+    base: ubuntu:24.04
+    output: pei-cn-dev:stage-1
+
+  # ssh settings
+  ssh:
+    enable: true
+
+    # port in container, if given, this port WILL be set inside container as SSH port
+    port: 22  
+
+    # mapped port on host machine, if given, this port will be mapped to the container SSH port
+    host_port: 2222
+
+    # ssh users, the key is user name, value is user info
+    users:
+      me:
+        password: '123456'
+        
+      root: # you can configure root user here
+        password: root
+
+  # proxy settings, by default, NOT enabled
+  # to enable proxy, set enable_globally to true
+  # inside the container, the proxy will accessed as http://{address}:{port}
+  # note that whether the proxy is used or not depends on the applications
+  proxy:
+    address: host.docker.internal # default value, this will map to the host machine
+    port: 7890  # if address==host.docker.internal, this will be the proxy port on host machine
+    enable_globally: false  # enable proxy for all shell commands during build and run?
+
+  # apt settings
+  apt:
+    # replace the default apt source with a custom one, use empty string to disable this
+    # repo_source: 'stage-1/system/apt/ubuntu-22.04-tsinghua-x64.list'
+    # special values that refer to well known apt sources:
+    # 'tuna' : 'http://mirrors.tuna.tsinghua.edu.cn/ubuntu/'
+    # 'aliyun' : 'http://mirrors.aliyun.com/ubuntu/'
+    # '163' : 'http://mirrors.163.com/ubuntu/'
+    # 'ustc' : 'http://mirrors.ustc.edu.cn/ubuntu/'
+    # 'cn' : 'http://cn.archive.ubuntu.com/ubuntu/
+    repo_source: 'tuna'
+    keep_repo_after_build: true # keep the apt source file after build?
+
+  # custom scripts
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
+    
+stage_2:
+
+  # input/output image settings
+  image:
+    output: pei-cn-dev:stage-2
+
+  # storage configurations
+  # use 'auto-volume' to automatically create a docker volume for the dynamic storage
+  storage:
+    app:
+      type: auto-volume # auto-volume, manual-volume, host, image
+
+    data:
+      type: auto-volume
+
+    workspace:
+      type: auto-volume
+
+      # when type=host, this points to the host directory to be mounted
+      # in container, you can access it as /soft/workspace
+      host_path: null 
+
+      # when type=manual-volume, this is the name of the manually created docker volume
+      volume_name: null
+
+  # mount external volumes to container
+  # the volumes can be given any names, mounted anywhere
+  # the volume type cannot be 'image', or otherwise it will be ignored
+  mount:
+    home_me:
+      type: auto-volume   # auto-volume, manual-volume, host
+      dst_path: /home/me
+      host_path: null # when type=host, this points to the host directory to be mounted
+      volume_name: null # when type=manual-volume, this is the name of the manually created docker volume
+
+  custom:
+    # scripts run during build
+    # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
+    on_build: 
+      # install pixi, a lightweight python package manager
+      - 'stage-2\system\pixi\install-pixi.bash'
+
+      # configure pixi to use tuna mirror in China
+      - 'stage-2\system\pixi\set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
