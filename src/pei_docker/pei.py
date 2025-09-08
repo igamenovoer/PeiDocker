@@ -247,58 +247,45 @@ def create(project_dir : str, with_examples : bool, quick : str | None) -> None:
               type=click.Path(exists=False, file_okay=True, dir_okay=False))
 @click.option('--full-compose', '-f', is_flag=True, default=False, help='generate full compose file with x-??? sections')
 def configure(project_dir:str, config:str, full_compose:bool) -> None:
-    """
-    Configure PeiDocker project by generating docker-compose.yml from user configuration.
+    """Generate docker-compose.yml from user configuration.
     
     Processes the user configuration file through environment variable substitution
     and the PeiDocker configuration engine to produce a complete Docker Compose
     file ready for deployment.
     
-    Parameters
-    ----------
-    project_dir : str, optional
-        Project directory containing the configuration files. If not specified,
-        uses the current working directory.
-    config : str, default 'user_config.yml'
-        Configuration file name, relative to project directory. Can also be
-        an absolute path to a config file.
-    full_compose : bool, default False
-        Whether to include debugging sections (x-cfg-*) in the output compose file.
-        Useful for troubleshooting configuration processing.
-        
-    Process Flow
-    ------------
-    1. Load user configuration file (YAML)
-    2. Process environment variable substitution (${VAR:-default} syntax)
-    3. Load Docker Compose template
-    4. Transform configuration through PeiConfigProcessor
-    5. Generate final docker-compose.yml file
-    6. Create custom script files for container lifecycle hooks
+    \b
+    Process Flow:
+      1. Load user configuration file (YAML)
+      2. Process environment variable substitution (${VAR:-default} syntax)
+      3. Load Docker Compose template
+      4. Transform configuration through PeiConfigProcessor
+      5. Generate final docker-compose.yml file
+      6. Create custom script files for container lifecycle hooks
     
-    Environment Variable Substitution
-    ---------------------------------
-    The configuration supports Docker Compose-style variable substitution:
-    - ${HOME}: Replaced with HOME environment variable value
-    - ${DATA_PATH:-/default/path}: Replaced with DATA_PATH or default if unset
-    - ${SHARED_HOST_PATH:-/mnt/workspace}: Flexible deployment configuration
+    \b
+    Environment Variable Substitution:
+      The configuration supports Docker Compose-style variable substitution:
+      - ${HOME}: Replaced with HOME environment variable value
+      - ${DATA_PATH:-/default/path}: Replaced with DATA_PATH or default if unset
+      - ${SHARED_HOST_PATH:-/mnt/workspace}: Flexible deployment configuration
     
-    Examples
-    --------
-    Configure with default settings:
-        pei-docker-cli configure -p ./my-project
-        
-    Configure with custom config file:
-        pei-docker-cli configure -p ./my-project -c my-custom-config.yml
-        
-    Generate full compose with debug sections:
-        pei-docker-cli configure -p ./my-project --full-compose
-        
-    Notes
-    -----
-    After successful configuration, the project directory will contain:
-    - docker-compose.yml: Ready for 'docker compose build' and 'docker compose up'
-    - Generated script files in installation/stage-*/generated/
-    - Environment files for container runtime
+    \b
+    Examples:
+      # Configure with default settings
+      pei-docker-cli configure -p ./my-project
+      
+      # Configure with custom config file
+      pei-docker-cli configure -p ./my-project -c my-custom-config.yml
+      
+      # Generate full compose with debug sections
+      pei-docker-cli configure -p ./my-project --full-compose
+    
+    \b
+    Output Files:
+      After successful configuration, the project directory will contain:
+      - docker-compose.yml: Ready for 'docker compose build' and 'docker compose up'
+      - Generated script files in installation/stage-*/generated/
+      - Environment files for container runtime
     
     The generated compose file supports the two-stage build process where
     stage-1 handles system setup and stage-2 handles application configuration.
@@ -566,63 +553,48 @@ def remove_image(image_name: str, force_yes: bool = False) -> bool:
               type=click.Path(exists=True, file_okay=False))
 @click.option('--yes', '-y', is_flag=True, default=False, help='skip confirmation prompts')
 def remove(project_dir: str, yes: bool) -> None:
-    """
-    Remove Docker images and containers created by PeiDocker project.
+    """Remove Docker images and containers created by PeiDocker project.
     
     Safely removes all Docker resources (images and containers) associated with
     the specified project by parsing the generated docker-compose.yml file and
     cleaning up dependencies in the correct order.
     
-    Parameters
-    ----------
-    project_dir : str
-        Path to the PeiDocker project directory. Must exist and contain
-        a docker-compose.yml file generated by the 'configure' command.
-    yes : bool, default False
-        Skip confirmation prompts for destructive operations. When False,
-        prompts user before removing each set of containers and images.
-        
-    Safety Features
-    ---------------
-    - Checks for docker-compose.yml existence before proceeding
-    - Identifies container dependencies before removing images
-    - Stops containers gracefully before removal
-    - Provides individual confirmation for each resource type
-    - Handles missing Docker resources gracefully
-    - Continues cleanup even if individual operations fail
+    \b
+    Safety Features:
+      - Checks for docker-compose.yml existence before proceeding
+      - Identifies container dependencies before removing images
+      - Stops containers gracefully before removal
+      - Provides individual confirmation for each resource type
+      - Handles missing Docker resources gracefully
     
-    Process Flow
-    ------------
-    1. Load and parse docker-compose.yml from project directory
-    2. Extract image names from all services
-    3. For each image:
-       a. Find containers using the image
-       b. Stop and remove containers (with confirmation)
-       c. Remove the image (with confirmation)
-    4. Report cleanup completion status
+    \b
+    Process Flow:
+      1. Load and parse docker-compose.yml from project directory
+      2. Extract image names from all services
+      3. For each image:
+         a. Find containers using the image
+         b. Stop and remove containers (with confirmation)
+         c. Remove the image (with confirmation)
+      4. Report cleanup completion status
     
-    Examples
-    --------
-    Remove with confirmations:
-        pei-docker-cli remove -p ./my-project
-        
-    Force removal without prompts:
-        pei-docker-cli remove -p ./my-project --yes
-        
-    Notes
-    -----
-    This command requires:
-    - Project directory created by 'create' command
-    - docker-compose.yml file generated by 'configure' command
-    - Docker daemon running and accessible
+    \b
+    Examples:
+      # Remove with confirmations
+      pei-docker-cli remove -p ./my-project
+      
+      # Force removal without prompts
+      pei-docker-cli remove -p ./my-project --yes
     
-    The removal process is designed to be safe and reversible - images can
-    always be rebuilt using 'docker compose build' after cleanup.
+    \b
+    Requirements:
+      - Project directory created by 'create' command
+      - docker-compose.yml file generated by 'configure' command
+      - Docker daemon running and accessible
     
-    Warning
-    -------
-    This operation removes Docker images and containers permanently.
-    Ensure you have saved any important data from containers before removal.
+    \b
+    Warning:
+      This operation removes Docker images and containers permanently.
+      Ensure you have saved any important data from containers before removal.
     """
     logging.info(f'Removing images from PeiDocker project in {project_dir}')
     
