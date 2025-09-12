@@ -22,7 +22,6 @@ vision_libs=(
     "qimgv"                   # image viewing
     "python3"                 # python interpreter
     "python3-pip"             # python package manager
-    "uv"                      # modern python package manager
 )
 
 # Install all vision development libraries

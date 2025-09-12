@@ -258,33 +258,37 @@ class PeiConfigProcessor:
         
         on_build_scripts = custom_config.on_build
         if on_build_scripts is not None:
-            # check if all files listed in on_build_scripts exist, and replace it
-            for i, script in enumerate(on_build_scripts):
-                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script}'
+            # Validate existence of script files (ignore parameters)
+            for script_entry in on_build_scripts:
+                script_path, _ = self._parse_script_entry(script_entry)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script_path}'
                 if not os.path.exists(host_path):
                     logging.warning(f'Script {host_path} not found')
             
         on_first_run_scripts = custom_config.on_first_run
         if on_first_run_scripts is not None:
-            # check if all files listed in on_first_run_scripts exist
-            for i, script in enumerate(on_first_run_scripts):
-                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script}'
+            # Validate existence of script files (ignore parameters)
+            for script_entry in on_first_run_scripts:
+                script_path, _ = self._parse_script_entry(script_entry)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script_path}'
                 if not os.path.exists(host_path):
                     logging.warning(f'Script {host_path} not found')
             
         on_every_run_scripts : list[str] = custom_config.on_every_run
         if on_every_run_scripts is not None:
-            # check if all files listed in on_every_run_scripts exist
-            for script in on_every_run_scripts:
-                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script}'
+            # Validate existence of script files (ignore parameters)
+            for script_entry in on_every_run_scripts:
+                script_path, _ = self._parse_script_entry(script_entry)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script_path}'
                 if not os.path.exists(host_path):
                     logging.warning(f'Script {host_path} not found')
                     
         on_user_login_scripts : list[str] = custom_config.on_user_login
         if on_user_login_scripts is not None:
-            # check if all files listed in on_user_login_scripts exist
-            for script in on_user_login_scripts:
-                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script}'
+            # Validate existence of script files (ignore parameters)
+            for script_entry in on_user_login_scripts:
+                script_path, _ = self._parse_script_entry(script_entry)
+                host_path = f'{self.m_project_dir}/{self.m_host_dir}/{script_path}'
                 if not os.path.exists(host_path):
                     logging.warning(f'Script {host_path} not found')
                     
