@@ -6,6 +6,7 @@ Add a `--with-merged` flag to `pei-docker-cli configure` that generates three ex
 - `merged.Dockerfile` – a standalone, self-contained multi-stage Dockerfile that performs both stage-1 and stage-2 steps in one file (no dependency on other Dockerfiles).
 - `merged.env` – an env file containing all configurable build-time args (for both stages) as KEY=VALUE pairs.
 - `build-merged.sh` – a portable script that sources `merged.env` and builds the final stage-2 image using only `merged.Dockerfile` (no docker compose required).
+ - `build-merged.sh` – a portable script that sources `merged.env` and builds the final stage-2 image using only `merged.Dockerfile` (no docker compose required). Supports `--output-image/-o <name:tag>` to override the final image tag at build time.
 
 This enables users to build the final stage-2 image via a single plain `docker build` invocation, while stage-1 is built as an internal temporary stage inside `merged.Dockerfile`.
 
@@ -19,7 +20,7 @@ This enables users to build the final stage-2 image via a single plain `docker b
   - Final stage: `FROM stage1` and then run all stage-2 steps (COPY/ADD stage-2 internals, dos2unix, chmod, setup-env, create-dirs, install essentials, profile.d, custom-on-build, setup-users, cleanup, entrypoint).
   - Keep the same script execution order and ENV/ARG wiring as templates, using two independent arg sets for stage-1 and stage-2.
 - Write `merged.env` with all build-time args required by both stages (see below). Users may tweak this file and re-run the build without re-configure.
-- Write `build-merged.sh` which performs one docker build using `merged.Dockerfile`, sources `merged.env` to export all build args into the environment, and passes them to `docker build` via `--build-arg VAR` flags (name-only; Docker picks values from environment). It tags the final stage-2 image. Add `--add-host=host.docker.internal:host-gateway` for proxy support.
+- Write `build-merged.sh` which performs one docker build using `merged.Dockerfile`, sources `merged.env` to export all build args into the environment, and passes them to `docker build` via `--build-arg VAR` flags (name-only; Docker picks values from environment). It tags the final stage-2 image, and supports `--output-image/-o` to override the final image tag dynamically. Add `--add-host=host.docker.internal:host-gateway` for proxy support.
 
 ## File Outputs (generated in project dir)
 
@@ -47,6 +48,8 @@ This enables users to build the final stage-2 image via a single plain `docker b
   - Uses the env file:
     - `set -a; source "$PROJECT_DIR/merged.env"; set +a`
     - Build with `--build-arg VAR` flags for all variables present in `merged.env` that the merged Dockerfile expects (names only; Docker reads values from environment).
+  - CLI options:
+    - `-o, --output-image <name:tag>`: Overrides the default output image tag derived from compose.
   - Commands:
     - Single command:
       - `docker build -f "$PROJECT_DIR/merged.Dockerfile" -t "$STAGE2_IMAGE_NAME" --add-host=host.docker.internal:host-gateway \` followed by one `--build-arg KEY` per arg from both stages (names only), then `"$PROJECT_DIR"`.
@@ -155,6 +158,20 @@ if with_merge:
 set -euo pipefail
 PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
 STAGE2_IMAGE_NAME='{img2}'
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o|--output-image)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --output-image requires a value <name:tag>" >&2
+        exit 1
+      fi
+      STAGE2_IMAGE_NAME="$2"; shift 2 ;;
+    --)
+      shift; break ;;
+    *)
+      echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
 set -a
 source "$PROJECT_DIR/merged.env"
 set +a

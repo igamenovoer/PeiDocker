@@ -128,6 +128,20 @@ def _write_build_script(path: Path, stage2_image: str, args1: Dict[str, Any], ar
 set -euo pipefail
 PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
 STAGE2_IMAGE_NAME='{stage2_image}'
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o|--output-image)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --output-image requires a value <name:tag>" >&2
+        exit 1
+      fi
+      STAGE2_IMAGE_NAME="$2"; shift 2 ;;
+    --)
+      shift; break ;;
+    *)
+      echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
 set -a
 source "$PROJECT_DIR/merged.env"
 set +a
@@ -146,4 +160,3 @@ echo "[merge] Done. Final image: $STAGE2_IMAGE_NAME"
     # chmod +x
     mode = os.stat(path).st_mode
     os.chmod(path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
