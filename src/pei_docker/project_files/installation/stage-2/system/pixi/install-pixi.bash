@@ -24,6 +24,12 @@
 #                         (overrides default ~/.pixi)
 #                         Example: --install-dir=/opt/pixi
 #
+#   --pypi-repo <name>    Configure default PyPI index for pixi (project defaults)
+#                         Supported: 'tuna' (https://pypi.tuna.tsinghua.edu.cn/simple),
+#                                    'aliyun' (https://mirrors.aliyun.com/pypi/simple)
+#                         This writes [pypi-config] to $PIXI_HOME/config.toml so new
+#                         pixi projects default to the selected mirror.
+#
 #   --verbose             Enable verbose output for debugging
 #                         Shows detailed information about each step
 #
@@ -75,6 +81,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Parse command line parameters
 PIXI_CACHE_DIR=""
 PIXI_INSTALL_DIR=""
+PIXI_PYPI_REPO_NAME=""
 TARGET_USER=""
 VERBOSE=false
 
@@ -86,6 +93,8 @@ while [[ $# -gt 0 ]]; do
             PIXI_CACHE_DIR="${1#*=}"; shift 1 ;;
         --install-dir=*)
             PIXI_INSTALL_DIR="${1#*=}"; shift 1 ;;
+        --pypi-repo)
+            PIXI_PYPI_REPO_NAME="$2"; shift 2 ;;
         --verbose)
             VERBOSE=true; shift 1 ;;
         *)
@@ -113,6 +122,10 @@ fi
 
 if [ "$VERBOSE" = true ]; then
     echo "Verbose output enabled for debugging"
+fi
+
+if [ -n "$PIXI_PYPI_REPO_NAME" ]; then
+    echo "PyPI mirror preference: $PIXI_PYPI_REPO_NAME"
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -259,6 +272,60 @@ else
 
         # Add to user's bashrc
         add_pixi_to_bashrc "${TARGET_USER}" "$TARGET_HOME" "$USER_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
+
+        # Optionally configure PyPI index mirror for pixi
+        if [ -n "$PIXI_PYPI_REPO_NAME" ]; then
+            # Determine index URL based on the selected mirror
+            case "$PIXI_PYPI_REPO_NAME" in
+                tuna|Tuna|TUNA)
+                    PIXI_PYPI_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple" ;;
+                aliyun|Aliyun|ALIYUN)
+                    PIXI_PYPI_INDEX_URL="https://mirrors.aliyun.com/pypi/simple" ;;
+                *)
+                    echo "Warning: unknown --pypi-repo '$PIXI_PYPI_REPO_NAME'. Supported: tuna, aliyun. Skipping PyPI config." ;;
+            esac
+
+            if [ -n "${PIXI_PYPI_INDEX_URL:-}" ]; then
+                PIXI_CFG_DIR="$USER_PIXI_DIR"
+                PIXI_CFG_FILE="$PIXI_CFG_DIR/config.toml"
+                mkdir -p "$PIXI_CFG_DIR" || true
+
+                # If config exists, update [pypi-config]. Otherwise, create it.
+                if [ -f "$PIXI_CFG_FILE" ]; then
+                    # Ensure [pypi-config] section exists
+                    if ! grep -qE '^\s*\[pypi-config\]\s*$' "$PIXI_CFG_FILE"; then
+                        printf '\n[pypi-config]\n' >> "$PIXI_CFG_FILE"
+                    fi
+                    # Remove any existing index-url lines under [pypi-config] and append new
+                    awk -v url="$PIXI_PYPI_INDEX_URL" '
+                        BEGIN{in_pypi=0}
+                        /^\s*\[/{
+                            if(in_pypi==1){print "index-url = \"" url "\""}
+                            in_pypi=0
+                        }
+                        /^\s*\[pypi-config\]\s*$/{in_pypi=1}
+                        {
+                            if(in_pypi==1){
+                                if($0 ~ /^\s*index-url\s*=.*/){next}
+                            }
+                            print $0
+                        }
+                        END{ if(in_pypi==1){print "index-url = \"" url "\""} }
+                    ' "$PIXI_CFG_FILE" > "$PIXI_CFG_FILE.tmp" && mv "$PIXI_CFG_FILE.tmp" "$PIXI_CFG_FILE"
+                else
+                    cat > "$PIXI_CFG_FILE" <<EOF
+[pypi-config]
+index-url = "$PIXI_PYPI_INDEX_URL"
+# extra-index-urls = []
+# keyring-provider = "subprocess"  # or "disabled"
+EOF
+                fi
+                if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+                    chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
+                fi
+                echo "Pixi PyPI index configured: $PIXI_PYPI_INDEX_URL"
+            fi
+        fi
     else
         echo "✗ Pixi installation failed for ${TARGET_USER}"
         echo "Expected: $USER_PIXI_DIR/bin/pixi"
