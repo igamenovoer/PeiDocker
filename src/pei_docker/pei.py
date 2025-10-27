@@ -246,8 +246,8 @@ def create(project_dir : str, with_examples : bool, quick : str | None) -> None:
 @click.option('--config', '-c', default=f'{Defaults.OutputConfigName}', help='config file name, relative to the project dir', 
               type=click.Path(exists=False, file_okay=True, dir_okay=False))
 @click.option('--full-compose', '-f', is_flag=True, default=False, help='generate full compose file with x-??? sections')
-@click.option('--with-merge', is_flag=True, default=False, help='Generate merged.Dockerfile, merged.env, and build-merged.sh')
-def configure(project_dir:str, config:str, full_compose:bool, with_merge:bool) -> None:
+@click.option('--with-merged', is_flag=True, default=False, help='Generate merged.Dockerfile, merged.env, and build-merged.sh')
+def configure(project_dir:str, config:str, full_compose:bool, with_merged:bool) -> None:
     """Generate docker-compose.yml from user configuration.
     
     Processes the user configuration file through environment variable substitution
@@ -335,7 +335,7 @@ def configure(project_dir:str, config:str, full_compose:bool, with_merge:bool) -
         f.write(out_yaml)
     
     # Optionally generate standalone merged build artifacts
-    if with_merge:
+    if with_merged:
         try:
             from pei_docker.merge_build import generate_merged_build
             generate_merged_build(project_dir, out_compose)

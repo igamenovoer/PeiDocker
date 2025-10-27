@@ -1,8 +1,8 @@
-# Feature Plan: Configure `--with-merge` (Merged Docker build)
+# Feature Plan: Configure `--with-merged` (Merged Docker build)
 
 ## Goal
 
-Add a `--with-merge` flag to `pei-docker-cli configure` that generates three extra files in the project directory:
+Add a `--with-merged` flag to `pei-docker-cli configure` that generates three extra files in the project directory:
 - `merged.Dockerfile` – a standalone, self-contained multi-stage Dockerfile that performs both stage-1 and stage-2 steps in one file (no dependency on other Dockerfiles).
 - `merged.env` – an env file containing all configurable build-time args (for both stages) as KEY=VALUE pairs.
 - `build-merged.sh` – a portable script that sources `merged.env` and builds the final stage-2 image using only `merged.Dockerfile` (no docker compose required).
@@ -11,9 +11,9 @@ This enables users to build the final stage-2 image via a single plain `docker b
 
 ## High-Level Design
 
-- Extend `pei.py:configure` with a new Click flag `--with-merge` (bool, default False).
+- Extend `pei.py:configure` with a new Click flag `--with-merged` (bool, default False).
 - During configure, after we produce the resolved `docker-compose.yml`, derive the fully resolved build-arg sets for `services.stage-1` and `services.stage-2` from the processed compose object.
-- Keep `src/pei_docker/pei.py` and `src/pei_docker/config_processor.py` short: implement generation in a new module `src/pei_docker/merge_build.py` with a single entry `generate_merged_build(project_dir: str, out_compose: DictConfig) -> None`. The CLI will just call this function when `--with-merge` is set.
+- Keep `src/pei_docker/pei.py` and `src/pei_docker/config_processor.py` short: implement generation in a new module `src/pei_docker/merge_build.py` with a single entry `generate_merged_build(project_dir: str, out_compose: DictConfig) -> None`. The CLI will just call this function when `--with-merged` is set.
 - Generate `merged.Dockerfile` programmatically by composing the logic from both `stage-1.Dockerfile` and `stage-2.Dockerfile` into one multi-stage file:
   - Stage `stage1`: `FROM ${BASE_IMAGE_1}` and then run all stage-1 steps (COPY/ADD stage-1 internals, dos2unix, chmod, setup-env, install essentials, profile.d, custom-on-build, setup-users, cleanup).
   - Final stage: `FROM stage1` and then run all stage-2 steps (COPY/ADD stage-2 internals, dos2unix, chmod, setup-env, create-dirs, install essentials, profile.d, custom-on-build, setup-users, cleanup, entrypoint).
@@ -54,7 +54,7 @@ This enables users to build the final stage-2 image via a single plain `docker b
 ## CLI Changes
 
 - In `src/pei_docker/pei.py` update `configure` signature:
-  - Add `@click.option('--with-merge', is_flag=True, default=False, help='Generate merged.Dockerfile and build-merged.sh')`.
+  - Add `@click.option('--with-merged', is_flag=True, default=False, help='Generate merged.Dockerfile and build-merged.sh')`.
   - Update function `def configure(project_dir: str, config: str, full_compose: bool, with_merge: bool) -> None:`.
   - After writing `docker-compose.yml`, if `with_merge` is True, call a helper to generate the two files.
 
@@ -177,7 +177,7 @@ echo "[merge] Done. Final image: $STAGE2_IMAGE_NAME"
 ## Testing Strategy
 
 - Unit-light, integration-heavy (manual) for now:
-  - Run `pei-docker-cli create -p demo && cd demo && pei-docker-cli configure --with-merge`.
+  - Run `pei-docker-cli create -p demo && cd demo && pei-docker-cli configure --with-merged`.
   - Inspect generated `merged.Dockerfile` and `build-merged.sh`.
 - Build with `./build-merged.sh` and ensure it produces the same stage-2 image tag as in compose.
 - Verify proxy and APT args are present for stage-1, and stage-2 receives proper args and overrides BASE_IMAGE.
@@ -186,15 +186,15 @@ echo "[merge] Done. Final image: $STAGE2_IMAGE_NAME"
 ## Documentation Updates
 
 - docs/index.md: Add a short section under Troubleshooting/Advanced: “Build without docker compose: build-merged.sh”.
-- docs/cli_reference.md: Update configure command options to include `--with-merge`.
+- docs/cli_reference.md: Update configure command options to include `--with-merged`.
 - docs/build-internals.md: Note the merged build path as an alternative.
 
 ## Acceptance Criteria
 
-- `pei-docker-cli configure --with-merge` writes merged.Dockerfile, merged.env, and build-merged.sh to the project directory.
+- `pei-docker-cli configure --with-merged` writes merged.Dockerfile, merged.env, and build-merged.sh to the project directory.
 - `build-merged.sh` successfully builds stage-1 as a temp image and then stage-2, without docker compose.
 - All needed build args are present and quoted correctly; stage-2’s `BASE_IMAGE` is the temp stage-1 tag.
-- No changes to existing compose-based flow when `--with-merge` is not provided.
+- No changes to existing compose-based flow when `--with-merged` is not provided.
 - Users can edit merged.env to customize values without re-running configure.
 Code placement to avoid bloat
 
