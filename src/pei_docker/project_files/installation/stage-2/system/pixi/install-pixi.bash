@@ -5,27 +5,30 @@
 #############################################################################
 #
 # DESCRIPTION:
-#   This script installs Pixi (Python package manager) for all eligible users
-#   on the system. It automatically detects users with passwords, installs Pixi
-#   to their home directories, and configures their shell environment.
+#   Install Pixi (Python package manager) for a single user only.
+#   By default installs for the current user. Use --user <username>
+#   to target another user (requires root). The script configures
+#   the target user's shell environment and optional cache dir.
 #
 # USAGE:
 #   ./install-pixi.bash [OPTIONS]
 #
 # OPTIONS:
-#   --cache-dir=PATH      Set custom Pixi cache directory
-#                         (applies to all users and future users)
+#   --user <username>     Install for a specific user (defaults to current user).
+#                         Only root may install for another user.
+#
+#   --cache-dir=PATH      Set custom Pixi cache directory for the target user
 #                         Example: --cache-dir=/shared/pixi-cache
 #
-#   --install-dir=PATH    Set custom Pixi installation directory
-#                         (overrides default ~/.pixi for all users)
+#   --install-dir=PATH    Set custom Pixi installation directory for the target user
+#                         (overrides default ~/.pixi)
 #                         Example: --install-dir=/opt/pixi
 #
 #   --verbose             Enable verbose output for debugging
 #                         Shows detailed information about each step
 #
 # EXAMPLES:
-#   # Basic installation (installs to ~/.pixi for each user)
+#   # Basic installation (installs to current user's ~/.pixi)
 #   ./install-pixi.bash
 #
 #   # Install with custom cache directory
@@ -34,34 +37,29 @@
 #   # Install to custom directory with verbose output
 #   ./install-pixi.bash --install-dir=/opt/pixi --verbose
 #
-#   # Full customization
-#   ./install-pixi.bash --install-dir=/opt/pixi --cache-dir=/tmp/pixi --verbose
+#   # Install for another user (requires root)
+#   ./install-pixi.bash --user alice --install-dir=/home/alice/.pixi --cache-dir=/shared/pixi-cache
 #
 # BEHAVIOR:
-#   - Scans /etc/passwd for users with UID >= 1000 and valid home directories
-#   - Only installs for users who have passwords set (can SSH login)
 #   - Installs Pixi using the official installer from https://pixi.sh/install.sh
-#   - Updates each user's ~/.bashrc to add Pixi to PATH
-#   - Configures /etc/skel/.bashrc for future users
-#   - Skips installation if Pixi is already present for a user
+#   - Updates the target user's ~/.bashrc to add Pixi to PATH
+#   - Skips installation if Pixi is already present for the target user
 #   - Sets appropriate file permissions and ownership
 #
 # REQUIREMENTS:
-#   - Root privileges (must be run as root or with sudo)
+#   - Root privileges required only when using --user to target another user
 #   - Internet connection (downloads Pixi installer)
 #   - curl command available
 #   - Bash shell environment
 #
 # OUTPUT:
-#   - Progress messages showing installation status for each user
-#   - Success/failure indicators (✓/✗) for each installation
-#   - Warnings for users without passwords (skipped)
+#   - Progress messages showing installation status for the target user
+#   - Success/failure indicators (✓/✗) for the installation
 #   - Summary of installation directories and configuration
 #
 # FILES MODIFIED:
-#   - ~/.bashrc for each eligible user (adds PATH and cache config)
-#   - /etc/skel/.bashrc (for future users)
-#   - Creates ~/.pixi/ directory structure for each user
+#   - ~/.bashrc for the target user (adds PATH and cache config)
+#   - Creates ~/.pixi/ directory structure for the target user
 #
 # DEPENDENCIES:
 #   - May source pixi-utils.bash if available in the same directory
@@ -77,25 +75,22 @@ export DEBIAN_FRONTEND=noninteractive
 # Parse command line parameters
 PIXI_CACHE_DIR=""
 PIXI_INSTALL_DIR=""
+TARGET_USER=""
 VERBOSE=false
 
-for arg in "$@"; do
-    case $arg in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --user)
+            TARGET_USER="$2"; shift 2 ;;
         --cache-dir=*)
-            PIXI_CACHE_DIR="${arg#*=}"
-            shift
-            ;;
+            PIXI_CACHE_DIR="${1#*=}"; shift 1 ;;
         --install-dir=*)
-            PIXI_INSTALL_DIR="${arg#*=}"
-            shift
-            ;;
+            PIXI_INSTALL_DIR="${1#*=}"; shift 1 ;;
         --verbose)
-            VERBOSE=true
-            shift
-            ;;
+            VERBOSE=true; shift 1 ;;
         *)
             # Unknown option
-            ;;
+            shift 1 ;;
     esac
 done
 
@@ -120,11 +115,11 @@ if [ "$VERBOSE" = true ]; then
     echo "Verbose output enabled for debugging"
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 verbose_echo "Script directory: $SCRIPT_DIR"
-verbose_echo "Parameters parsed - Cache dir: '$PIXI_CACHE_DIR', Install dir: '$PIXI_INSTALL_DIR', Verbose: $VERBOSE"
+verbose_echo "Parameters parsed - Cache dir: '$PIXI_CACHE_DIR', Install dir: '$PIXI_INSTALL_DIR', Verbose: $VERBOSE, Target user: '${TARGET_USER}'"
 
 # Source common utilities if available (might not exist on first run)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_SOURCED=false
 
 verbose_echo "Looking for pixi-utils.bash at: $SCRIPT_DIR/pixi-utils.bash"
@@ -152,7 +147,7 @@ if [ "$UTILS_SOURCED" = false ]; then
         if [ ! -f "$bashrc_file" ]; then
             echo "Creating $bashrc_file for user $user_name"
             touch "$bashrc_file"
-            chown "$user_name:$user_name" "$bashrc_file"
+            chown "$user_name:$user_name" "$bashrc_file" || true
         fi
         
         # Check if this exact pixi path is already in bashrc
@@ -173,249 +168,113 @@ if [ "$UTILS_SOURCED" = false ]; then
             fi
         fi
     }
-    
-    # Function to get all users with proper home directories
-    get_all_users() {
-        # Get users from passwd file, excluding system users (UID < 1000) and nologin users
-        while IFS=: read -r username password uid gid gecos home shell; do
-            if [ "$uid" -ge 1000 ] && [ -d "$home" ] && [[ "$shell" != */nologin ]] && [[ "$shell" != */false ]]; then
-                echo "$username:$home:$uid:$gid"
-            fi
-        done < /etc/passwd
-    }
-    
-    # Function to check if any user has a password set
-    user_has_password() {
-        local username="$1"
-        
-        # Check if user has a password by examining /etc/shadow
-        local user_shadow_entry=$(getent shadow "$username" 2>/dev/null)
-        
-        # If getent fails, user doesn't exist in shadow file
-        if [ -z "$user_shadow_entry" ]; then
-            return 1  # No shadow entry, assume no password
-        fi
-        
-        local password_field=$(echo "$user_shadow_entry" | cut -d: -f2)
-        
-        # If password field is empty, !, or *, user has no password
-        if [ -z "$password_field" ] || [ "$password_field" = "!" ] || [ "$password_field" = "*" ]; then
-            return 1  # No password
-        else
-            return 0  # Has password
-        fi
-    }
-    
-    # Function to check if root user has a password set (wrapper around user_has_password)
-    root_has_password() {
-        user_has_password "root"
-    }
 fi
 
-# Always install pixi to each user's home directory (default pixi behavior)
-echo "Installing pixi to each user's home directory..."
-verbose_echo "Starting user enumeration and pixi installation process"
+# Determine current and target users
+CURRENT_USER="$(whoami)"
+if [[ -z "${TARGET_USER}" ]]; then
+    TARGET_USER="${CURRENT_USER}"
+fi
 
-# Install pixi for each regular user
-verbose_echo "Processing users from get_all_users function"
-while IFS=: read -r username home uid gid; do
-    verbose_echo "Processing user: $username (UID: $uid, GID: $gid, HOME: $home)"
-    
-    if ! user_has_password "$username"; then
-        echo "WARNING: Skipping user $username - no password set (not accessible via SSH)"
-        verbose_echo "User $username has no password, cannot SSH login"
-        continue
+# Enforce root for cross-user installs and validate user exists
+if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+    if [[ "${CURRENT_USER}" != "root" ]]; then
+        echo "Error: only root can install for another user (requested --user '${TARGET_USER}')" >&2
+        exit 1
     fi
-    
-    verbose_echo "User $username has password set, proceeding with installation"
-    echo "Installing pixi for user: $username (UID: $uid, HOME: $home)"
-    
-    # Determine the install directory for this user
-    if [ -n "$PIXI_INSTALL_DIR" ]; then
-        USER_PIXI_DIR="$PIXI_INSTALL_DIR"
-        verbose_echo "Using custom install directory for $username: $USER_PIXI_DIR"
+    if ! id -u "${TARGET_USER}" >/dev/null 2>&1; then
+        echo "Error: target user '${TARGET_USER}' does not exist" >&2
+        exit 1
+    fi
+fi
+
+# Resolve target user's home directory
+if [[ "${TARGET_USER}" == "root" ]]; then
+    TARGET_HOME="/root"
+else
+    if command -v getent >/dev/null 2>&1; then
+        TARGET_HOME="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
     else
-        USER_PIXI_DIR="$home/.pixi"
-        verbose_echo "Using default install directory for $username: $USER_PIXI_DIR"
+        TARGET_HOME="$(eval echo "~${TARGET_USER}")"
     fi
+fi
+
+echo "Installing pixi for user: ${TARGET_USER} (invoked by ${CURRENT_USER})"
+
+# Determine the install directory for the target user
+if [ -n "$PIXI_INSTALL_DIR" ]; then
+    USER_PIXI_DIR="$PIXI_INSTALL_DIR"
+    verbose_echo "Using custom install directory for ${TARGET_USER}: $USER_PIXI_DIR"
+else
+    USER_PIXI_DIR="$TARGET_HOME/.pixi"
+    verbose_echo "Using default install directory for ${TARGET_USER}: $USER_PIXI_DIR"
+fi
     
     # Skip if already installed
-    verbose_echo "Checking if pixi already exists at: $USER_PIXI_DIR/bin/pixi"
-    if [ -d "$USER_PIXI_DIR" ] && [ -f "$USER_PIXI_DIR/bin/pixi" ]; then
-        echo "Pixi already installed for $username at $USER_PIXI_DIR, updating bashrc..."
-        verbose_echo "Pixi binary found, updating bashrc configuration only"
-        add_pixi_to_bashrc "$username" "$home" "$USER_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
-        continue
-    fi
+verbose_echo "Checking if pixi already exists at: $USER_PIXI_DIR/bin/pixi"
+if [ -d "$USER_PIXI_DIR" ] && [ -f "$USER_PIXI_DIR/bin/pixi" ]; then
+    echo "Pixi already installed for ${TARGET_USER} at $USER_PIXI_DIR, updating bashrc..."
+    verbose_echo "Pixi binary found, updating bashrc configuration only"
+    add_pixi_to_bashrc "${TARGET_USER}" "$TARGET_HOME" "$USER_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
+else
     verbose_echo "Pixi not found, proceeding with fresh installation"
-    
+
+    # Ensure install directory exists when running cross-user
+    if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+        mkdir -p "$USER_PIXI_DIR" || true
+        chown -R "${TARGET_USER}:${TARGET_USER}" "$USER_PIXI_DIR" || true
+    fi
+
     # Install pixi directly to the target directory using PIXI_HOME
-    echo "Installing pixi to $USER_PIXI_DIR for user $username..."
+    echo "Installing pixi to $USER_PIXI_DIR for user ${TARGET_USER}..."
     verbose_echo "Setting PIXI_HOME=$USER_PIXI_DIR for installation"
-    
-    # Run installation as the target user to ensure proper permissions
-    if [ "$username" = "root" ]; then
-        # Install as root
-        verbose_echo "Installing as root user"
-        export PIXI_HOME="$USER_PIXI_DIR"
-        verbose_echo "Running: curl -fsSL https://pixi.sh/install.sh | bash"
-        if [ "$VERBOSE" = true ]; then
-            curl -fsSL https://pixi.sh/install.sh | bash
-        else
-            curl -fsSL https://pixi.sh/install.sh | bash >/dev/null 2>&1
-        fi
+
+    INSTALL_CMD="export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL https://pixi.sh/install.sh | bash"
+    if [ "$VERBOSE" != true ]; then
+        INSTALL_CMD="$INSTALL_CMD >/dev/null 2>&1"
+    fi
+
+    if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
+        verbose_echo "Installing as current user ${CURRENT_USER}"
+        bash -lc "$INSTALL_CMD"
     else
-        # Install as the target user
-        verbose_echo "Installing as user $username using su"
-        verbose_echo "Running: su - $username -c \"export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL https://pixi.sh/install.sh | bash\""
-        if [ "$VERBOSE" = true ]; then
-            su - "$username" -c "export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL https://pixi.sh/install.sh | bash"
+        verbose_echo "Installing as user ${TARGET_USER}"
+        if command -v runuser >/dev/null 2>&1; then
+            runuser -u "${TARGET_USER}" -- sh -lc "$INSTALL_CMD"
         else
-            su - "$username" -c "export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL https://pixi.sh/install.sh | bash" >/dev/null 2>&1
+            su -l "${TARGET_USER}" -c "$INSTALL_CMD"
         fi
     fi
-    
+
     # Verify the installation worked
     verbose_echo "Verifying installation at: $USER_PIXI_DIR/bin/pixi"
     if [ -f "$USER_PIXI_DIR/bin/pixi" ]; then
-        echo "✓ Pixi successfully installed for $username at $USER_PIXI_DIR"
+        echo "✓ Pixi successfully installed for ${TARGET_USER} at $USER_PIXI_DIR"
         verbose_echo "Installation verification successful"
-        
-        # Ensure proper permissions
-        if [ "$username" != "root" ]; then
-            verbose_echo "Setting ownership to $username:$username for $USER_PIXI_DIR"
-            chown -R "$username:$username" "$USER_PIXI_DIR"
-        else
-            verbose_echo "Skipping ownership change for root user"
+        # Ensure proper ownership on cross-user installs
+        if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+            chown -R "${TARGET_USER}:${TARGET_USER}" "$USER_PIXI_DIR" || true
         fi
-        verbose_echo "Setting permissions to 755 for $USER_PIXI_DIR"
-        chmod -R 755 "$USER_PIXI_DIR"
-        
+        chmod -R 755 "$USER_PIXI_DIR" || true
+
         # Add to user's bashrc
-        verbose_echo "Adding pixi to bashrc for $username"
-        verbose_echo "Calling: add_pixi_to_bashrc \"$username\" \"$home\" \"$USER_PIXI_DIR/bin\" \"$PIXI_CACHE_DIR\""
-        add_pixi_to_bashrc "$username" "$home" "$USER_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
+        add_pixi_to_bashrc "${TARGET_USER}" "$TARGET_HOME" "$USER_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
     else
-        echo "✗ Pixi installation failed for $username"
+        echo "✗ Pixi installation failed for ${TARGET_USER}"
         echo "Expected: $USER_PIXI_DIR/bin/pixi"
-        verbose_echo "Installation verification failed - binary not found"
-        verbose_echo "Checking if any pixi files were created in $USER_PIXI_DIR:"
         if [ "$VERBOSE" = true ] && [ -d "$USER_PIXI_DIR" ]; then
-            ls -la "$USER_PIXI_DIR" || verbose_echo "Failed to list contents of $USER_PIXI_DIR"
+            ls -la "$USER_PIXI_DIR" || true
         fi
-        continue
+        exit 1
     fi
-    
-done < <(get_all_users)
-
-# Also install for root (if root has a password)
-verbose_echo "Checking if root user has password set"
-if root_has_password; then
-    echo "Installing pixi for root user..."
-    verbose_echo "Root user has password set, proceeding with installation"
-    
-    # Determine the install directory for root
-    if [ -n "$PIXI_INSTALL_DIR" ]; then
-        ROOT_PIXI_DIR="$PIXI_INSTALL_DIR"
-        verbose_echo "Using custom install directory for root: $ROOT_PIXI_DIR"
-    else
-        ROOT_PIXI_DIR="/root/.pixi"
-        verbose_echo "Using default install directory for root: $ROOT_PIXI_DIR"
-    fi
-    
-    verbose_echo "Checking if pixi already exists at: $ROOT_PIXI_DIR/bin/pixi"
-    if [ ! -d "$ROOT_PIXI_DIR" ] || [ ! -f "$ROOT_PIXI_DIR/bin/pixi" ]; then
-        verbose_echo "Pixi not found for root, proceeding with fresh installation"
-        verbose_echo "Setting PIXI_HOME=$ROOT_PIXI_DIR for root installation"
-        export PIXI_HOME="$ROOT_PIXI_DIR"
-        verbose_echo "Running: curl -fsSL https://pixi.sh/install.sh | bash"
-        if [ "$VERBOSE" = true ]; then
-            curl -fsSL https://pixi.sh/install.sh | bash
-        else
-            curl -fsSL https://pixi.sh/install.sh | bash >/dev/null 2>&1
-        fi
-        
-        verbose_echo "Verifying root installation at: $ROOT_PIXI_DIR/bin/pixi"
-        if [ -f "$ROOT_PIXI_DIR/bin/pixi" ]; then
-            echo "✓ Pixi successfully installed for root at $ROOT_PIXI_DIR"
-            verbose_echo "Root installation verification successful"
-            verbose_echo "Setting permissions to 755 for $ROOT_PIXI_DIR"
-            chmod -R 755 "$ROOT_PIXI_DIR"
-        else
-            echo "✗ Pixi installation failed for root"
-            verbose_echo "Root installation verification failed - binary not found"
-        fi
-    else
-        verbose_echo "Pixi already installed for root, updating bashrc only"
-    fi
-    
-    verbose_echo "Adding pixi to bashrc for root"
-    add_pixi_to_bashrc "root" "/root" "$ROOT_PIXI_DIR/bin" "$PIXI_CACHE_DIR"
-else
-    echo "WARNING: Skipping root user - no password set (not accessible via SSH)"
-    verbose_echo "Root user has no password, cannot SSH login"
-fi
-
-# Add to /etc/skel/.bashrc for future users
-echo "Adding pixi setup to /etc/skel/.bashrc for future users..."
-verbose_echo "Configuring /etc/skel/.bashrc for future user auto-setup"
-
-if [ -f "/etc/skel/.bashrc" ]; then
-    verbose_echo "/etc/skel/.bashrc exists, checking for existing pixi setup"
-    if ! grep -qF "# Pixi setup" "/etc/skel/.bashrc"; then
-        verbose_echo "No existing pixi setup found in /etc/skel/.bashrc, adding new configuration"
-        
-        # Determine the path to add for future users
-        if [ -n "$PIXI_INSTALL_DIR" ]; then
-            verbose_echo "Adding custom install directory path to skel: $PIXI_INSTALL_DIR/bin"
-            cat >> /etc/skel/.bashrc << EOF
-
-# Pixi setup
-if [ -d "$PIXI_INSTALL_DIR/bin" ]; then
-    export PATH="$PIXI_INSTALL_DIR/bin:\$PATH"
-fi
-EOF
-        else
-            verbose_echo "Adding default install directory path to skel: \$HOME/.pixi/bin"
-            cat >> /etc/skel/.bashrc << 'EOF'
-
-# Pixi setup
-if [ -d "$HOME/.pixi/bin" ]; then
-    export PATH="$HOME/.pixi/bin:$PATH"
-fi
-EOF
-        fi
-        
-        # Add cache directory to skel if provided
-        if [ -n "$PIXI_CACHE_DIR" ]; then
-            verbose_echo "Adding cache directory to skel: $PIXI_CACHE_DIR"
-            echo "export PIXI_CACHE_DIR=\"$PIXI_CACHE_DIR\"" >> /etc/skel/.bashrc
-        fi
-        verbose_echo "Successfully updated /etc/skel/.bashrc"
-    else
-        verbose_echo "Pixi setup already exists in /etc/skel/.bashrc, skipping"
-    fi
-else
-    verbose_echo "WARNING: /etc/skel/.bashrc not found, future users will need manual setup"
 fi
 
 echo "Pixi installation completed successfully!"
-verbose_echo "Installation process complete, generating summary"
-
 if [ -n "$PIXI_INSTALL_DIR" ]; then
     echo "Pixi installed to custom directory: $PIXI_INSTALL_DIR"
-    verbose_echo "Custom installation directory was used: $PIXI_INSTALL_DIR"
 else
-    echo "Pixi installed to each user's home directory at ~/.pixi"
-    verbose_echo "Default per-user installation directories were used"
+    echo "Pixi installed to: $USER_PIXI_DIR"
 fi
-
 if [ -n "$PIXI_CACHE_DIR" ]; then
     echo "Pixi cache directory configured: $PIXI_CACHE_DIR"
-    verbose_echo "Custom cache directory was configured: $PIXI_CACHE_DIR"
-fi
-
-if [ "$VERBOSE" = true ]; then
-    verbose_echo "Verbose mode was enabled during installation"
-    verbose_echo "Installation summary complete"
 fi
