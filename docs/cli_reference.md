@@ -64,6 +64,13 @@ pei-docker-cli configure -f
 
 # Generate merged build artifacts (build without docker compose)
 pei-docker-cli configure --with-merged
+
+# Build using the generated script
+./build-merged.sh
+
+# Override output image tag at build time
+./build-merged.sh --output-image myorg/myapp:dev
+./build-merged.sh -o myorg/myapp:dev
 ```
 
 ### remove

@@ -240,12 +240,17 @@ pei-docker-cli configure --with-merged
 
 # Build the final stage-2 image using merged.Dockerfile and merged.env
 ./build-merged.sh
+
+# Override output image name:tag on the fly
+./build-merged.sh --output-image myorg/myapp:dev
+./build-merged.sh -o myorg/myapp:dev
 ```
 
 This produces:
 - `merged.Dockerfile`: stand-alone multi-stage Dockerfile (stage-1 + stage-2)
 - `merged.env`: all build-time args as KEY='value'
 - `build-merged.sh`: one-shot build script that sources merged.env and runs docker build
+  - Supports `--output-image/-o <name:tag>` to override the final image tag
 
 ## Complete Configuration Example
 
