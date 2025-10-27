@@ -347,7 +347,7 @@ CLI_PORTS=()
 CLI_VOLS=()
 POSITIONAL=()
 
-while [[ $# -gt 0 ]]; do
+  while [[ $# -gt 0 ]]; do
   case "$1" in
     -n|--name)
       [[ $# -ge 2 ]] || {{ echo "Error: --name requires a value" >&2; exit 1; }}
@@ -356,6 +356,9 @@ while [[ $# -gt 0 ]]; do
       DETACH="1"; shift ;;
     --no-rm)
       RM="0"; shift ;;
+    --image)
+      [[ $# -ge 2 ]] || {{ echo "Error: --image requires a value <name:tag>" >&2; exit 1; }}
+      IMG="$2"; shift 2 ;;
     -p|--publish)
       [[ $# -ge 2 ]] || {{ echo "Error: --publish requires a value" >&2; exit 1; }}
       CLI_PORTS+=("$2"); shift 2 ;;
