@@ -6,7 +6,7 @@
 # specifying a custom installation directory.
 #
 # Usage:
-#   ./install-uv.sh [--install-dir <directory>] [--user <username>]
+#   ./install-uv.sh [--install-dir <directory>] [--user <username>] [--pypi-repo <name>]
 #
 # Options:
 #   --install-dir <dir>  - Optional. Directory where uv will be installed.
@@ -14,6 +14,11 @@
 #                         For root (no --user), defaults to /usr/local/bin (system-wide).
 #   --user <username>    - Optional. Install for a specific user. Defaults to the
 #                         current user. Only root may install for another user.
+#   --pypi-repo <name>   - Optional. Configure the default index used by `uv tool`
+#                         when installing tools. Supported values:
+#                         - tuna    -> https://pypi.tuna.tsinghua.edu.cn/simple
+#                         - aliyun  -> https://mirrors.aliyun.com/pypi/simple
+#                         - official (revert to PyPI; removes custom index)
 #
 set -euo pipefail
 
@@ -22,6 +27,7 @@ set -euo pipefail
 ##########
 INSTALL_DIR=""
 TARGET_USER=""
+PYPI_REPO_NAME=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --install-dir)
@@ -38,6 +44,14 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       TARGET_USER="$2"
+      shift 2
+      ;;
+    --pypi-repo)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --pypi-repo requires a value (tuna|aliyun|official)" >&2
+        exit 1
+      fi
+      PYPI_REPO_NAME="$2"
       shift 2
       ;;
     *)
@@ -177,4 +191,64 @@ if [[ -f "${UV_BIN_PATH}/uv" ]]; then
   "${UV_BIN_PATH}/uv" --version || true
 else
   echo "[uv] Warning: uv binary not found at expected location ${UV_BIN_PATH}/uv"
+fi
+
+##########
+# Configure user-level uv index for tool commands (optional)
+##########
+if [[ -n "${PYPI_REPO_NAME}" ]]; then
+  # Determine desired index URL
+  INDEX_URL=""
+  case "${PYPI_REPO_NAME}" in
+    tuna|Tuna|TUNA)
+      INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple" ;;
+    aliyun|Aliyun|ALIYUN)
+      INDEX_URL="https://mirrors.aliyun.com/pypi/simple" ;;
+    official|Official|OFFICIAL)
+      INDEX_URL="" ;;
+    *)
+      echo "[uv] Warning: unknown --pypi-repo '${PYPI_REPO_NAME}'. Supported: tuna, aliyun, official. Skipping configuration." ;;
+  esac
+
+  # Resolve user-level uv config path (Linux/macOS: ~/.config/uv/uv.toml)
+  if [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+    UV_CFG_DIR="${XDG_CONFIG_HOME}/uv"
+  else
+    UV_CFG_DIR="${TARGET_HOME}/.config/uv"
+  fi
+  UV_CFG_FILE="${UV_CFG_DIR}/uv.toml"
+
+  mkdir -p "${UV_CFG_DIR}" || true
+
+  if [[ -f "${UV_CFG_FILE}" ]]; then
+    # Remove any existing [[index]] tables to avoid duplicates
+    awk '
+      BEGIN{in_idx=0}
+      /^\s*\[\[index\]\]\s*$/ { in_idx=1; next }
+      /^\s*\[.*\]\s*$/ { in_idx=0 }
+      { if(!in_idx) print $0 }
+    ' "${UV_CFG_FILE}" > "${UV_CFG_FILE}.tmp" && mv "${UV_CFG_FILE}.tmp" "${UV_CFG_FILE}"
+  else
+    : > "${UV_CFG_FILE}"
+  fi
+
+  if [[ -n "${INDEX_URL}" ]]; then
+    # Append new default index
+    {
+      echo ""
+      echo "# Configured by PeiDocker uv installer"
+      echo "[[index]]"
+      echo "url = \"${INDEX_URL}\""
+      echo "default = true"
+    } >> "${UV_CFG_FILE}"
+    echo "[uv] Configured user-level index for uv tools: ${INDEX_URL}"
+  else
+    # official: leave without [[index]] so uv defaults to pypi
+    echo "[uv] Removed custom index configuration; uv tools will use the official PyPI"
+  fi
+
+  # Ensure ownership if cross-user
+  if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+    chown -R "${TARGET_USER}:${TARGET_USER}" "${UV_CFG_DIR}" || true
+  fi
 fi
