@@ -228,6 +228,24 @@ Options:
 - `-p, --project-dir`: Project directory (default: current)
 - `-c, --config`: Config file name (default: user_config.yml)
 - `-f, --full-compose`: Generate extended compose file
+- `--with-merged`: Generate merged.Dockerfile, merged.env, and build-merged.sh for building without docker compose
+
+### Build Without Docker Compose (Merged Build)
+
+If you prefer a single `docker build` flow without docker compose:
+
+```sh
+# Generate merged artifacts
+pei-docker-cli configure --with-merged
+
+# Build the final stage-2 image using merged.Dockerfile and merged.env
+./build-merged.sh
+```
+
+This produces:
+- `merged.Dockerfile`: stand-alone multi-stage Dockerfile (stage-1 + stage-2)
+- `merged.env`: all build-time args as KEY='value'
+- `build-merged.sh`: one-shot build script that sources merged.env and runs docker build
 
 ## Complete Configuration Example
 

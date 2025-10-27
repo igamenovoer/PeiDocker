@@ -46,6 +46,7 @@ Generates docker-compose.yml and Dockerfiles from user_config.yml.
 - `-p, --project-dir DIRECTORY` - Project directory (default: current)
 - `-c, --config FILE` - Config file name (default: user_config.yml)
 - `-f, --full-compose` - Generate extended compose file
+- `--with-merged` - Generate standalone merged build artifacts (merged.Dockerfile, merged.env, build-merged.sh)
 
 **Examples:**
 ```sh
@@ -60,6 +61,9 @@ pei-docker-cli configure -c prod-config.yml
 
 # Full compose file
 pei-docker-cli configure -f
+
+# Generate merged build artifacts (build without docker compose)
+pei-docker-cli configure --with-merged
 ```
 
 ### remove
