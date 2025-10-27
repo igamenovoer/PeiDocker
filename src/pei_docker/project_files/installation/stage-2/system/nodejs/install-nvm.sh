@@ -8,7 +8,6 @@
 # Options:
 #   --install-dir <dir>    Custom directory to install NVM
 #                          Default: $HOME/.nvm
-#   --no-pnpm              Skip installing pnpm
 #   --with-cn-mirror       Configure npm registry to Chinese mirror
 #   --version <ver>        NVM git tag/version to install (e.g., v0.39.7 or 0.39.7)
 #                          Default: latest from source/cached copy
@@ -18,7 +17,7 @@
 #   to install and manage multiple versions of Node.js. It either
 #   clones NVM from GitHub or copies from a cached directory if available.
 #   The script also configures your ~/.bashrc to load NVM automatically.
-#   Optionally installs pnpm and sets npm registry to the CN mirror.
+#   Optionally sets npm registry to the CN mirror.
 #
 # Prerequisites:
 #   - Git must be installed
@@ -34,13 +33,12 @@
 #   ./install-nvm.sh --install-dir /opt/nvm    # Install to /opt/nvm
 # =================================================================
 
-# Installs NVM (and optionally pnpm and CN npm mirror).
+# Installs NVM (and optionally CN npm mirror).
 # To install Node.js versions, use install-nodejs.sh
 export DEBIAN_FRONTEND=noninteractive
 
 # Parse command line arguments
 NVM_INSTALL_DIR="$HOME/.nvm"
-INSTALL_PNPM=true
 USE_CN_MIRROR=false
 NVM_VERSION=""
 while [[ $# -gt 0 ]]; do
@@ -48,10 +46,6 @@ while [[ $# -gt 0 ]]; do
         --install-dir)
             NVM_INSTALL_DIR="$2"
             shift 2
-            ;;
-        --no-pnpm)
-            INSTALL_PNPM=false
-            shift 1
             ;;
         --with-cn-mirror)
             USE_CN_MIRROR=true
@@ -63,9 +57,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--install-dir <directory>] [--no-pnpm] [--with-cn-mirror] [--version <ver>]"
+            echo "Usage: $0 [--install-dir <directory>] [--with-cn-mirror] [--version <ver>]"
             echo "  --install-dir <dir>  Custom directory to install NVM (default: \$HOME/.nvm)"
-            echo "  --no-pnpm            Skip installing pnpm"
             echo "  --with-cn-mirror     Configure npm registry to Chinese mirror"
             echo "  --version <ver>      NVM git tag/version to install (e.g., 0.39.7)"
             exit 1
@@ -124,18 +117,6 @@ echo "" >> ~/.bashrc
 
 echo "NVM installed to: $NVM_DIR"
 echo "Please restart your shell or run: source ~/.bashrc"
-
-# Optional: install pnpm for the current user
-if [ "$INSTALL_PNPM" = true ]; then
-    echo "Installing pnpm ..."
-    if command -v curl >/dev/null 2>&1; then
-        curl -fsSL https://get.pnpm.io/install.sh | sh -
-    else
-        wget -qO- https://get.pnpm.io/install.sh | sh -
-    fi
-else
-    echo "Skipping pnpm installation due to --no-pnpm"
-fi
 
 # Optional: configure npm registry to CN mirror
 if [ "$USE_CN_MIRROR" = true ]; then

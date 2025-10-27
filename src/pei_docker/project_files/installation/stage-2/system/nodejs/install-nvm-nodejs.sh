@@ -10,7 +10,6 @@
 #                             Only root may install for another user.
 #   --install-dir <dir>       NVM installation directory (replaces --nvm-dir)
 #                             Default: <target-user-home>/.nvm
-#   --no-pnpm                 Skip installing pnpm
 #   --with-cn-mirror          Configure npm registry to Chinese mirror
 #   --nvm-version <ver>       NVM version to install (e.g., 0.39.7 or v0.39.7). Default: latest
 #   --nodejs-version <ver>    Node.js version to install via nvm (e.g., 20, 20.11.1, v18.20.3, lts)
@@ -18,8 +17,8 @@
 #
 # Description:
 #   Installs NVM for the target user in the specified directory, then installs
-#   Node.js using NVM. Optionally installs pnpm and configures the npm registry
-#   to the CN mirror for faster downloads in China.
+#   Node.js using NVM. Optionally configures the npm registry to the CN mirror
+#   for faster downloads in China.
 #
 # Prerequisites:
 #   - Internet connection required
@@ -37,7 +36,6 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 USE_CN_MIRROR=false
-INSTALL_PNPM=true
 TARGET_USER=""
 INSTALL_DIR=""
 NVM_VERSION=""
@@ -62,10 +60,6 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DIR="$2"
       shift 2
       ;;
-    --no-pnpm)
-      INSTALL_PNPM=false
-      shift
-      ;;
     --with-cn-mirror)
       USE_CN_MIRROR=true
       shift
@@ -88,7 +82,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1" >&2
-      echo "Usage: $0 [--user <username>] [--install-dir <directory>] [--no-pnpm] [--with-cn-mirror] [--nvm-version <ver>] [--nodejs-version <ver>]" >&2
+      echo "Usage: $0 [--user <username>] [--install-dir <directory>] [--with-cn-mirror] [--nvm-version <ver>] [--nodejs-version <ver>]" >&2
       exit 1
       ;;
   esac
@@ -204,26 +198,6 @@ else
   fi
 fi
 
-# Optionally install pnpm for the target user
-if [[ "${INSTALL_PNPM}" == true ]]; then
-  echo "[nvm+node] Installing pnpm for ${TARGET_USER} ..."
-  if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL https://get.pnpm.io/install.sh | sh -
-    else
-      wget -qO- https://get.pnpm.io/install.sh | sh -
-    fi
-  else
-    if command -v runuser >/dev/null 2>&1; then
-      runuser -u "${TARGET_USER}" -- sh -lc 'if command -v curl >/dev/null 2>&1; then curl -fsSL https://get.pnpm.io/install.sh | sh -; else wget -qO- https://get.pnpm.io/install.sh | sh -; fi'
-    else
-      su -l "${TARGET_USER}" -c 'if command -v curl >/dev/null 2>&1; then curl -fsSL https://get.pnpm.io/install.sh | sh -; else wget -qO- https://get.pnpm.io/install.sh | sh -; fi'
-    fi
-  fi
-else
-  echo "[nvm+node] Skipping pnpm installation (--no-pnpm)"
-fi
-
 # Also persist npm registry to .npmrc if CN mirror requested (best-effort)
 if [[ "${USE_CN_MIRROR}" == true ]]; then
   NPMRC_PATH="${TARGET_HOME}/.npmrc"
@@ -236,6 +210,30 @@ if [[ "${USE_CN_MIRROR}" == true ]]; then
   if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
     chown "${TARGET_USER}:${TARGET_USER}" "${NPMRC_PATH}" || true
   fi
+fi
+
+# Expose node/npm to subsequent build steps without relying on shell init
+if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
+  NODE_BIN_DIR=$(bash -lc 'set -eu; export NVM_DIR='"'${INSTALL_DIR}'"'; . "$NVM_DIR/nvm.sh"; nvm which current | xargs dirname')
+else
+  if command -v runuser >/dev/null 2>&1; then
+    NODE_BIN_DIR=$(runuser -u "${TARGET_USER}" -- bash -lc 'set -eu; export NVM_DIR='"'${INSTALL_DIR}'"'; . "$NVM_DIR/nvm.sh"; nvm which current | xargs dirname')
+  else
+    NODE_BIN_DIR=$(su -l "${TARGET_USER}" -c 'set -eu; export NVM_DIR='"'${INSTALL_DIR}'"'; . "$NVM_DIR/nvm.sh"; nvm which current | xargs dirname')
+  fi
+fi
+
+if [[ -n "${NODE_BIN_DIR:-}" && -x "${NODE_BIN_DIR}/node" ]]; then
+  echo "[nvm+node] Linking node/npm to /usr/local/bin"
+  ln -sf "${NODE_BIN_DIR}/node" /usr/local/bin/node || true
+  if [[ -x "${NODE_BIN_DIR}/npm" ]]; then
+    ln -sf "${NODE_BIN_DIR}/npm" /usr/local/bin/npm || true
+  fi
+  if [[ -x "${NODE_BIN_DIR}/npx" ]]; then
+    ln -sf "${NODE_BIN_DIR}/npx" /usr/local/bin/npx || true
+  fi
+else
+  echo "[nvm+node] Warning: unable to determine Node bin dir; npm may not be on PATH during build" >&2
 fi
 
 echo "[nvm+node] Done."
