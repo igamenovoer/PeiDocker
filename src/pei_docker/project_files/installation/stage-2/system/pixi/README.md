@@ -10,7 +10,7 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 
 - **Smart Installation**: Supports both shared and per-user pixi installations
 - **Password-Aware**: Only configures pixi for users who can SSH login (have passwords)
-- **Chinese Mirror Support**: Configures Tsinghua mirrors for faster downloads in China
+- **Chinese Mirror Support**: Configure PyPI and conda-forge mirrors (TUNA/Aliyun) or revert to official
 - **Future-Proof**: Sets up `/etc/skel` templates for new users
 - **SSH Compatible**: Ensures pixi is available in SSH sessions via `.bashrc` modification
 
@@ -22,29 +22,27 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 **Purpose**: Installs the pixi binary and configures PATH for all users
 
 **Functionality**:
-- Downloads and installs pixi binary to each user's home directory (`~/.pixi`)
-- Adds pixi to each user's `.bashrc` file
-- Supports custom cache directory configuration via `--cache-dir` parameter
-- Creates `/etc/skel/.bashrc` entry for future users
-- Skips users without passwords (not SSH accessible)
+- Downloads and installs pixi binary for a target user (default: current user)
+- Adds pixi to the target user's `.bashrc` file
+- Supports custom cache directory configuration via `--cache-dir`
+- Supports custom install directory via `--install-dir`
+- Optional: configure PyPI mirror via `--pypi-repo` (tuna/aliyun/official)
+- Optional: configure conda-forge mirror via `--conda-repo` (tuna/official)
 
 **Parameters**:
 - `--cache-dir=<absolute_path>`: Optional. Sets custom cache directory for pixi (saved permanently to `.bashrc`)
 - `--install-dir=<absolute_path>`: Optional. Sets custom installation directory for pixi (default: `~/.pixi`)
+- `--pypi-repo <name>`: Optional. Configure PyPI index for pixi projects. Supported values:
+  - `tuna` → https://pypi.tuna.tsinghua.edu.cn/simple
+  - `aliyun` → https://mirrors.aliyun.com/pypi/simple
+  - `official` → revert to PyPI (remove custom index)
+- `--conda-repo <name>`: Optional. Configure conda-forge mirror for pixi. Supported values:
+  - `tuna` → https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+  - `official` → revert to default (remove mirror mapping)
 - `--verbose`: Optional. Enable verbose output during installation for debugging purposes
 
 #### `set-pixi-repo-tuna.bash`
-**Purpose**: Configures pixi to use Tsinghua University mirrors for faster downloads
-
-**Functionality**:
-- Creates `~/.pixi/config.toml` for each user with Tsinghua mirror configuration
-- Configures conda-forge and PyPI mirrors
-- Creates `/etc/skel/.pixi/config.toml` for future users
-- Skips users without passwords
-
-**Mirror Configuration**:
-- Conda channels: `mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/`
-- PyPI packages: `pypi.tuna.tsinghua.edu.cn/simple`
+Legacy helper to force TUNA mirrors for all users. Prefer using `install-pixi.bash --pypi-repo tuna --conda-repo tuna` for per-user configuration and easier revert (`official`).
 
 #### `create-env-common.bash`
 **Purpose**: Installs common development packages globally for all users
@@ -103,8 +101,15 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 # 5. Install with verbose debugging output (optional)
 ./install-pixi.bash --verbose
 
-# 6. Configure mirrors (optional, for China users)
-./set-pixi-repo-tuna.bash
+# 6. Configure mirrors per-user (optional)
+#    - TUNA for both PyPI and conda-forge
+./install-pixi.bash --pypi-repo tuna --conda-repo tuna
+
+#    - Aliyun for PyPI only
+./install-pixi.bash --pypi-repo aliyun
+
+#    - Revert to official repositories
+./install-pixi.bash --pypi-repo official --conda-repo official
 
 # 7. Install common packages
 ./create-env-common.bash
