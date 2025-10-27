@@ -26,12 +26,14 @@
 #
 #   --pypi-repo <name>    Configure default PyPI index for pixi (project defaults)
 #                         Supported: 'tuna' (https://pypi.tuna.tsinghua.edu.cn/simple),
-#                                    'aliyun' (https://mirrors.aliyun.com/pypi/simple)
+#                                    'aliyun' (https://mirrors.aliyun.com/pypi/simple),
+#                                    'official' (revert to PyPI defaults)
 #                         This writes [pypi-config] to $PIXI_HOME/config.toml so new
 #                         pixi projects default to the selected mirror.
 #
 #   --conda-repo <name>   Configure conda channel mirror(s) for pixi
-#                         Supported: 'tuna' (Tsinghua TUNA mirrors for conda-forge)
+#                         Supported: 'tuna' (Tsinghua TUNA mirrors for conda-forge),
+#                                    'official' (remove mirror and use default)
 #                         This writes [mirrors] to $PIXI_HOME/config.toml so conda channel
 #                         traffic goes to the selected mirror.
 #
@@ -292,8 +294,10 @@ else
                     PIXI_PYPI_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple" ;;
                 aliyun|Aliyun|ALIYUN)
                     PIXI_PYPI_INDEX_URL="https://mirrors.aliyun.com/pypi/simple" ;;
+                official|Official|OFFICIAL)
+                    PIXI_PYPI_INDEX_URL="" ;;
                 *)
-                    echo "Warning: unknown --pypi-repo '$PIXI_PYPI_REPO_NAME'. Supported: tuna, aliyun. Skipping PyPI config." ;;
+                    echo "Warning: unknown --pypi-repo '$PIXI_PYPI_REPO_NAME'. Supported: tuna, aliyun, official. Skipping PyPI config." ;;
             esac
 
             if [ -n "${PIXI_PYPI_INDEX_URL:-}" ]; then
@@ -335,6 +339,25 @@ EOF
                     chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
                 fi
                 echo "Pixi PyPI index configured: $PIXI_PYPI_INDEX_URL"
+            else
+                # official: remove any index-url lines under [pypi-config]
+                PIXI_CFG_DIR="$USER_PIXI_DIR"
+                PIXI_CFG_FILE="$PIXI_CFG_DIR/config.toml"
+                if [ -f "$PIXI_CFG_FILE" ]; then
+                    awk '
+                        BEGIN{in_pypi=0}
+                        /^\s*\[pypi-config\]\s*$/{in_pypi=1}
+                        /^\s*\[/{ if(in_pypi==1){in_pypi=0} }
+                        {
+                            if(in_pypi==1 && $0 ~ /^\s*index-url\s*=.*/){next}
+                            print $0
+                        }
+                    ' "$PIXI_CFG_FILE" > "$PIXI_CFG_FILE.tmp" && mv "$PIXI_CFG_FILE.tmp" "$PIXI_CFG_FILE"
+                    if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+                        chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
+                    fi
+                    echo "Pixi PyPI index reverted to official PyPI"
+                fi
             fi
         fi
 
@@ -347,11 +370,14 @@ EOF
                     ORIG_CF_URL="https://conda.anaconda.org/conda-forge"
                     MIRROR_CF_URL="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
                     ;;
+                official|Official|OFFICIAL)
+                    ORIG_CF_URL="https://conda.anaconda.org/conda-forge"
+                    MIRROR_CF_URL="" ;;
                 *)
-                    echo "Warning: unknown --conda-repo '$PIXI_CONDA_REPO_NAME'. Supported: tuna. Skipping conda mirrors." ;;
+                    echo "Warning: unknown --conda-repo '$PIXI_CONDA_REPO_NAME'. Supported: tuna, official. Skipping conda mirrors." ;;
             esac
 
-            if [ -n "${ORIG_CF_URL:-}" ] && [ -n "${MIRROR_CF_URL:-}" ]; then
+            if [ -n "${ORIG_CF_URL:-}" ]; then
                 PIXI_CFG_DIR="$USER_PIXI_DIR"
                 PIXI_CFG_FILE="$PIXI_CFG_DIR/config.toml"
                 mkdir -p "$PIXI_CFG_DIR" || true
@@ -372,17 +398,22 @@ EOF
                     ' "$PIXI_CFG_FILE" > "$PIXI_CFG_FILE.tmp" && mv "$PIXI_CFG_FILE.tmp" "$PIXI_CFG_FILE"
                 fi
 
-                # Append mapping (re-open [mirrors] table to ensure correct context)
-                {
-                    echo ""
-                    echo "[mirrors]"
-                    echo "\"$ORIG_CF_URL\" = [\"$MIRROR_CF_URL\"]"
-                } >> "$PIXI_CFG_FILE"
+                if [ -n "${MIRROR_CF_URL:-}" ]; then
+                    # Append mapping (re-open [mirrors] table to ensure correct context)
+                    {
+                        echo ""
+                        echo "[mirrors]"
+                        echo "\"$ORIG_CF_URL\" = [\"$MIRROR_CF_URL\"]"
+                    } >> "$PIXI_CFG_FILE"
+                    echo "Pixi conda-forge mirror configured: $MIRROR_CF_URL"
+                else
+                    # official: do not append mapping; only removal was done
+                    echo "Pixi conda-forge mirror removed; using official channel"
+                fi
 
                 if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
                     chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
                 fi
-                echo "Pixi conda-forge mirror configured: $MIRROR_CF_URL"
             fi
         fi
     else
