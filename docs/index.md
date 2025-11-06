@@ -251,6 +251,7 @@ This produces:
 - `merged.env`: all build-time args as KEY='value'
 - `build-merged.sh`: one-shot build script that sources merged.env and runs docker build
   - Supports `--output-image/-o <name:tag>` to override the final image tag
+  - Forwards any extra CLI flags directly to `docker build` (e.g. `--no-cache`, `--progress=plain`, `--build-arg KEY=VAL`); you can also use `--` to stop parsing and pass all remaining args
 
 ## Complete Configuration Example
 

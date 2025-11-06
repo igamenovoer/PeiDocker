@@ -378,15 +378,15 @@ done
 cmd=( docker run )
 if [[ "$DETACH" == "1" ]]; then cmd+=( -d ); else [[ "$TTY" == "1" ]] && cmd+=( -it ); fi
 [[ "$RM" == "1" ]] && cmd+=( --rm )
-[[ -n "${RUN_NETWORK:-}" ]] && cmd+=( --network "$RUN_NETWORK" )
+[[ -n "${{RUN_NETWORK:-}}" ]] && cmd+=( --network "$RUN_NETWORK" )
 
 # ports
 for p in $RUN_PORTS; do [[ -n "$p" ]] && cmd+=( -p "$p" ); done
-for p in "${CLI_PORTS[@]:-}"; do cmd+=( -p "$p" ); done
+for p in "${{CLI_PORTS[@]:-}}"; do cmd+=( -p "$p" ); done
 
 # volumes
 for v in $RUN_VOLUMES; do [[ -n "$v" ]] && cmd+=( -v "$v" ); done
-for v in "${CLI_VOLS[@]:-}"; do cmd+=( -v "$v" ); done
+for v in "${{CLI_VOLS[@]:-}}"; do cmd+=( -v "$v" ); done
 
 # extra hosts
 for h in $RUN_EXTRA_HOSTS; do [[ -n "$h" ]] && cmd+=( --add-host "$h" ); done
@@ -396,18 +396,18 @@ if [[ "$GPU_MODE" == "all" ]]; then cmd+=( --gpus all );
 elif [[ "$GPU_MODE" == "auto" && "$DEVICE_TYPE" == "gpu" ]]; then cmd+=( --gpus all ); fi
 
 # env vars
-if [[ "${RUN_ENV_ENABLE:-0}" == "1" ]]; then
+if [[ "${{RUN_ENV_ENABLE:-0}}" == "1" ]]; then
   for pair in $RUN_ENV_VARS; do [[ -n "$pair" ]] && cmd+=( -e "$pair" ); done
 fi
 
 cmd+=( --name "$CONTAINER_NAME" )
-[[ -n "${RUN_EXTRA_ARGS:-}" ]] && cmd+=( $RUN_EXTRA_ARGS )
+[[ -n "${{RUN_EXTRA_ARGS:-}}" ]] && cmd+=( $RUN_EXTRA_ARGS )
 
 cmd+=( "$IMG" )
-[[ ${#POSITIONAL[@]:-0} -gt 0 ]] && cmd+=( "${POSITIONAL[@]}" )
+[[ ${{#POSITIONAL[@]:-0}} -gt 0 ]] && cmd+=( "${{POSITIONAL[@]}}" )
 
-printf '%q ' "${cmd[@]}"; echo
-exec "${cmd[@]}"
+printf '%q ' "${{cmd[@]}}"; echo
+exec "${{cmd[@]}}"
 """
     _write_text(path, content)
     mode = os.stat(path).st_mode
@@ -415,17 +415,27 @@ exec "${cmd[@]}"
 
 
 def _write_build_script(path: Path, stage2_image: str, args1: Dict[str, Any], args2: Dict[str, Any]) -> None:
-    def arg_names(args: Dict[str, Any]) -> str:
+    def arg_names_stage1(args: Dict[str, Any]) -> str:
         names: list[str] = []
         for k in (args or {}).keys():
             key = "BASE_IMAGE_1" if k == "BASE_IMAGE" else k
             names.append(f"  --build-arg {key} \\")
         return "\n".join(names)
 
+    def arg_names_stage2(args: Dict[str, Any]) -> str:
+        names: list[str] = []
+        for k in (args or {}).keys():
+            if k == "BASE_IMAGE":
+                # Stage-2 BASE_IMAGE is unused in merged build
+                continue
+            names.append(f"  --build-arg {k} \\")
+        return "\n".join(names)
+
     content = f"""#!/usr/bin/env bash
 set -euo pipefail
 PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
 STAGE2_IMAGE_NAME='{stage2_image}'
+FORWARD=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o|--output-image)
@@ -435,20 +445,22 @@ while [[ $# -gt 0 ]]; do
       fi
       STAGE2_IMAGE_NAME="$2"; shift 2 ;;
     --)
-      shift; break ;;
+      shift; FORWARD+=("$@"); break ;;
     *)
-      echo "Unknown option: $1" >&2; exit 1 ;;
+      # Pass any unknown args through to docker build
+      FORWARD+=("$1"); shift ;;
   esac
 done
 set -a
 source "$PROJECT_DIR/merged.env"
 set +a
-docker build \
+ docker build \
   -f "$PROJECT_DIR/merged.Dockerfile" \
   -t "$STAGE2_IMAGE_NAME" \
   --add-host=host.docker.internal:host-gateway \
-{arg_names(args1)}
-{arg_names(args2)}
+{arg_names_stage1(args1)}
+{arg_names_stage2(args2)}
+  "${{FORWARD[@]:-}}" \
   "$PROJECT_DIR"
 
 echo "[merge] Done. Final image: $STAGE2_IMAGE_NAME"

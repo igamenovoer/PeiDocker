@@ -71,6 +71,10 @@ pei-docker-cli configure --with-merged
 # Override output image tag at build time
 ./build-merged.sh --output-image myorg/myapp:dev
 ./build-merged.sh -o myorg/myapp:dev
+
+# Pass extra flags directly to `docker build`
+./build-merged.sh -- --no-cache --progress=plain
+./build-merged.sh --build-arg HTTP_PROXY=http://host.docker.internal:7890
 ```
 
 ### remove
