@@ -22,14 +22,14 @@ stage_1:
     users:
       me:
         password: '123456'
-
         # using this will add your public key to the container as authorized key, you can also specify a file path
         # pubkey_file: '~' 
 
         # you can also use inline public key text
         # pubkey_text: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC...'
-        
-      root: # allow you to ssh as root
+
+      root:
+        # allow you to ssh as root
         password: root
 
   # apt settings
@@ -42,9 +42,9 @@ stage_1:
   custom:
     # scripts run during build
     # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
-    on_build: 
-      - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
-    
+    on_build:
+    - 'stage-1/custom/install-dev-tools.sh' # just an example, you can safely remove this
+
 stage_2:
 
   # input/output image settings
@@ -54,12 +54,15 @@ stage_2:
   # dynamic storage settings
   # they define the physical location of `/soft/app`, `/soft/data` and `/soft/workspace` point to, your these paths can be switched among different storage locations, so that you can use external storage in development, and move them to internal storage in deployment
   storage:
-    app:  # /soft/app will be kept as part of the image
+    app:
+      # /soft/app will be kept as part of the image
       type: image
-    data: # mounting /your/data/path to /soft/data in container
+    data:
+      # mounting /your/data/path to /soft/data in container
       type: host
       host_path: /your/data/path
-    workspace: # /soft/workspace will be mounted to a docker automatic volume
+    workspace:
+      # /soft/workspace will be mounted to a docker automatic volume
       type: auto-volume
 
   # mount external volumes to container
@@ -67,15 +70,15 @@ stage_2:
     # mounting docker automatic volume to /home/me
     # so that you do not have to commit your docker image everytime some configuration changes
     home_me:
-      type: auto-volume   # auto-volume, manual-volume, host
+      type: auto-volume # auto-volume, manual-volume, host
       dst_path: /home/me
 
   custom:
     # scripts run during build
     # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
-    on_build: 
-      # install pixi, a lightweight python package manager
-      - 'stage-2/system/pixi/install-pixi.bash'
+    on_build:
+    # install pixi, a lightweight python package manager
+    - 'stage-2/system/pixi/install-pixi.bash --pypi-repo tuna --conda-repo tuna'
 
-      # configure pixi to use tuna mirror in China
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
+    # install uv
+    - 'stage-1/system/uv/install-uv.sh --pypi-repo tuna'
