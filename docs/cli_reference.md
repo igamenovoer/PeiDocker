@@ -75,6 +75,13 @@ pei-docker-cli configure --with-merged
 # Pass extra flags directly to `docker build`
 ./build-merged.sh -- --no-cache --progress=plain
 ./build-merged.sh --build-arg HTTP_PROXY=http://host.docker.internal:7890
+
+# Run the generated image with helper script
+./run-merged.sh -d -p 8080:8080
+
+# Show script help
+./build-merged.sh --help
+./run-merged.sh --help
 ```
 
 ### remove
@@ -185,6 +192,22 @@ pei-docker-gui start --native
 - Docker Compose syntax: `${VAR:-default}`
 - Stage-specific variables
 - List format
+
+Boolean handling for environment variables used by PeiDocker scripts and Dockerfiles:
+- Accept `true`/`false` in a case-insensitive manner and numeric `1`/`0`.
+- Empty value means “use system/default” (not forced true/false).
+- When using `--with-merged`, `merged.env` emits lowercase `true`/`false`.
+
+Merged script quick reference:
+- `build-merged.sh` options:
+  - `-o, --output-image <name:tag>` override output tag
+  - `--` pass additional flags straight to `docker build`
+  - `-h, --help` show help
+- `run-merged.sh` options:
+  - `-n, --name`, `-d, --detach`, `--no-rm`, `--image <name:tag>`
+  - `-p, --publish`, `-v, --volume`, `--gpus auto|all|none`
+  - `--` pass a command to run in the container
+  - `-h, --help` show help
 
 ## Features
 

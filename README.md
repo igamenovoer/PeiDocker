@@ -231,15 +231,25 @@ _For details, please refer to the [Documentation](https://igamenovoer.github.io/
 
 ### Installation
 
-#### Option 1: Install from PyPI (Recommended)
+#### Option 1: Install via uv (Recommended)
 
 ```sh
-# for ordinary python users, or conda users
+# If you don't have uv yet, see https://docs.astral.sh/uv/getting-started/install/
+# Install the pei-docker CLI as a global tool
+uv tool install pei-docker
+
+# Upgrade later
+uv tool upgrade pei-docker
+```
+
+Alternative (pip/pipx):
+
+```sh
+# System / virtualenv install
 pip install pei-docker
 
-# if you are using pixi, you need to install via pipx
-pixi global install pipx  # install pipx if you haven't done so
-pipx install pei-docker # then install pei-docker
+# Isolated user install
+pipx install pei-docker
 ```
 
 #### Option 2: Install from Source
@@ -317,6 +327,37 @@ docker compose build stage-1 --progress=plain
 # By default, the image is named pei-image:stage-2
 docker compose build stage-2 --progress=plain
 ```
+
+### Build Without Docker Compose (Merged Build)
+
+Prefer a single `docker build` flow? Generate merged artifacts and use the helper scripts:
+
+```sh
+# From the project directory
+pei-docker-cli configure --with-merged
+
+# Build the final image from merged.Dockerfile and merged.env
+./build-merged.sh
+
+# Override output image tag
+./build-merged.sh --output-image myorg/myapp:dev
+./build-merged.sh -o myorg/myapp:dev
+
+# Forward extra flags directly to docker build (use -- to stop parsing)
+./build-merged.sh -- --no-cache --progress=plain
+
+# Run the generated image (reads ports/volumes/GPU defaults from merged.env)
+./run-merged.sh -d -p 8080:8080
+
+# Script help
+./build-merged.sh --help
+./run-merged.sh --help
+```
+
+Notes:
+- The generator writes booleans as lowercase `true`/`false` in `merged.env`.
+- Shell scripts accept boolean-like values case-insensitively and also numeric `1`/`0`.
+- Leaving a value empty means “use system/default” rather than forcing true/false.
 
 Run the docker container:
 

@@ -168,6 +168,11 @@ environment:
   - 'API_URL=${API_URL:-http://localhost:8080}'
 ```
 
+Boolean handling for env vars used by PeiDocker's scripts and Dockerfiles:
+- Accepts `true`/`false` in a case-insensitive manner and numeric `1`/`0`.
+- Empty value means “use system/default” (not forced to true/false).
+- When using `--with-merged`, the generated `merged.env` emits lowercase `true`/`false`.
+
 ### Port Mapping
 
 Separate port configurations for each stage:
@@ -244,6 +249,10 @@ pei-docker-cli configure --with-merged
 # Override output image name:tag on the fly
 ./build-merged.sh --output-image myorg/myapp:dev
 ./build-merged.sh -o myorg/myapp:dev
+
+# Show script help
+./build-merged.sh --help
+./run-merged.sh --help
 ```
 
 This produces:
@@ -252,6 +261,9 @@ This produces:
 - `build-merged.sh`: one-shot build script that sources merged.env and runs docker build
   - Supports `--output-image/-o <name:tag>` to override the final image tag
   - Forwards any extra CLI flags directly to `docker build` (e.g. `--no-cache`, `--progress=plain`, `--build-arg KEY=VAL`); you can also use `--` to stop parsing and pass all remaining args
+- `run-merged.sh`: convenience runner that reads defaults from merged.env (ports, volumes, GPU)
+  - Supports `-n/--name`, `-d/--detach`, `--no-rm`, `--image <name:tag>`, `-p/--publish`, `-v/--volume`, `--gpus`
+  - Accepts `--` to pass a command to run inside the container
 
 ## Complete Configuration Example
 

@@ -113,7 +113,11 @@ def _write_merged_env(
     """
 
     def q(v: Any) -> str:
-        s = str(v)
+        # Render values for merged.env; booleans become lowercase true/false
+        if isinstance(v, bool):
+            s = "true" if v else "false"
+        else:
+            s = str(v)
         return "'" + s.replace("'", "'\\''") + "'"
 
     # Known variable descriptions
@@ -335,10 +339,25 @@ set -a
 source "$PROJECT_DIR/merged.env"
 set +a
 
+# Normalize boolean-like values to 1/0 (accepts 1/0/true/false; case-insensitive). Empty remains empty.
+normalize_bool() {{
+  local __val="$1"
+  if [ -z "${{__val+x}}" ] || [ -z "$__val" ]; then
+    echo "$__val"; return 0
+  fi
+  case "$__val" in
+    1|true|TRUE|True) echo 1 ;;
+    0|false|FALSE|False) echo 0 ;;
+    *)
+      __val_lower=$(printf '%s' "$__val" | tr '[:upper:]' '[:lower:]')
+      if [ "$__val_lower" = "true" ]; then echo 1; elif [ "$__val_lower" = "false" ]; then echo 0; else echo "$__val"; fi ;;
+  esac
+}}
+
 CONTAINER_NAME="${{RUN_CONTAINER_NAME:-pei-stage-2}}"
-DETACH="${{RUN_DETACH:-0}}"
-RM="${{RUN_REMOVE:-1}}"
-TTY="${{RUN_TTY:-1}}"
+DETACH=$(normalize_bool "${{RUN_DETACH:-0}}")
+RM=$(normalize_bool "${{RUN_REMOVE:-1}}")
+TTY=$(normalize_bool "${{RUN_TTY:-1}}")
 GPU_MODE="${{RUN_GPU:-auto}}"
 DEVICE_TYPE="${{RUN_DEVICE_TYPE:-cpu}}"
 IMG="${{STAGE2_IMAGE_NAME:-{stage2_image}}}"
@@ -347,8 +366,37 @@ CLI_PORTS=()
 CLI_VOLS=()
 POSITIONAL=()
 
+usage() {{
+  cat <<'USAGE'
+Usage: run-merged.sh [OPTIONS] [--] [CMD [ARGS...]]
+
+Run the merged image with ports, volumes, and GPU options derived from merged.env.
+
+Options:
+  -n, --name <container>         Set container name (default from merged.env)
+  -d, --detach                   Run in detached mode
+      --no-rm                    Do not remove container on exit
+      --image <name:tag>         Override image to run
+  -p, --publish host:container   Publish a port (repeatable)
+  -v, --volume src:dst[:mode]    Bind mount a volume (repeatable)
+      --gpus auto|all|none       GPU mode (default: auto)
+  -h, --help                     Show this help and exit
+
+Pass-through:
+  Use "--" to stop parsing and treat remaining arguments as CMD to run
+  inside the container.
+
+Examples:
+  ./run-merged.sh
+  ./run-merged.sh -d -p 8080:8080
+  ./run-merged.sh -- bash -lc 'echo hello'
+USAGE
+}}
+
   while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help)
+      usage; exit 0 ;;
     -n|--name)
       [[ $# -ge 2 ]] || {{ echo "Error: --name requires a value" >&2; exit 1; }}
       CONTAINER_NAME="$2"; shift 2 ;;
@@ -396,7 +444,7 @@ if [[ "$GPU_MODE" == "all" ]]; then cmd+=( --gpus all );
 elif [[ "$GPU_MODE" == "auto" && "$DEVICE_TYPE" == "gpu" ]]; then cmd+=( --gpus all ); fi
 
 # env vars
-if [[ "${{RUN_ENV_ENABLE:-0}}" == "1" ]]; then
+if [[ "$(normalize_bool "${{RUN_ENV_ENABLE:-0}}")" == "1" ]]; then
   for pair in $RUN_ENV_VARS; do [[ -n "$pair" ]] && cmd+=( -e "$pair" ); done
 fi
 
@@ -416,28 +464,52 @@ exec "${{cmd[@]}}"
 
 def _write_build_script(path: Path, stage2_image: str, args1: Dict[str, Any], args2: Dict[str, Any]) -> None:
     def arg_names_stage1(args: Dict[str, Any]) -> str:
-        names: list[str] = []
+        lines: list[str] = []
         for k in (args or {}).keys():
             key = "BASE_IMAGE_1" if k == "BASE_IMAGE" else k
-            names.append(f"  --build-arg {key} \\")
-        return "\n".join(names)
+            # Only pass build-arg when value is non-empty so Dockerfile defaults apply otherwise
+            lines.append(f"[[ -n \"${{{key}:-}}\" ]] && cmd+=( --build-arg {key} )")
+        return "\n".join(lines)
 
     def arg_names_stage2(args: Dict[str, Any]) -> str:
-        names: list[str] = []
+        lines: list[str] = []
         for k in (args or {}).keys():
             if k == "BASE_IMAGE":
                 # Stage-2 BASE_IMAGE is unused in merged build
                 continue
-            names.append(f"  --build-arg {k} \\")
-        return "\n".join(names)
+            # Only pass build-arg when value is non-empty so Dockerfile defaults apply otherwise
+            lines.append(f"[[ -n \"${{{k}:-}}\" ]] && cmd+=( --build-arg {k} )")
+        return "\n".join(lines)
 
     content = f"""#!/usr/bin/env bash
 set -euo pipefail
 PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
 STAGE2_IMAGE_NAME='{stage2_image}'
 FORWARD=()
+usage() {{
+  cat <<'USAGE'
+Usage: build-merged.sh [OPTIONS] [--] [docker build flags]
+
+Build the merged image using merged.Dockerfile and merged.env.
+
+Options:
+  -o, --output-image <name:tag>  Override output image tag (default from merged.env)
+  -h, --help                     Show this help and exit
+
+Pass-through:
+  Use "--" to stop parsing and forward remaining flags directly to
+  "docker build" (e.g. --no-cache, --progress=plain, --build-arg KEY=VAL).
+
+Examples:
+  ./build-merged.sh
+  ./build-merged.sh -o myorg/myapp:dev
+  ./build-merged.sh -- --no-cache --progress=plain
+USAGE
+}}
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help)
+      usage; exit 0 ;;
     -o|--output-image)
       if [[ $# -lt 2 ]]; then
         echo "Error: --output-image requires a value <name:tag>" >&2
@@ -454,14 +526,26 @@ done
 set -a
 source "$PROJECT_DIR/merged.env"
 set +a
- docker build \
+
+# Build docker build command incrementally to avoid empty-arg issues
+cmd=( docker build \
   -f "$PROJECT_DIR/merged.Dockerfile" \
   -t "$STAGE2_IMAGE_NAME" \
-  --add-host=host.docker.internal:host-gateway \
+  --add-host=host.docker.internal:host-gateway )
+
 {arg_names_stage1(args1)}
 {arg_names_stage2(args2)}
-  "${{FORWARD[@]:-}}" \
-  "$PROJECT_DIR"
+
+# Forward any additional CLI arguments, if provided
+if [[ ${{#FORWARD[@]}} -gt 0 ]]; then
+  cmd+=( "${{FORWARD[@]}}" )
+fi
+
+# Build context
+cmd+=( "$PROJECT_DIR" )
+
+printf '%q ' "${{cmd[@]}}"; echo
+"${{cmd[@]}}"
 
 echo "[merge] Done. Final image: $STAGE2_IMAGE_NAME"
 """

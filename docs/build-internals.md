@@ -285,6 +285,11 @@ Inheritance:
 - `PEI_BAKE_ENV_STAGE_*` controls persistence
 - Docker Compose substitution: `${VAR:-default}`
 
+Boolean normalization rules (applies across build/run scripts and templates):
+- Accepts `true`/`false` in a case-insensitive manner and numeric `1`/`0`.
+- Empty value is respected as “use system/default” (not coerced to true/false).
+- When generating merged artifacts, `merged.env` emits lowercase `true`/`false` for booleans.
+
 ## Port Mapping
 
 Stage-specific port configurations:
