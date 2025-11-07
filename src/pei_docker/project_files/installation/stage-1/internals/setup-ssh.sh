@@ -72,12 +72,30 @@ for i in "${!users[@]}"; do
     ssh_dir="/root/.ssh"
   else
     # For non-root users, create account with specified UID if provided
+    # If a UID is specified and already in use by another user, remove the conflicting user (not applicable to root)
     if [ -n "$uid" ]; then
-      echo "Creating user with uid $uid"
-      adduser --gecos "" --disabled-password --uid $uid $user
+      conflict_user=$(awk -F: -v uid="$uid" '$3==uid{print $1}' /etc/passwd | head -n1)
+      if [ -n "$conflict_user" ] && [ "$conflict_user" != "$user" ] && [ "$conflict_user" != "root" ]; then
+        echo "WARNING: UID $uid already used by '$conflict_user'. Removing that user to create '$user'." >&2
+        # Remove the conflicting user and its home directory if present
+        userdel -r "$conflict_user" 2>/dev/null || true
+      elif [ -n "$conflict_user" ] && [ "$conflict_user" = "root" ]; then
+        echo "WARNING: Requested UID $uid conflicts with root; creating '$user' with system-assigned UID instead." >&2
+        uid=""
+      fi
+    fi
+
+    # If target username already exists, skip creation and just adjust groups/password
+    if id -u "$user" >/dev/null 2>&1; then
+      echo "User '$user' already exists. Reusing existing account."
     else
-      echo "Creating user with system-assigned uid"
-      adduser --gecos "" --disabled-password $user
+      if [ -n "$uid" ]; then
+        echo "Creating user '$user' with uid $uid"
+        adduser --gecos "" --disabled-password --uid "$uid" "$user"
+      else
+        echo "Creating user '$user' with system-assigned uid"
+        adduser --gecos "" --disabled-password "$user"
+      fi
     fi
     usermod -aG sudo $user
     usermod -aG ssh_users $user
