@@ -432,11 +432,11 @@ if [[ "$DETACH" == "1" ]]; then cmd+=( -d ); else [[ "$TTY" == "1" ]] && cmd+=( 
 
 # ports
 for p in $RUN_PORTS; do [[ -n "$p" ]] && cmd+=( -p "$p" ); done
-for p in "${{CLI_PORTS[@]:-}}"; do cmd+=( -p "$p" ); done
+for p in "${{CLI_PORTS[@]}}"; do [[ -n "$p" ]] && cmd+=( -p "$p" ); done
 
 # volumes
 for v in $RUN_VOLUMES; do [[ -n "$v" ]] && cmd+=( -v "$v" ); done
-for v in "${{CLI_VOLS[@]:-}}"; do cmd+=( -v "$v" ); done
+for v in "${{CLI_VOLS[@]}}"; do [[ -n "$v" ]] && cmd+=( -v "$v" ); done
 
 # extra hosts
 for h in $RUN_EXTRA_HOSTS; do [[ -n "$h" ]] && cmd+=( --add-host "$h" ); done
@@ -454,7 +454,7 @@ cmd+=( --name "$CONTAINER_NAME" )
 [[ -n "${{RUN_EXTRA_ARGS:-}}" ]] && cmd+=( $RUN_EXTRA_ARGS )
 
 cmd+=( "$IMG" )
-[[ ${{#POSITIONAL[@]:-0}} -gt 0 ]] && cmd+=( "${{POSITIONAL[@]}}" )
+[[ ${{#POSITIONAL[@]}} -gt 0 ]] && cmd+=( "${{POSITIONAL[@]}}" )
 
 printf '%q ' "${{cmd[@]}}"; echo
 exec "${{cmd[@]}}"
