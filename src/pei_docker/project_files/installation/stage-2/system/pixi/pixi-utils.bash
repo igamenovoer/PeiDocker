@@ -201,7 +201,8 @@ add_pixi_to_bashrc() {
     if [ ! -f "$bashrc_file" ]; then
         echo "Creating $bashrc_file for user $user_name"
         touch "$bashrc_file"
-        chown "$user_name:$user_name" "$bashrc_file"
+        primary_group=$(id -gn "$user_name" 2>/dev/null || echo "$user_name")
+        chown "$user_name:$primary_group" "$bashrc_file"
     fi
     
     # Check if this exact pixi path is already in bashrc

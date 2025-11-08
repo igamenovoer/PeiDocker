@@ -72,7 +72,8 @@ EOF
         if [ "$user_home" != "/root" ]; then
             local username=$(basename "$user_home")
             if id "$username" &>/dev/null; then
-                chown -R "$username:$username" "$config_dir"
+                primary_group=$(id -gn "$username" 2>/dev/null || echo "$username")
+                chown -R "$username:$primary_group" "$config_dir"
             fi
         fi
         

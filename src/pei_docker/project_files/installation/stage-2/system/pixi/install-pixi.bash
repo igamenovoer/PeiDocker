@@ -173,7 +173,8 @@ if [ "$UTILS_SOURCED" = false ]; then
         if [ ! -f "$bashrc_file" ]; then
             echo "Creating $bashrc_file for user $user_name"
             touch "$bashrc_file"
-            chown "$user_name:$user_name" "$bashrc_file" || true
+            primary_group=$(id -gn "$user_name" 2>/dev/null || echo "$user_name")
+            chown "$user_name:$primary_group" "$bashrc_file" || true
         fi
         
         # Check if this exact pixi path is already in bashrc
@@ -248,7 +249,8 @@ else
     # Ensure install directory exists when running cross-user
     if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
         mkdir -p "$USER_PIXI_DIR" || true
-        chown -R "${TARGET_USER}:${TARGET_USER}" "$USER_PIXI_DIR" || true
+        primary_group=$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")
+        chown -R "${TARGET_USER}:${primary_group}" "$USER_PIXI_DIR" || true
     fi
 
     # Install pixi directly to the target directory using PIXI_HOME
@@ -279,7 +281,8 @@ else
         verbose_echo "Installation verification successful"
         # Ensure proper ownership on cross-user installs
         if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-            chown -R "${TARGET_USER}:${TARGET_USER}" "$USER_PIXI_DIR" || true
+            primary_group=$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")
+            chown -R "${TARGET_USER}:${primary_group}" "$USER_PIXI_DIR" || true
         fi
         chmod -R 755 "$USER_PIXI_DIR" || true
 

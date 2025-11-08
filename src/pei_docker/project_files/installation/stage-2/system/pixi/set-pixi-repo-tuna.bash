@@ -21,7 +21,8 @@ create_pixi_config() {
     # Create config directory if it doesn't exist
     if [ ! -d "$pixi_config_dir" ]; then
         mkdir -p "$pixi_config_dir"
-        chown "$user_name:$user_name" "$pixi_config_dir"
+        primary_group=$(id -gn "$user_name" 2>/dev/null || echo "$user_name")
+        chown "$user_name:$primary_group" "$pixi_config_dir"
     fi
     
     # Create or update the config.toml file
@@ -55,7 +56,8 @@ disable-zstd = false
 EOF
     
     # Set proper ownership
-    chown "$user_name:$user_name" "$pixi_config_file"
+    primary_group=$(id -gn "$user_name" 2>/dev/null || echo "$user_name")
+    chown "$user_name:$primary_group" "$pixi_config_file"
     
     echo "Created pixi config for user $user_name at $pixi_config_file"
 }
