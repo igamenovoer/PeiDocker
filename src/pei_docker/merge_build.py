@@ -467,10 +467,25 @@ exec "${{cmd[@]}}"
 def _write_build_script(path: Path, stage2_image: str, args1: Dict[str, Any], args2: Dict[str, Any]) -> None:
     def arg_names_stage1(args: Dict[str, Any]) -> str:
         lines: list[str] = []
+        always_pass = {
+            # Ensure SSH-related args are defined inside Docker even when empty
+            "SSH_USER_NAME",
+            "SSH_USER_PASSWORD",
+            "SSH_PUBKEY_FILE",
+            "SSH_PRIVKEY_FILE",
+            "SSH_USER_UID",
+            "SSH_USER_GID",
+            "SSH_CONTAINER_PORT",
+            "WITH_SSH",
+        }
         for k in (args or {}).keys():
             key = "BASE_IMAGE_1" if k == "BASE_IMAGE" else k
-            # Only pass build-arg when value is non-empty so Dockerfile defaults apply otherwise
-            lines.append(f"[[ -n \"${{{key}:-}}\" ]] && cmd+=( --build-arg {key} )")
+            if key in always_pass:
+                # Always pass with default expansion to avoid unset vars in scripts
+                lines.append(f"cmd+=( --build-arg \"{key}=${{{key}:-}}\" )")
+            else:
+                # Pass only when non-empty so Dockerfile defaults can apply
+                lines.append(f"[[ -n \"${{{key}:-}}\" ]] && cmd+=( --build-arg {key} )")
         return "\n".join(lines)
 
     def arg_names_stage2(args: Dict[str, Any]) -> str:
@@ -479,7 +494,7 @@ def _write_build_script(path: Path, stage2_image: str, args1: Dict[str, Any], ar
             if k == "BASE_IMAGE":
                 # Stage-2 BASE_IMAGE is unused in merged build
                 continue
-            # Only pass build-arg when value is non-empty so Dockerfile defaults apply otherwise
+            # Stage-2 has no SSH vars; retain default behavior
             lines.append(f"[[ -n \"${{{k}:-}}\" ]] && cmd+=( --build-arg {k} )")
         return "\n".join(lines)
 

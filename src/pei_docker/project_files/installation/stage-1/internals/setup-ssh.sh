@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # if WITH_SSH is false or not set, exit
-if [ "$WITH_SSH" != "true" ]; then
+if [ "${WITH_SSH:-false}" != "true" ]; then
   exit 0
 fi
 
@@ -13,7 +13,7 @@ if [ ! -f /etc/ssh/sshd_config ]; then
 fi
 
 # if SSH_USER_NAME is not set, exit
-if [ -z "$SSH_USER_NAME" ]; then
+if [ -z "${SSH_USER_NAME:-}" ]; then
   echo "SSH_USER_NAME is not set, exiting"
   exit 0
 fi
@@ -26,7 +26,7 @@ echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 # printf "\nPermitRootLogin yes\n" >> /etc/ssh/sshd_config
 
 # Set custom SSH port if SSH_CONTAINER_PORT is defined
-if [ -n "$SSH_CONTAINER_PORT" ]; then
+if [ -n "${SSH_CONTAINER_PORT:-}" ]; then
     echo "Port $SSH_CONTAINER_PORT" >> /etc/ssh/sshd_config
     sed -i "s/^#Port 22/Port $SSH_CONTAINER_PORT/" /etc/ssh/sshd_config
 fi
@@ -50,11 +50,11 @@ fi
 # SSH_PRIVKEY_FILE contains a list of private keys separated by comma
 # SSH_USER_UID contains a list of uids separated by comma
 # for each user, configure it
-IFS=',' read -ra users <<< "$SSH_USER_NAME"
-IFS=',' read -ra passwords <<< "$SSH_USER_PASSWORD"
-IFS=',' read -ra pubkey_files <<< "$SSH_PUBKEY_FILE"
-IFS=',' read -ra privkey_files <<< "$SSH_PRIVKEY_FILE"
-IFS=',' read -ra uids <<< "$SSH_USER_UID"
+IFS=',' read -ra users <<< "${SSH_USER_NAME:-}"
+IFS=',' read -ra passwords <<< "${SSH_USER_PASSWORD:-}"
+IFS=',' read -ra pubkey_files <<< "${SSH_PUBKEY_FILE:-}"
+IFS=',' read -ra privkey_files <<< "${SSH_PRIVKEY_FILE:-}"
+IFS=',' read -ra uids <<< "${SSH_USER_UID:-}"
 # optional: per-user primary group gid list (comma-separated)
 IFS=',' read -ra gids <<< "${SSH_USER_GID:-}"
 
