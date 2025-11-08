@@ -130,7 +130,8 @@ if [[ ! -f "${BASHRC_PATH}" ]]; then
   echo "[nvm+node] Creating ${BASHRC_PATH}"
   touch "${BASHRC_PATH}"
   if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-    chown "${TARGET_USER}:${TARGET_USER}" "${BASHRC_PATH}" || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown "${TARGET_USER}:${primary_group}" "${BASHRC_PATH}" || true
   fi
 fi
 
@@ -138,7 +139,8 @@ fi
 if [[ ! -d "${INSTALL_DIR}" ]]; then
   mkdir -p "${INSTALL_DIR}"
   if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-    chown -R "${TARGET_USER}:${TARGET_USER}" "${INSTALL_DIR}" || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown -R "${TARGET_USER}:${primary_group}" "${INSTALL_DIR}" || true
   fi
 fi
 
@@ -208,7 +210,8 @@ if [[ "${USE_CN_MIRROR}" == true ]]; then
     echo 'registry=https://registry.npmmirror.com/' >> "${NPMRC_PATH}"
   fi
   if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-    chown "${TARGET_USER}:${TARGET_USER}" "${NPMRC_PATH}" || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown "${TARGET_USER}:${primary_group}" "${NPMRC_PATH}" || true
   fi
 fi
 

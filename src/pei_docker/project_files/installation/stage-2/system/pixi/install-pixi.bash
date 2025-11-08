@@ -339,7 +339,8 @@ index-url = "$PIXI_PYPI_INDEX_URL"
 EOF
                 fi
                 if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-                    chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
+                    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+                    chown -R "${TARGET_USER}:${primary_group}" "$PIXI_CFG_DIR" || true
                 fi
                 echo "Pixi PyPI index configured: $PIXI_PYPI_INDEX_URL"
             else
@@ -357,7 +358,8 @@ EOF
                         }
                     ' "$PIXI_CFG_FILE" > "$PIXI_CFG_FILE.tmp" && mv "$PIXI_CFG_FILE.tmp" "$PIXI_CFG_FILE"
                     if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-                        chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
+                        primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+                        chown -R "${TARGET_USER}:${primary_group}" "$PIXI_CFG_DIR" || true
                     fi
                     echo "Pixi PyPI index reverted to official PyPI"
                 fi
@@ -415,7 +417,8 @@ EOF
                 fi
 
                 if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-                    chown -R "${TARGET_USER}:${TARGET_USER}" "$PIXI_CFG_DIR" || true
+                    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+                    chown -R "${TARGET_USER}:${primary_group}" "$PIXI_CFG_DIR" || true
                 fi
             fi
         fi

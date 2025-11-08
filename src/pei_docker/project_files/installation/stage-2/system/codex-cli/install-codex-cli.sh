@@ -99,7 +99,8 @@ if [[ -n "${CODEX_API_KEY:-}" && -n "${CODEX_BASE_URL:-}" ]]; then
     printf 'export CODEX_BASE_URL=%q\n' "${CODEX_BASE_URL}"
     printf 'alias codex-custom-api='\''OPENAI_API_KEY="${CODEX_API_KEY}" OPENAI_BASE_URL="${CODEX_BASE_URL}" codex --dangerously-bypass-approvals-and-sandbox'\''\n'
   } >> "${TARGET_HOME}/.bashrc"
-  chown "${TARGET_USER}:${TARGET_USER}" "${TARGET_HOME}/.bashrc" || true
+  primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+  chown "${TARGET_USER}:${primary_group}" "${TARGET_HOME}/.bashrc" || true
 else
   echo "[codex] CODEX_API_KEY/CODEX_BASE_URL not set; skipping alias setup"
 fi

@@ -127,7 +127,8 @@ else
   if [[ -n "${INSTALL_DIR}" ]]; then
     mkdir -p "${INSTALL_DIR}"
     # Ensure the target user owns the install dir
-    chown -R "${TARGET_USER}:${TARGET_USER}" "${INSTALL_DIR}" || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown -R "${TARGET_USER}:${primary_group}" "${INSTALL_DIR}" || true
     INSTALL_AS_USER_CMD="curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR='${INSTALL_DIR}' sh"
   else
     INSTALL_AS_USER_CMD="curl -LsSf https://astral.sh/uv/install.sh | sh"
@@ -165,7 +166,8 @@ if [[ "${UV_BIN_PATH}" != "/usr/local/bin" ]] && [[ "${UV_BIN_PATH}" != "/usr/bi
     touch "${BASHRC}"
     # Ensure ownership is correct if targeting another user
     if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-      chown "${TARGET_USER}:${TARGET_USER}" "${BASHRC}" || true
+      primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+      chown "${TARGET_USER}:${primary_group}" "${BASHRC}" || true
     fi
   fi
   
@@ -176,7 +178,8 @@ if [[ "${UV_BIN_PATH}" != "/usr/local/bin" ]] && [[ "${UV_BIN_PATH}" != "/usr/bi
       printf 'export PATH="%s:$PATH"\n' "${UV_BIN_PATH}"
     } >> "${BASHRC}"
     if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-      chown "${TARGET_USER}:${TARGET_USER}" "${BASHRC}" || true
+      primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+      chown "${TARGET_USER}:${primary_group}" "${BASHRC}" || true
     fi
   else
     echo "[uv] PATH already configured in ${BASHRC}"
@@ -249,6 +252,7 @@ if [[ -n "${PYPI_REPO_NAME}" ]]; then
 
   # Ensure ownership if cross-user
   if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-    chown -R "${TARGET_USER}:${TARGET_USER}" "${UV_CFG_DIR}" || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown -R "${TARGET_USER}:${primary_group}" "${UV_CFG_DIR}" || true
   fi
 fi

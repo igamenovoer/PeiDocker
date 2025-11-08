@@ -114,7 +114,8 @@ print("[claude-code] set hasCompletedOnboarding=true in {}".format(cfg_path))
 PY
 
 # Ensure correct ownership
-chown "${TARGET_USER}:${TARGET_USER}" "${CLAUDE_CONFIG}" 2>/dev/null || true
+primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+chown "${TARGET_USER}:${primary_group}" "${CLAUDE_CONFIG}" 2>/dev/null || true
 
 echo "[claude-code] Marking onboarding complete"
 
@@ -124,14 +125,16 @@ if [[ -n "${CLAUDE_CODE_API_KEY:-}" && -n "${CLAUDE_CODE_BASE_URL:-}" ]]; then
   if [[ ! -f "${BASHRC}" ]]; then
     echo "[claude-code] Creating ${BASHRC}"
     touch "${BASHRC}"
-    chown "${TARGET_USER}:${TARGET_USER}" "${BASHRC}" 2>/dev/null || true
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown "${TARGET_USER}:${primary_group}" "${BASHRC}" 2>/dev/null || true
   fi
   {
     printf '\nexport CLAUDE_CODE_API_KEY=%q\n' "${CLAUDE_CODE_API_KEY}"
     printf 'export CLAUDE_CODE_BASE_URL=%q\n' "${CLAUDE_CODE_BASE_URL}"
     printf 'alias claude-custom-api='\''ANTHROPIC_API_KEY="${CLAUDE_CODE_API_KEY}" ANTHROPIC_BASE_URL="${CLAUDE_CODE_BASE_URL}" claude --dangerously-skip-permissions'\''\n'
   } >> "${BASHRC}"
-  chown "${TARGET_USER}:${TARGET_USER}" "${BASHRC}" 2>/dev/null || true
+primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+chown "${TARGET_USER}:${primary_group}" "${BASHRC}" 2>/dev/null || true
 else
   echo "[claude-code] CLAUDE_CODE_API_KEY/CLAUDE_CODE_BASE_URL not set; skipping alias setup"
 fi
