@@ -429,6 +429,7 @@ class PeiConfigProcessor:
         _ssh_pubkeys : list[str] = []
         _ssh_privkeys : list[str] = []
         _ssh_uids : list[str] = []
+        _ssh_gids : list[str] = []
         
         for name, info in ssh_users.items():
             _ssh_names.append(name)
@@ -454,6 +455,12 @@ class PeiConfigProcessor:
                 _ssh_uids.append(str(uid))
             else:
                 _ssh_uids.append('')
+            # Handle GID (optional)
+            gid = getattr(info, 'gid', None)
+            if gid is not None:
+                _ssh_gids.append(str(gid))
+            else:
+                _ssh_gids.append('')
                 
         # set config - ensure consistent comma-separated format with empty placeholders
         # This ensures that each user gets the correct index when parsing in shell scripts
@@ -462,6 +469,7 @@ class PeiConfigProcessor:
         oc_set(build_compose, 'ssh.pubkey_file', ','.join(_ssh_pubkeys))
         oc_set(build_compose, 'ssh.privkey_file', ','.join(_ssh_privkeys))
         oc_set(build_compose, 'ssh.uid', ','.join(_ssh_uids))
+        oc_set(build_compose, 'ssh.gid', ','.join(_ssh_gids))
         
     def _apply_device(self, device_config : DeviceConfig, run_compose : DictConfig) -> None:
         """

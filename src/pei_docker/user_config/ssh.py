@@ -41,6 +41,10 @@ class SSHUserConfig:
     uid : int, optional
         User ID for the SSH account. Defaults to system assignment if not specified.
         Recommended to use UIDs >= 1100 to avoid conflicts with system users.
+    gid : int, optional
+        Primary group ID for the SSH account. If not specified, system default
+        or user-named group may be used. When provided, the build will ensure
+        the GID exists (creating a group if needed) and assign it to the user.
         
     Raises
     ------
@@ -86,6 +90,7 @@ class SSHUserConfig:
     privkey_file: Optional[str] = field(default=None)
     privkey_text: Optional[str] = field(default=None)
     uid: Optional[int] = field(default=None)
+    gid: Optional[int] = field(default=None)
     
     def __attrs_post_init__(self) -> None:
         # Validate password format

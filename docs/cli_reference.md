@@ -169,7 +169,8 @@ pei-docker-gui start --native
 - Password authentication
 - SSH key files (public/private)
 - Inline key input
-- UID assignment
+- UID/GID assignment
+- Conflict handling (Stage-1): username rename to `<name>_oldN`, UID reassignment to next free value, GID reuse or creation; root is never renamed or removed.
 
 ### Network Configuration  
 - Stage-1 ports (system services)

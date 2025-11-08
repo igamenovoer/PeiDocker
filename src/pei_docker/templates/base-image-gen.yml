@@ -226,6 +226,7 @@ services:
         SSH_USER_NAME: ${x-cfg-stage-1.build.ssh.username} # default ssh user name, comma separated list
         SSH_USER_PASSWORD: ${x-cfg-stage-1.build.ssh.password}  # default ssh user password, comma separated list (your password should not contain comma)
         SSH_USER_UID: ${x-cfg-stage-1.build.ssh.uid} # default ssh user uid, comma separated list
+        SSH_USER_GID: ${x-cfg-stage-1.build.ssh.gid} # default ssh user gid, comma separated list
         SSH_PUBKEY_FILE: ${x-cfg-stage-1.build.ssh.pubkey_file} # ssh public key file, if not set, password will be used
         SSH_PRIVKEY_FILE: ${x-cfg-stage-1.build.ssh.privkey_file} # ssh private key file, will be imported and public key auto-generated
         SSH_CONTAINER_PORT: ${x-cfg-stage-1.build.ssh.port}  # ssh port in container

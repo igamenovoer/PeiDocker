@@ -137,7 +137,8 @@ ssh:
   users:
     username:
       password: 'pass'
-      uid: 1000         # Optional, auto-assigned if not set
+      uid: 1000         # Optional UID; auto-assigned if not set
+      gid: 1000         # Optional primary GID; if provided and missing, it will be created
       # Choose one authentication method:
       pubkey_file: 'path/to/key.pub'      # Public key file
       pubkey_text: 'ssh-rsa AAAA...'      # Inline public key
@@ -205,6 +206,16 @@ apt:
   use_proxy: false
   keep_proxy_after_build: false
 ```
+
+### SSH User Conflicts (How They Are Resolved)
+
+During Stage-1, users are created by an initialization script with strict, deterministic rules:
+
+- Username conflict: if a requested username already exists (non-root), the existing user is renamed to `<name>_oldN` and its home directory is moved accordingly.
+- UID conflict: if a requested UID is already used by another non-root user, that existing user’s UID is reassigned to the next available UID (>= 1000). If the requested UID is `0` (root), the build fails.
+- GID handling: if a requested primary GID exists, it is reused; if it doesn’t exist, a group is created with that GID. The group name defaults to the username; if that name is taken, it becomes `<username>_<gid>`.
+- Root handling: when `root` is specified, only password and group membership are adjusted. Root is never renamed or deleted.
+- Failure policy: the script runs in strict mode and verifies final UID/GID. If any requested user cannot be created exactly as specified, the build exits with an error.
 
 ## CLI Commands
 

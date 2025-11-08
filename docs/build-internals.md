@@ -183,14 +183,24 @@ Becomes Docker ARGs:
 SSH_USER_NAME=me
 SSH_USER_PASSWORD=123456
 SSH_PUBKEY_FILE=stage-1/key.pub
+SSH_USER_UID=1000
+SSH_USER_GID=1000
 SSH_CONTAINER_PORT=22
 ```
 
 Processed by `setup-ssh.sh`:
-- Creates users with specified UIDs
-- Sets passwords
+- Creates users with specified UIDs and optional primary GIDs
+- Sets passwords; installs SSH keys (public/private) as configured
 - Configures authorized_keys
-- Modifies sshd_config
+- Modifies sshd_config (enables password auth, sets port, X11 forwarding)
+
+User creation and conflict resolution (Stage-1):
+
+- Username conflict (non-root): existing user is renamed to `<name>_oldN` and its home directory is moved to match the new name.
+- UID conflict (non-root): if a requested UID is already used, the existing account is reassigned to the next free UID (>= 1000); the requested user then gets the requested UID.
+- GID handling: if a requested primary GID exists, it is reused. If not, a group is created with that GID. The group name defaults to the username; if taken, `<username>_<gid>` is used.
+- Root handling: if `root` is listed, only the password and group membership are adjusted. Root is never renamed or removed; if a requested UID equals root’s UID (0), the build fails.
+- Strict mode: the script fails on any error and verifies that each requested user exists with the specified UID/GID.
 
 ### Proxy Configuration
 
