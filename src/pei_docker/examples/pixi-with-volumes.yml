@@ -45,10 +45,16 @@ stage_2:
       type: auto-volume
       dst_path: /root
   
-  # custom scripts to install and configure pixi with custom cache directory
-  custom:
-    on_first_run:
-      # Install pixi with cache directory in external storage for persistence
-      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
-      - 'stage-2/system/pixi/create-env-common.bash'
+    # custom scripts to install and configure pixi with custom cache directory
+  
+    custom:
+  
+      on_first_run:
+  
+        # Install pixi with cache directory in external storage for persistence and use tuna mirrors
+  
+        - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache --conda-repo tuna --pypi-repo tuna'
+  
+        - 'stage-2/system/pixi/create-env-common.bash'
+  
+  

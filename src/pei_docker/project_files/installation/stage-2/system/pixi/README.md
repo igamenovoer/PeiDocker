@@ -42,7 +42,7 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 - `--verbose`: Optional. Enable verbose output during installation for debugging purposes
 
 #### `set-pixi-repo-tuna.bash`
-Legacy helper to force TUNA mirrors for all users. Prefer using `install-pixi.bash --pypi-repo tuna --conda-repo tuna` for per-user configuration and easier revert (`official`).
+**DEPRECATED**: This script is deprecated. Use `install-pixi.bash --pypi-repo tuna --conda-repo tuna` instead for per-user configuration and easier revert (`official`).
 
 #### `create-env-common.bash`
 **Purpose**: Installs common development packages globally for all users
@@ -101,8 +101,8 @@ Legacy helper to force TUNA mirrors for all users. Prefer using `install-pixi.ba
 # 5. Install with verbose debugging output (optional)
 ./install-pixi.bash --verbose
 
-# 6. Configure mirrors per-user (optional)
-#    - TUNA for both PyPI and conda-forge
+# 6. Configure mirrors per-user (recommended way)
+#    - TUNA for both PyPI and conda-forge (replaces deprecated set-pixi-repo-tuna.bash)
 ./install-pixi.bash --pypi-repo tuna --conda-repo tuna
 
 #    - Aliyun for PyPI only
@@ -305,46 +305,40 @@ cat ~/.pixi/config.toml
 These scripts are designed to run during the stage-2 container build process:
 
 ```yaml
-# In PeiDocker configuration - basic usage
+# In PeiDocker configuration - basic usage with mirrors
 custom:
   on_first_run:
-    - 'stage-2/system/pixi/install-pixi.bash'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/install-pixi.bash --conda-repo tuna --pypi-repo tuna'
     - 'stage-2/system/pixi/create-env-common.bash'
 
 # With custom cache directory
 custom:
   on_first_run:
-    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/pixi-cache'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/pixi-cache --conda-repo tuna --pypi-repo tuna'
     - 'stage-2/system/pixi/create-env-common.bash'
 
 # With custom installation directory
 custom:
   on_first_run:
-    - 'stage-2/system/pixi/install-pixi.bash --install-dir=/hard/volume/pixi'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/install-pixi.bash --install-dir=/hard/volume/pixi --conda-repo tuna --pypi-repo tuna'
     - 'stage-2/system/pixi/create-env-common.bash'
 
 # With both custom cache and install directories
 custom:
   on_first_run:
-    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/cache --install-dir=/hard/volume/pixi'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
+    - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/cache --install-dir=/hard/volume/pixi --conda-repo tuna --pypi-repo tuna'
     - 'stage-2/system/pixi/create-env-common.bash'
 
 # With verbose output for debugging
 custom:
   on_first_run:
     - 'stage-2/system/pixi/install-pixi.bash --verbose'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
     - 'stage-2/system/pixi/create-env-common.bash'
 
 # With all parameters for comprehensive debugging
 custom:
   on_first_run:
     - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/cache --install-dir=/hard/volume/pixi --verbose'
-    - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'  
     - 'stage-2/system/pixi/create-env-common.bash'
 ```
 

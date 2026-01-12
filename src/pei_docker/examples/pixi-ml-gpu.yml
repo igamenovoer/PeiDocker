@@ -70,9 +70,8 @@ stage_2:
   # custom scripts to install pixi with ML packages
   custom:
     on_first_run:
-      # Install pixi with cache in external storage
-      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      # Install pixi with cache in external storage and use tuna mirrors
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi --conda-repo tuna --pypi-repo tuna'
       # Install both common and ML packages
       - 'stage-2/system/pixi/create-env-common.bash'
       - 'stage-2/system/pixi/create-env-ml.bash'

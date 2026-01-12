@@ -36,7 +36,10 @@ stage_2:
   
   # custom scripts to install and configure pixi
   custom:
-    on_first_run:
-      - 'stage-2/system/pixi/install-pixi.bash'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
-      - 'stage-2/system/pixi/create-env-common.bash'
+    # scripts run during build
+    on_build: 
+      # install pixi, a lightweight python package manager
+      # configure pixi to use tuna mirror in China via installation arguments
+      - 'stage-2/system/pixi/install-pixi.bash --conda-repo tuna --pypi-repo tuna'
+
+      # create a common environment

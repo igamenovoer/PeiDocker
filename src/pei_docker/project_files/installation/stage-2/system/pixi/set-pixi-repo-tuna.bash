@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# DEPRECATED: This script is deprecated and will be removed in future versions.
+# Please use install-pixi.bash with --conda-repo tuna --pypi-repo tuna instead.
+# Example: ./install-pixi.bash --conda-repo tuna --pypi-repo tuna
+
+echo "WARNING: set-pixi-repo-tuna.bash is deprecated."
+echo "Please use ./install-pixi.bash --conda-repo tuna --pypi-repo tuna instead."
+sleep 3
+
 # set the pixi repository to use Tsinghua mirror
 
 # prevent interactive prompts
