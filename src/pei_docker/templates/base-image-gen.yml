@@ -187,6 +187,7 @@ services:
         REMOVE_GLOBAL_PROXY_AFTER_BUILD: ${x-cfg-stage-2.build.proxy.remove_after_build}
 
   stage-1:
+    profiles: ["build-helper"]
     image: ${x-cfg-stage-1.build.output_image_name}
 
     # automatic start bash in ssh

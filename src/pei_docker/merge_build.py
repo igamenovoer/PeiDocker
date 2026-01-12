@@ -363,6 +363,7 @@ TTY=$(normalize_bool "${{RUN_TTY:-1}}")
 GPU_MODE="${{RUN_GPU:-auto}}"
 DEVICE_TYPE="${{RUN_DEVICE_TYPE:-cpu}}"
 IMG="${{STAGE2_IMAGE_NAME:-{stage2_image}}}"
+CMD_SHELL=0
 
 CLI_PORTS=()
 CLI_VOLS=()
@@ -377,6 +378,7 @@ Run the merged image with ports, volumes, and GPU options derived from merged.en
 Options:
   -n, --name <container>         Set container name (default from merged.env)
   -d, --detach                   Run in detached mode
+  -s, --shell                    Run interactive shell (/bin/bash) (forces -it, no detach)
       --no-rm                    Do not remove container on exit
       --image <name:tag>         Override image to run
   -p, --publish host:container   Publish a port (repeatable)
@@ -391,6 +393,7 @@ Pass-through:
 Examples:
   ./run-merged.sh
   ./run-merged.sh -d -p 8080:8080
+  ./run-merged.sh --shell
   ./run-merged.sh -- bash -lc 'echo hello'
 USAGE
 }}
@@ -404,6 +407,8 @@ USAGE
       CONTAINER_NAME="$2"; shift 2 ;;
     -d|--detach)
       DETACH="1"; shift ;;
+    -s|--shell)
+      CMD_SHELL="1"; TTY="1"; DETACH="0"; shift ;;
     --no-rm)
       RM="0"; shift ;;
     --image)
@@ -454,7 +459,12 @@ cmd+=( --name "$CONTAINER_NAME" )
 [[ -n "${{RUN_EXTRA_ARGS:-}}" ]] && cmd+=( $RUN_EXTRA_ARGS )
 
 cmd+=( "$IMG" )
-[[ ${{#POSITIONAL[@]}} -gt 0 ]] && cmd+=( "${{POSITIONAL[@]}}" )
+
+if [[ "$CMD_SHELL" == "1" ]]; then
+  cmd+=( /bin/bash )
+elif [[ ${{#POSITIONAL[@]}} -gt 0 ]]; then
+  cmd+=( "${{POSITIONAL[@]}}" )
+fi
 
 printf '%q ' "${{cmd[@]}}"; echo
 exec "${{cmd[@]}}"
