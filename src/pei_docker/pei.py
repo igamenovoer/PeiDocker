@@ -255,7 +255,9 @@ This project was generated/configured by PeiDocker.
 ## Project Structure
 
 *   `user_config.yml`: **Main configuration file.** Edit this to define your image, SSH users, scripts, etc.
-*   `docker-compose.yml`: Generated file. Do NOT edit manually; it will be overwritten.
+*   `docker-compose.yml`: Generated file.
+    *   **Note**: You **CAN** modify this file manually to add advanced Docker features not supported by PeiDocker.
+    *   **Warning**: Running `pei-docker-cli configure` will **OVERWRITE** this file. If you make manual changes, ensure you back them up or be prepared to re-apply them after re-configuration.
 *   `installation/`: Directory copied into the container at `/pei-from-host`.
     *   `stage-1/`: System layer scripts (APT, SSH, Proxy).
     *   `stage-2/`: Application layer scripts (Pixi, Conda, Custom).
