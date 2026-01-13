@@ -32,39 +32,99 @@ custom_entry_file="$PEI_STAGE_DIR_1/internals/custom-entry-path"
 custom_entry_args_file="$PEI_STAGE_DIR_1/internals/custom-entry-args"
 
 if [ -f "$custom_entry_file" ] && [ -s "$custom_entry_file" ]; then
-    custom_entry_script=$(cat "$custom_entry_file")
+
+    raw_path=$(cat "$custom_entry_file")
+
+    custom_entry_script="${raw_path/\$PEI_STAGE_DIR_1/$PEI_STAGE_DIR_1}"
+
+    
+
     if [ -f "$custom_entry_script" ]; then
+
         echo "Executing custom entry point: $custom_entry_script"
+
         
+
         # Determine which arguments to use
+
         if [ $# -gt 0 ]; then
+
             # Runtime arguments provided, use them
+
             echo "Using runtime arguments: $@"
+
             bash "$custom_entry_script" "$@"
+
         elif [ -f "$custom_entry_args_file" ]; then
+
             # No runtime arguments, use default arguments from config
+
             default_args=$(cat "$custom_entry_args_file")
+
             if [ -n "$default_args" ]; then
+
                 echo "Using default arguments: $default_args"
+
                 eval "bash \"$custom_entry_script\" $default_args"
+
             else
+
                 echo "No arguments (runtime or default)"
+
                 bash "$custom_entry_script"
+
             fi
+
         else
+
             # No arguments file, run without arguments
+
             echo "No arguments (no default args file)"
+
             bash "$custom_entry_script"
+
         fi
+
     else
+
         echo "Warning: Custom entry point file not found: $custom_entry_script"
-        echo "Starting default shell..."
-        export SHELL=/bin/bash
-        /bin/bash
+
+        if [ $# -gt 0 ]; then
+
+            echo "Executing command: $@"
+
+            exec "$@"
+
+        else
+
+            echo "Starting default shell..."
+
+            export SHELL=/bin/bash
+
+            /bin/bash
+
+        fi
+
     fi
+
 else
-    # start default shell
-    echo "Shell started."
-    export SHELL=/bin/bash
-    /bin/bash
+
+    # start default shell or exec command
+
+    if [ $# -gt 0 ]; then
+
+        echo "Executing command: $@"
+
+        exec "$@"
+
+    else
+
+        echo "Shell started."
+
+        export SHELL=/bin/bash
+
+        /bin/bash
+
+    fi
+
 fi

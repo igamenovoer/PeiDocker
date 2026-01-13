@@ -15,7 +15,7 @@
 #
 # Description:
 #   Installs the Bun runtime for the target user.
-#   Configures PATH in .bashrc to include ~/.bun/bin.
+#   Configures PATH in .bashrc and .profile to include ~/.bun/bin.
 #   Optionally configures the global npm registry for Bun.
 # =================================================================
 
@@ -116,37 +116,41 @@ else
   fi
 fi
 
-# Add to PATH in .bashrc if not present
-BASHRC="${TARGET_HOME}/.bashrc"
-BIN_DIR="${INSTALL_DIR}/bin"
-
-if [[ ! -f "${BASHRC}" ]]; then
-    touch "${BASHRC}"
-    if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
-        primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
-        chown "${TARGET_USER}:${primary_group}" "${BASHRC}" || true
+# Helper to update shell config files
+update_shell_config() {
+    local config_file="$1"
+    
+    if [[ ! -f "${config_file}" ]]; then
+        touch "${config_file}"
+        if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+            primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+            chown "${TARGET_USER}:${primary_group}" "${config_file}" || true
+        fi
     fi
-fi
 
-if ! grep -q "export BUN_INSTALL=\"${INSTALL_DIR}\"" "${BASHRC}"; then
-    echo "" >> "${BASHRC}"
-    echo "# Bun" >> "${BASHRC}"
-    echo "export BUN_INSTALL=\"${INSTALL_DIR}\"" >> "${BASHRC}"
-    echo "export PATH=\"
-${BIN_DIR}:n${PATH}\"" >> "${BASHRC}"
-    echo "[bun] Configured PATH in ${BASHRC}"
-fi
+    if ! grep -q "export BUN_INSTALL=\"${INSTALL_DIR}\"" "${config_file}"; then
+        echo "" >> "${config_file}"
+        echo "# Bun" >> "${config_file}"
+        echo "export BUN_INSTALL=\"${INSTALL_DIR}\"" >> "${config_file}"
+        # Use single quotes for inner PATH to prevent immediate expansion
+        echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> "${config_file}"
+        echo "[bun] Configured PATH in ${config_file}"
+    fi
+}
+
+# Update both .bashrc (interactive) and .profile (login/ssh)
+update_shell_config "${TARGET_HOME}/.bashrc"
+update_shell_config "${TARGET_HOME}/.profile"
 
 # Configure npm repo if requested
 if [[ -n "${NPM_REPO}" ]]; then
     BUNFIG="${TARGET_HOME}/.bunfig.toml"
     echo "[bun] Configuring default registry to ${NPM_REPO} in ${BUNFIG}"
     
-    # Simple overwrite/append logic. A real parser would be better but overkill here.
     # Check if [install] exists
     if [[ -f "${BUNFIG}" ]] && grep -q "\[install\]" "${BUNFIG}"; then
         # Check if registry exists under it (approximate)
-        if grep -q "registry =" "${BUNFIG}"; then
+        if grep -q "registry = " "${BUNFIG}"; then
              sed -i "s|registry = .*|registry = \"${NPM_REPO}\"|" "${BUNFIG}"
         else
              # Append registry after [install]
