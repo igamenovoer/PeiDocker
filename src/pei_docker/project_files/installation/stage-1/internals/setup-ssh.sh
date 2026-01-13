@@ -41,7 +41,7 @@ echo "X11UseLocalhost no" >> /etc/ssh/sshd_config
 # create a user group named users
 # Ensure ssh_users group exists (idempotent)
 if ! getent group ssh_users >/dev/null 2>&1; then
-  groupadd ssh_users
+  groupadd -r ssh_users
 fi
 
 # SSH_USER_NAME contains a list of users separated by comma
