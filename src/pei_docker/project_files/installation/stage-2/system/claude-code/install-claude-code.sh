@@ -77,11 +77,14 @@ fi
 
 echo "[claude-code] Installing CLI tools for ${TARGET_USER} (invoked by ${CURRENT_USER}, home: ${TARGET_HOME})"
 
+# Define installation command using bun
+# Ensure bun is in PATH (default ~/.bun/bin)
+INSTALL_AS_USER_CMD='set -eu; export PATH="$HOME/.bun/bin:$PATH"; if ! command -v bun >/dev/null; then echo "Error: bun not found. Please run install-bun.sh first."; exit 1; fi; bun add -g @anthropic-ai/claude-code@latest'
+
 # Execute installation: directly if current user, otherwise via runuser/su
 if [[ "${CURRENT_USER}" == "${TARGET_USER}" ]]; then
-  bash -c 'set -eu; export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"; npm install -g @anthropic-ai/claude-code@latest'
+  bash -c "${INSTALL_AS_USER_CMD}"
 else
-  INSTALL_AS_USER_CMD='set -eu; export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"; npm install -g @anthropic-ai/claude-code@latest'
   if command -v runuser >/dev/null 2>&1; then
     runuser -u "${TARGET_USER}" -- sh -lc "${INSTALL_AS_USER_CMD}"
   else

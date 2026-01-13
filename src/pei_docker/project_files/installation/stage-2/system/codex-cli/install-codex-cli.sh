@@ -77,7 +77,7 @@ fi
 
 echo "[codex] Installing CLI tools for ${TARGET_USER} (invoked by ${CURRENT_USER})"
 
-INSTALL_SNIPPET='set -eu; export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"; npm install -g @openai/codex@latest'
+INSTALL_SNIPPET='set -eu; export PATH="$HOME/.bun/bin:$PATH"; if ! command -v bun >/dev/null; then echo "Error: bun not found. Please run install-bun.sh first."; exit 1; fi; bun add -g @openai/codex@latest'
 
 # Execute installation: directly if current user, otherwise via runuser/su
 if [[ "${CURRENT_USER}" == "${TARGET_USER}" ]]; then
