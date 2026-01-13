@@ -77,7 +77,11 @@ docker compose build stage-1 --progress=plain
 docker compose build stage-2 --progress=plain
 
 # Run container
+# Note: 'up' starts stage-2 by default. stage-1 is excluded via 'build-helper' profile.
 docker compose up stage-2
+
+# To run stage-1 manually (e.g. for debugging):
+# docker compose --profile build-helper up stage-1
 
 # SSH into container (if configured)
 ssh me@127.0.0.1 -p 2222

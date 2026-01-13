@@ -207,6 +207,7 @@ Merged script quick reference:
 - `run-merged.sh` options:
   - `-n, --name`, `-d, --detach`, `--no-rm`, `--image <name:tag>`
   - `-p, --publish`, `-v, --volume`, `--gpus auto|all|none`
+  - `-s, --shell` run interactive shell (`/bin/bash`)
   - `--` pass a command to run in the container
   - `-h, --help` show help
 
