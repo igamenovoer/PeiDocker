@@ -1,3 +1,19 @@
+# PeiDocker v1.2.6 Release Notes
+
+## 🚀 Release Overview
+
+PeiDocker v1.2.6 is a bugfix release that improves entrypoint logic, Bun integration, and fixes GID conflicts.
+
+## ✨ Changes
+
+- **Fix entrypoint logic**: Addressed issues with arguments and variables in entrypoints (Issue #2, #3, #5).
+- **Bun Integration**: Switched agent installation to Bun and added Bun installer.
+- **Fix GID conflict**: Resolved user creation failure by using system group for `ssh_users`.
+- **Essentials**: Added `unzip` to essential packages.
+- **Documentation**: Updated usage guide and added auto-generation of `PEI-DOCKER-USAGE-GUIDE.md`.
+
+---
+
 # PeiDocker v1.0.0 Release Notes
 
 ## 🚀 Release Overview
