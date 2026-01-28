@@ -31,35 +31,6 @@ stage_1:
     repo_source: tuna
 ```
 
-With this `user_config.yml` in side your project dir, do the followings to build and run the image:
-
-```bash
-# From within the project directory
-cd /path/to/project
-pei-docker-cli configure
-
-# Or specify project directory explicitly
-pei-docker-cli configure --project-dir=/path/to/project
-
-# Build and run the image
-docker compose build stage-1 --progress=plain --no-cache
-docker compose up stage-1
-```
-
-### With docker run
-If you prefer to use `docker run` instead of `docker compose`, use the `--with-merged` flag during configuration to generate helper scripts:
-
-```bash
-# Configure with merged artifacts
-pei-docker-cli configure --with-merged
-
-# Build the single merged image
-./build-merged.sh
-
-# Run the container (check merged.env for volume names if using manual-volume)
-./run-merged.sh
-```
-
 ## SSH Key Configuration
 
 While password authentication works well for basic usage, you can also configure SSH keys for more secure access. PeiDocker supports using your existing system SSH keys with the `~` syntax for automatic discovery.
@@ -154,13 +125,6 @@ users:
     privkey_file: 'stage-1/system/ssh/keys/my-private-key'
 ```
 
-### Security Model
-
-- **Cross-platform compatibility**: All SSH key operations (including public key generation) happen inside the Linux container during build, not on the host system
-- **Mutual exclusivity**: You can only use one SSH key method per user - the configuration will be validated to prevent conflicts
-- **Text-based keys**: When using `pubkey_text` or `privkey_text`, the key content is written to temporary files in the project directory and referenced in the docker-compose configuration
-- **Container-side processing**: Private key validation and public key extraction are performed by standard SSH tools inside the container
-
 ### Example Configurations
 
 #### Basic SSH setup with inline public key:
@@ -195,20 +159,6 @@ stage_1:
         password: 'charlie789'
         pubkey_text: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... charlie@workstation'  # Inline public key
 ```
-
-### Usage Tips
-
-1. **Key format validation**: PeiDocker validates that public keys start with recognized prefixes (`ssh-rsa`, `ssh-ed25519`, etc.) and private keys are properly formatted OpenSSH keys
-2. **Generated files**: When using text-based keys, PeiDocker automatically creates key files in `installation/stage-1/generated/` and references them in the docker-compose configuration
-3. **Example key provided**: PeiDocker includes an example public key at `project_files/installation/stage-1/system/ssh/keys/example-pubkey.pub` that you can use for testing
-4. **Complete example**: See `examples/ssh-keys-inline.yml` in your project directory for a comprehensive example using all SSH key methods
-5. **Security consideration**: Be careful when storing private keys in configuration files - consider using environment variables or external key files for production deployments
-
-### Troubleshooting
-
-- **Permission errors**: SSH keys in the container are automatically set to the correct permissions (600 for private keys, 644 for public keys)
-- **Key validation failures**: Check that your key text is properly formatted and includes the full key content including headers and footers for private keys
-- **Connection issues**: Verify that the SSH port mapping is correct and that the SSH service started successfully in the container logs
 
 _For more advanced SSH key configuration including environment variable integration and team development scenarios, see [Advanced SSH Key Configuration](advanced.md#ssh-keys-advanced)._
 
@@ -317,45 +267,6 @@ stage_2:
       dst_path: /var/cache/apt
 ```
 
-### With docker-compose
-
-To build and run the image, do the followings:
-
-```bash
-# assuming the project dir is /path/to/project
-
-# build stage-1
-docker compose -f /path/to/project/docker-compose.yml build stage-1 --progress=plain --no-cache
-
-# build stage-2
-docker compose -f /path/to/project/docker-compose.yml build stage-2 --progress=plain --no-cache
-
-# start stage-2
-docker compose -f /path/to/project/docker-compose.yml up stage-2
-```
-
-After that, you can ssh into the container with the following command:
-
-```bash
-ssh -p 2222 me@127.0.0.1
-```
-
-
-### With docker run
-
-If you prefer `docker run`, use the merged workflow. The helper script supports GPUs easily:
-
-```bash
-# Generate scripts
-pei-docker-cli configure --with-merged
-
-# Build
-./build-merged.sh
-
-# Run with GPU support
-./run-merged.sh --gpus all
-```
-
 [](){#external-storage}
 ## Using docker volume as external storage
 
@@ -408,23 +319,8 @@ If you are using the [docker desktop](https://www.docker.com/products/docker-des
 
 In the container, you can access these directories through `/soft/app`, `/soft/data`, and `/soft/workspace`, which are linked to  `/app`, `/data`, and `/workspace` under the `/hard/volume`.
 
-
-### With docker run
-
-If you prefer `docker run`, use the merged workflow. **Note:** `run-merged.sh` may not correctly resolve `manual-volume` names. Verify `RUN_VOLUMES` in `merged.env` points to your created volumes.
-
-```bash
-pei-docker-cli configure --with-merged
-./build-merged.sh
-./run-merged.sh
-```
-
 [](){#install-pixi}
 ## Install pixi package manager
-
-**Pixi** is a modern, fast package manager for Python that uses conda-forge packages but with significantly better performance than conda. It's designed for modern Python development workflows and supports creating isolated environments with precise dependency management.
-
-**Note**: PeiDocker now recommends pixi over conda/miniconda for package management due to its superior performance and modern design. However, if you prefer to use conda/miniconda, the installation scripts are still available in `src/pei_docker/project_files/installation/stage-2/system/conda/` and can be referenced for custom implementations.
 
 ### Basic pixi installation
 
@@ -588,42 +484,7 @@ stage_2:
       - 'stage-2/system/pixi/create-env-ml.bash'
 ```
 
-### What pixi installation includes:
 
-#### Common packages (`create-env-common.bash`):
-- `scipy` - Scientific computing library
-- `click` - Command line interface toolkit
-- `attrs` - Classes without boilerplate
-- `omegaconf` - Configuration management
-- `rich` - Rich text and formatting
-- `networkx` - Network analysis
-- `ipykernel` - Jupyter kernel support
-
-#### ML packages (`create-env-ml.bash`):
-- `pytorch`, `torchvision` - Deep learning framework
-- `opencv` - Computer vision library
-- `open3d` - 3D data processing
-- `trimesh` - 3D mesh processing
-- `pyvista`, `pyvistaqt` - 3D visualization
-- `pyqt` - GUI framework
-- `mkdocs-material` - Documentation generator
-
-### Build and run process:
-
-```bash
-# generate docker-compose.yml from within project directory
-cd /path/to/project
-pei-docker-cli configure
-
-# build stage-1
-docker compose build stage-1 --progress=plain --no-cache
-
-# build stage-2 (this installs pixi on first run)
-docker compose build stage-2 --progress=plain --no-cache
-
-# start stage-2 container
-docker compose up -d stage-2
-```
 
 ### Verify pixi installation:
 
@@ -649,36 +510,7 @@ python -c "import torch; print('pytorch:', torch.__version__)"
 python -c "import cv2; print('opencv:', cv2.__version__)"
 ```
 
-### Key advantages of pixi over conda:
 
-- **Speed**: Significantly faster package resolution and installation
-- **Modern**: Built with Rust, designed for current Python workflows  
-- **Cross-platform**: Works consistently across Linux, macOS, and Windows
-- **Lock files**: Automatic lock file generation for reproducible environments
-- **Global environments**: Easy management of global tool installations
-
-### Important notes:
-
-- **Persistence**: When using external storage, pixi installation persists across container restarts
-- **First run only**: Installation scripts run only on first container startup using `on_first_run`
-- **Custom cache**: Use `--cache-dir` parameter to store package cache in external storage for faster rebuilds
-- **Adding packages**: Run `pixi global install package_name` inside the container to add more packages
-- **Commit changes**: To bake pixi into the image permanently:
-  ```bash
-  docker commit <container_id> pei-pixi-ml:stage-2
-  ```
-
-### Advanced customization:
-
-You can customize pixi installation by modifying the scripts in `installation/stage-2/system/pixi/` or creating your own environment setup scripts for specific use cases.
-
-### Migration from conda:
-
-If you previously used conda/miniconda, pixi provides a similar but faster experience:
-- Global environments replace conda's base environment
-- Package installation is significantly faster
-- Better dependency resolution and reproducibility
-- For legacy conda scripts, see `src/pei_docker/project_files/installation/stage-2/system/conda/`
 
 ## Custom script parameters
 
