@@ -47,10 +47,17 @@ docker compose up stage-1
 ```
 
 ### With docker run
-If you prefer to use `docker run` to run the image, you can copy-paste the `docker-compose.yml` file into [Decomposerize](https://www.decomposerize.com/) to get the `docker run` command. The command will look like this:
+If you prefer to use `docker run` instead of `docker compose`, use the `--with-merged` flag during configuration to generate helper scripts:
 
 ```bash
-docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 pei-image:stage-1 /bin/bash
+# Configure with merged artifacts
+pei-docker-cli configure --with-merged
+
+# Build the single merged image
+./build-merged.sh
+
+# Run the container (handles ports/volumes automatically)
+./run-merged.sh
 ```
 
 ## SSH Key Configuration
@@ -336,11 +343,17 @@ ssh -p 2222 me@127.0.0.1
 
 ### With docker run
 
-If you are using `docker run` to run the image, you can copy-paste the `docker-compose.yml` file into [Decomposerize](https://www.decomposerize.com/) to get the `docker run` command. The command will look like this, note that you need to add `--gpus all` manually:
+If you prefer `docker run`, use the merged workflow. The helper script supports GPUs easily:
 
 ```bash
-# you only need to run stage-2
-docker run --gpus all -i -t --add-host host.docker.internal:host-gateway -p 2222:22 -v d:/code/PeiDocker/build/storage/app:/hard/volume/app -v d:/code/PeiDocker/build/storage/data:/hard/volume/data -v d:/code/PeiDocker/build/storage/workspace:/hard/volume/workspace pei-image:stage-2 /bin/bash
+# Generate scripts
+pei-docker-cli configure --with-merged
+
+# Build
+./build-merged.sh
+
+# Run with GPU support
+./run-merged.sh --gpus all
 ```
 
 [](){#external-storage}
@@ -398,17 +411,12 @@ In the container, you can access these directories through `/soft/app`, `/soft/d
 
 ### With docker run
 
-If you are using `docker run` to run the image, you can copy-paste the `docker-compose.yml` file into [Decomposerize](https://www.decomposerize.com/) to get the `docker run` command. Note that you will have to create all volumes manully. The command will look like this:
+If you prefer `docker run`, use the merged workflow. The generated `run-merged.sh` script handles volume mounting logic automatically based on your configuration:
 
 ```bash
-# using docker run, you will have to create all volumes manually
-docker volume create app
-docker volume create my_data
-docker volume create my_workspace
-docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 -v app:/hard/volume/app -v data:/hard/volume/data -v workspace:/hard/volume/workspace pei-image:stage-2 /bin/bash
-
-# you don't need to run stage-1
-# docker run -i -t --add-host host.docker.internal:host-gateway -p 2222:22 pei-image:stage-1 /bin/bash
+pei-docker-cli configure --with-merged
+./build-merged.sh
+./run-merged.sh
 ```
 
 [](){#install-pixi}
