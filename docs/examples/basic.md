@@ -56,7 +56,7 @@ pei-docker-cli configure --with-merged
 # Build the single merged image
 ./build-merged.sh
 
-# Run the container (handles ports/volumes automatically)
+# Run the container (check merged.env for volume names if using manual-volume)
 ./run-merged.sh
 ```
 
@@ -411,7 +411,7 @@ In the container, you can access these directories through `/soft/app`, `/soft/d
 
 ### With docker run
 
-If you prefer `docker run`, use the merged workflow. The generated `run-merged.sh` script handles volume mounting logic automatically based on your configuration:
+If you prefer `docker run`, use the merged workflow. **Note:** `run-merged.sh` may not correctly resolve `manual-volume` names. Verify `RUN_VOLUMES` in `merged.env` points to your created volumes.
 
 ```bash
 pei-docker-cli configure --with-merged
