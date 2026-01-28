@@ -19,6 +19,9 @@
 #                         - tuna    -> https://pypi.tuna.tsinghua.edu.cn/simple
 #                         - aliyun  -> https://mirrors.aliyun.com/pypi/simple
 #                         - official (revert to PyPI; removes custom index)
+#   --installer-url <url> - Optional. Override the URL for the uv installation script.
+#                         Values: 'official' (default), 'cn' (currently same as official),
+#                         or a custom URL.
 #
 set -euo pipefail
 
@@ -28,6 +31,8 @@ set -euo pipefail
 INSTALL_DIR=""
 TARGET_USER=""
 PYPI_REPO_NAME=""
+INSTALLER_URL="official"
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --install-dir)
@@ -54,13 +59,39 @@ while [[ $# -gt 0 ]]; do
       PYPI_REPO_NAME="$2"
       shift 2
       ;;
+    --installer-url)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --installer-url requires a url argument" >&2
+        exit 1
+      fi
+      INSTALLER_URL="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1" >&2
-      echo "Usage: $0 [--install-dir <directory>] [--user <username>]" >&2
+      echo "Usage: $0 [--install-dir <directory>] [--user <username>] [--pypi-repo <name>] [--installer-url <cn|official|url>]" >&2
       exit 1
       ;;
   esac
 done
+
+# Resolve Installer URL
+case "$INSTALLER_URL" in
+    official)
+        INSTALLER_URL="https://astral.sh/uv/install.sh"
+        ;;
+    cn)
+        INSTALLER_URL="https://astral.sh/uv/install.sh" # No known dedicated CN mirror for script
+        echo "Warning: No dedicated CN mirror for uv installer script known, using official."
+        ;;
+    http://*|https://*)
+        # Use as is
+        ;;
+    *)
+        echo "Error: Unknown --installer-url value: $INSTALLER_URL. Use 'official', 'cn', or a valid URL."
+        exit 1
+        ;;
+esac
 
 # Get current user information
 CURRENT_USER="$(whoami)"
@@ -117,9 +148,9 @@ if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
   if [[ -n "${INSTALL_DIR}" ]]; then
     mkdir -p "${INSTALL_DIR}"
     export UV_INSTALL_DIR="${INSTALL_DIR}"
-    INSTALL_CMD="curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR='${INSTALL_DIR}' sh"
+    INSTALL_CMD="curl -LsSf ${INSTALLER_URL} | env UV_INSTALL_DIR='${INSTALL_DIR}' sh"
   else
-    INSTALL_CMD="curl -LsSf https://astral.sh/uv/install.sh | sh"
+    INSTALL_CMD="curl -LsSf ${INSTALLER_URL} | sh"
   fi
   eval "${INSTALL_CMD}"
 else
@@ -129,9 +160,9 @@ else
     # Ensure the target user owns the install dir
     primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
     chown -R "${TARGET_USER}:${primary_group}" "${INSTALL_DIR}" || true
-    INSTALL_AS_USER_CMD="curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR='${INSTALL_DIR}' sh"
+    INSTALL_AS_USER_CMD="curl -LsSf ${INSTALLER_URL} | env UV_INSTALL_DIR='${INSTALL_DIR}' sh"
   else
-    INSTALL_AS_USER_CMD="curl -LsSf https://astral.sh/uv/install.sh | sh"
+    INSTALL_AS_USER_CMD="curl -LsSf ${INSTALLER_URL} | sh"
   fi
 
   if command -v runuser >/dev/null 2>&1; then

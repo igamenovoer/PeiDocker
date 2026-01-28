@@ -37,6 +37,10 @@
 #                         This writes [mirrors] to $PIXI_HOME/config.toml so conda channel
 #                         traffic goes to the selected mirror.
 #
+#   --installer-url <url> Override the URL for the pixi installation script.
+#                         Values: 'official' (default), 'cn' (currently same as official),
+#                         or a custom URL (e.g., 'https://example.com/install.sh').
+#
 #   --verbose             Enable verbose output for debugging
 #                         Shows detailed information about each step
 #
@@ -90,6 +94,7 @@ PIXI_CACHE_DIR=""
 PIXI_INSTALL_DIR=""
 PIXI_PYPI_REPO_NAME=""
 PIXI_CONDA_REPO_NAME=""
+INSTALLER_URL="official"
 TARGET_USER=""
 VERBOSE=false
 
@@ -105,6 +110,8 @@ while [[ $# -gt 0 ]]; do
             PIXI_PYPI_REPO_NAME="$2"; shift 2 ;;
         --conda-repo)
             PIXI_CONDA_REPO_NAME="$2"; shift 2 ;;
+        --installer-url)
+            INSTALLER_URL="$2"; shift 2 ;;
         --verbose)
             VERBOSE=true; shift 1 ;;
         *)
@@ -112,6 +119,24 @@ while [[ $# -gt 0 ]]; do
             shift 1 ;;
     esac
 done
+
+# Resolve Installer URL
+case "$INSTALLER_URL" in
+    official)
+        INSTALLER_URL="https://pixi.sh/install.sh"
+        ;;
+    cn)
+        INSTALLER_URL="https://pixi.sh/install.sh" # Currently no known reliable CN mirror for pixi install script itself, defaulting to official but could be updated later.
+        echo "Warning: No dedicated CN mirror for pixi installer script known, using official."
+        ;;
+    http://*|https://*)
+        # Use as is
+        ;;
+    *)
+        echo "Error: Unknown --installer-url value: $INSTALLER_URL. Use 'official', 'cn', or a valid URL."
+        exit 1
+        ;;
+esac
 
 # Verbose logging function
 verbose_echo() {
@@ -129,6 +154,8 @@ fi
 if [ -n "$PIXI_INSTALL_DIR" ]; then
     echo "Custom install directory will be used: $PIXI_INSTALL_DIR"
 fi
+
+echo "Installer URL: $INSTALLER_URL"
 
 if [ "$VERBOSE" = true ]; then
     echo "Verbose output enabled for debugging"
@@ -257,7 +284,7 @@ else
     echo "Installing pixi to $USER_PIXI_DIR for user ${TARGET_USER}..."
     verbose_echo "Setting PIXI_HOME=$USER_PIXI_DIR for installation"
 
-    INSTALL_CMD="export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL https://pixi.sh/install.sh | bash"
+    INSTALL_CMD="export PIXI_HOME='$USER_PIXI_DIR'; curl -fsSL ${INSTALLER_URL} | bash"
     if [ "$VERBOSE" != true ]; then
         INSTALL_CMD="$INSTALL_CMD >/dev/null 2>&1"
     fi

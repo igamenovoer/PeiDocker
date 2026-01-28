@@ -8,7 +8,7 @@
 # Options:
 #   --install-dir <dir>    Custom directory to install NVM
 #                          Default: $HOME/.nvm
-#   --with-cn-mirror       Configure npm registry to Chinese mirror
+#   --with-cn-mirror       Configure npm registry and NVM mirrors (git, nodejs binary) to use Chinese mirrors
 #   --version <ver>        NVM git tag/version to install (e.g., v0.39.7 or 0.39.7)
 #                          Default: latest from source/cached copy
 #
@@ -41,6 +41,8 @@ export DEBIAN_FRONTEND=noninteractive
 NVM_INSTALL_DIR="$HOME/.nvm"
 USE_CN_MIRROR=false
 NVM_VERSION=""
+NVM_REPO_URL="https://github.com/nvm-sh/nvm.git"
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --install-dir)
@@ -49,6 +51,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --with-cn-mirror)
             USE_CN_MIRROR=true
+            NVM_REPO_URL="https://gitee.com/mirrors/nvm.git"
             shift 1
             ;;
         --version)
@@ -59,7 +62,7 @@ while [[ $# -gt 0 ]]; do
             echo "Unknown option: $1"
             echo "Usage: $0 [--install-dir <directory>] [--with-cn-mirror] [--version <ver>]"
             echo "  --install-dir <dir>  Custom directory to install NVM (default: \$HOME/.nvm)"
-            echo "  --with-cn-mirror     Configure npm registry to Chinese mirror"
+            echo "  --with-cn-mirror     Configure npm registry to Chinese mirror and use Gitee for NVM git repo"
             echo "  --version <ver>      NVM git tag/version to install (e.g., 0.39.7)"
             exit 1
             ;;
@@ -74,8 +77,8 @@ tmp_dir=$stage_dir/tmp
 
 # do we have tmp/nvm directory? if not, git clone nvm
 if [ ! -d "$tmp_dir/nvm" ]; then
-    echo "cloning nvm to $NVM_DIR ..."
-    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+    echo "cloning nvm to $NVM_DIR from $NVM_REPO_URL ..."
+    git clone "$NVM_REPO_URL" "$NVM_DIR"
 else
     # copy tmp/nvm to $NVM_DIR
     echo "copying $tmp_dir/nvm to $NVM_DIR ..."
@@ -134,6 +137,22 @@ if [ "$USE_CN_MIRROR" = true ]; then
     if command -v npm >/dev/null 2>&1; then
         npm config set registry https://registry.npmmirror.com/ || true
     fi
+
+    # Configure NVM mirrors for Node.js downloads
+    echo "Configuring NVM mirrors for Node.js and npm packages..."
+    MIRROR_CONFIG="
+# NVM Mirrors (added by install-nvm.sh)
+export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node/
+export NVM_NPM_MIRROR=https://npmmirror.com/mirrors/npm/
+"
+    # Append to .bashrc (for interactive shells)
+    echo "$MIRROR_CONFIG" >> ~/.bashrc
+    
+    # Append to .profile (for login shells, ensuring availability in non-interactive login shells)
+    if [ -f ~/.profile ]; then
+        echo "$MIRROR_CONFIG" >> ~/.profile
+    fi
+
 else
     echo "Using default npm registry (no --with-cn-mirror provided)"
 fi

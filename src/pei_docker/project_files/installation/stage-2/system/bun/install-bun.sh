@@ -12,6 +12,9 @@
 #                             Default: <target-user-home>/.bun
 #   --npm-repo <url>          Configure default npm registry in bunfig.toml
 #                             Example: https://registry.npmmirror.com
+#   --installer-url <url>     Override the URL for the bun installation script.
+#                             Values: 'official' (default), 'cn' (currently same as official),
+#                             or a custom URL.
 #
 # Description:
 #   Installs the Bun runtime for the target user.
@@ -26,6 +29,7 @@ export DEBIAN_FRONTEND=noninteractive
 TARGET_USER=""
 INSTALL_DIR=""
 NPM_REPO=""
+INSTALLER_URL="official"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -54,13 +58,39 @@ while [[ $# -gt 0 ]]; do
       NPM_REPO="$2"
       shift 2
       ;;
+    --installer-url)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --installer-url requires a url argument" >&2
+        exit 1
+      fi
+      INSTALLER_URL="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1" >&2
-      echo "Usage: $0 [--user <username>] [--install-dir <directory>] [--npm-repo <url>]" >&2
+      echo "Usage: $0 [--user <username>] [--install-dir <directory>] [--npm-repo <url>] [--installer-url <cn|official|url>]" >&2
       exit 1
       ;;
   esac
 done
+
+# Resolve Installer URL
+case "$INSTALLER_URL" in
+    official)
+        INSTALLER_URL="https://bun.sh/install"
+        ;;
+    cn)
+        INSTALLER_URL="https://bun.sh/install" # No known dedicated CN mirror for script
+        echo "Warning: No dedicated CN mirror for bun installer script known, using official."
+        ;;
+    http://*|https://*)
+        # Use as is
+        ;;
+    *)
+        echo "Error: Unknown --installer-url value: $INSTALLER_URL. Use 'official', 'cn', or a valid URL."
+        exit 1
+        ;;
+esac
 
 CURRENT_USER="$(whoami)"
 if [[ -z "${TARGET_USER}" ]]; then
@@ -97,9 +127,10 @@ fi
 
 echo "[bun] Installing Bun for user: ${TARGET_USER} (invoked by ${CURRENT_USER})"
 echo "[bun] Install Dir: ${INSTALL_DIR}"
+echo "[bun] Installer URL: ${INSTALLER_URL}"
 
 # Install Bun
-INSTALL_CMD="curl -fsSL https://bun.sh/install | bash"
+INSTALL_CMD="curl -fsSL ${INSTALLER_URL} | bash"
 
 # If custom dir, set BUN_INSTALL env var
 if [[ -n "${INSTALL_DIR}" ]]; then
