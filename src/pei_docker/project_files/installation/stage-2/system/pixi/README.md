@@ -41,9 +41,6 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
   - `official` → revert to default (remove mirror mapping)
 - `--verbose`: Optional. Enable verbose output during installation for debugging purposes
 
-#### `set-pixi-repo-tuna.bash`
-**DEPRECATED**: This script is deprecated. Use `install-pixi.bash --pypi-repo tuna --conda-repo tuna` instead for per-user configuration and easier revert (`official`).
-
 #### `create-env-common.bash`
 **Purpose**: Installs common development packages globally for all users
 
@@ -102,7 +99,7 @@ Pixi is a cross-platform package manager that provides fast, reliable package ma
 ./install-pixi.bash --verbose
 
 # 6. Configure mirrors per-user (recommended way)
-#    - TUNA for both PyPI and conda-forge (replaces deprecated set-pixi-repo-tuna.bash)
+#    - TUNA for both PyPI and conda-forge
 ./install-pixi.bash --pypi-repo tuna --conda-repo tuna
 
 #    - Aliyun for PyPI only
@@ -181,10 +178,6 @@ fi
 install-pixi.bash
 ├── pixi-utils.bash (optional, has fallback functions)
 └── Creates pixi installation
-
-set-pixi-repo-tuna.bash
-├── pixi-utils.bash (required)
-└── Requires pixi to be installed
 
 create-env-common.bash
 ├── pixi-utils.bash (required)
@@ -297,7 +290,7 @@ cat ~/.pixi/config.toml
 
 - **Password checking**: Only configures pixi for users who can SSH login
 - **Permission model**: Uses 777 permissions for shared installations (required for multi-user access)
-- **Mirror usage**: Tsinghua mirrors are HTTPS and trustworthy, but can be disabled by skipping `set-pixi-repo-tuna.bash`
+- **Mirror usage**: Tsinghua mirrors are HTTPS and trustworthy, but can be disabled via flags to `install-pixi.bash`
 - **User isolation**: Per-user mode provides better security isolation than shared mode
 
 ## Integration with PeiDocker

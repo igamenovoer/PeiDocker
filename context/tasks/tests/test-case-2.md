@@ -74,8 +74,7 @@ stage_2:
   custom:
     on_first_run:
       # Install pixi with cache in external storage
-      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi --pypi-repo=tuna --conda-repo=tuna'
       # Install both common and ML packages
       - 'stage-2/system/pixi/create-env-common.bash'
       - 'stage-2/system/pixi/create-env-ml.bash'
@@ -109,8 +108,7 @@ This is a rather complex example. On GUI, you need to do the following steps.
     - `home_root`: type `auto-volume`, destination path `/root`.
 - In "Scripts" page:
   - In "Stage-2 Image Scripts" section, add the following scripts to "On First Run", by clicking "Add File" and entering the script paths:
-    - `stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi`
-    - `stage-2/system/pixi/set-pixi-repo-tuna.bash`
+    - `stage-2/system/pixi/install-pixi.bash --cache-dir=/package-cache/pixi --pypi-repo=tuna --conda-repo=tuna`
     - `stage-2/system/pixi/create-env-common.bash`
     - `stage-2/system/pixi/create-env-ml.bash`
 - In "Summary" page, review the configuration and click `Save` to generate the `user_config.yml`. It will be saved in the project directory, copy it to `<workspace>/tmp`, give it a name for inspection.

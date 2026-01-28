@@ -181,10 +181,8 @@ stage_2:
     # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
     on_build: 
       # install pixi, a lightweight python package manager
-      - 'stage-2/system/pixi/install-pixi.bash'
-
       # configure pixi to use tuna mirror in China
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash' # set pixi repo to tuna, a fast mirror in China
+      - 'stage-2/system/pixi/install-pixi.bash --pypi-repo=tuna --conda-repo=tuna'
 ```
 
 After you build the images, if you start `pei-cn-demo:stage-1` or `pei-cn-demo:stage-2` with `docker compose`, you will have fully functional docker containers with the following features:

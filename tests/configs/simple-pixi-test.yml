@@ -80,6 +80,5 @@ stage_2:
   # custom scripts
   custom:
     on_first_run:
-      - 'stage-2/system/pixi/install-pixi.bash'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/install-pixi.bash --pypi-repo tuna --conda-repo tuna'
       - 'stage-2/system/pixi/create-env-common.bash'

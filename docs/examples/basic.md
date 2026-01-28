@@ -460,8 +460,7 @@ stage_2:
   # custom scripts to install and configure pixi
   custom:
     on_first_run:
-      - 'stage-2/system/pixi/install-pixi.bash'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/install-pixi.bash --pypi-repo=tuna --conda-repo=tuna'
       - 'stage-2/system/pixi/create-env-common.bash'
 ```
 
@@ -512,8 +511,7 @@ stage_2:
   custom:
     on_first_run:
       # Install pixi with cache directory in external storage
-      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache --pypi-repo=tuna --conda-repo=tuna'
       - 'stage-2/system/pixi/create-env-common.bash'
 ```
 
@@ -576,8 +574,7 @@ stage_2:
   custom:
     on_first_run:
       # Install pixi with cache in external storage
-      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache'
-      - 'stage-2/system/pixi/set-pixi-repo-tuna.bash'
+      - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache --pypi-repo=tuna --conda-repo=tuna'
       # Install both common and ML packages
       - 'stage-2/system/pixi/create-env-common.bash'
       - 'stage-2/system/pixi/create-env-ml.bash'

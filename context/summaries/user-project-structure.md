@@ -266,8 +266,7 @@ system/                             # System-level installation utilities
 │   ├── create-env-common.bash      # Create common Pixi environment
 │   ├── create-env-ml.bash          # Create ML-focused Pixi environment
 │   ├── install-pixi.bash           # Install Pixi package manager
-│   ├── pixi-utils.bash             # Pixi utility functions
-│   └── set-pixi-repo-tuna.bash     # Configure Tsinghua mirror for Pixi
+│   └── pixi-utils.bash             # Pixi utility functions
 ├── readme.md                       # System utilities documentation
 └── set-locale.sh                   # System locale configuration
 ```
