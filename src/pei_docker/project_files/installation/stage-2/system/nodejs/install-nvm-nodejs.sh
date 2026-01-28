@@ -35,6 +35,24 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
+append_block_if_missing() {
+  local file="$1"
+  local marker="$2"
+  local content="$3"
+  if [[ ! -f "$file" ]]; then
+    touch "$file"
+  fi
+  if ! grep -qF "$marker" "$file" >/dev/null 2>&1; then
+    {
+      echo ""
+      echo "$marker"
+      echo "$content"
+      echo "$marker"
+      echo ""
+    } >>"$file"
+  fi
+}
+
 USE_CN_MIRROR=false
 TARGET_USER=""
 INSTALL_DIR=""
@@ -135,6 +153,17 @@ if [[ ! -f "${BASHRC_PATH}" ]]; then
   fi
 fi
 
+# Also ensure ~/.profile exists for login shells.
+PROFILE_PATH="${TARGET_HOME}/.profile"
+if [[ ! -f "${PROFILE_PATH}" ]]; then
+  echo "[nvm+node] Creating ${PROFILE_PATH}"
+  touch "${PROFILE_PATH}"
+  if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+    primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+    chown "${TARGET_USER}:${primary_group}" "${PROFILE_PATH}" || true
+  fi
+fi
+
 # Pre-create NVM_DIR if cross-user or custom path provided
 if [[ ! -d "${INSTALL_DIR}" ]]; then
   mkdir -p "${INSTALL_DIR}"
@@ -189,6 +218,8 @@ NODE_SETUP_SNIPPET='set -eu; export NVM_DIR='"'${INSTALL_DIR}'"'; . "$NVM_DIR/nv
 if [[ "${USE_CN_MIRROR}" == true ]]; then
   NODE_SETUP_SNIPPET+=" npm config set registry https://registry.npmmirror.com/;"
 fi
+# Persist default alias so login shells can run `nvm use default`.
+NODE_SETUP_SNIPPET+=' cur=$(nvm current 2>/dev/null || true); if [ -n "$cur" ] && [ "$cur" != "none" ] && [ "$cur" != "system" ]; then nvm alias default "$cur" >/dev/null 2>&1 || true; fi;'
 
 if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
   bash -lc "${NODE_SETUP_SNIPPET}"
@@ -213,6 +244,28 @@ if [[ "${USE_CN_MIRROR}" == true ]]; then
     primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
     chown "${TARGET_USER}:${primary_group}" "${NPMRC_PATH}" || true
   fi
+fi
+
+# Make NVM available in login shells too (bash -lc), not only interactive shells (.bashrc).
+# Ubuntu's default ~/.bashrc often returns early for non-interactive shells, so rely on ~/.profile.
+NVM_MARKER="# NVM (PeiDocker)"
+NVM_PROFILE_SCRIPT="export NVM_DIR=\"${INSTALL_DIR}\"
+[ -s \"\\$NVM_DIR/nvm.sh\" ] && \\. \"\\$NVM_DIR/nvm.sh\"
+nvm use --silent default >/dev/null 2>&1 || true"
+append_block_if_missing "${PROFILE_PATH}" "${NVM_MARKER}" "${NVM_PROFILE_SCRIPT}"
+
+# Also persist NVM mirror env vars for login shells when CN mirror is enabled.
+if [[ "${USE_CN_MIRROR}" == true ]]; then
+  MIRROR_MARKER="# NVM Mirrors (PeiDocker)"
+  MIRROR_CONFIG="export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node/
+export NVM_NPM_MIRROR=https://npmmirror.com/mirrors/npm/"
+  append_block_if_missing "${PROFILE_PATH}" "${MIRROR_MARKER}" "${MIRROR_CONFIG}"
+fi
+
+# Fix ownership if the file was modified by root during cross-user installs.
+if [[ "${TARGET_USER}" != "${CURRENT_USER}" ]]; then
+  primary_group=$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")
+  chown "${TARGET_USER}:${primary_group}" "${PROFILE_PATH}" || true
 fi
 
 # Expose node/npm to subsequent build steps without relying on shell init

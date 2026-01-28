@@ -108,25 +108,29 @@ fi
 
 echo "Using NVM from: $NVM_DIR (target user: $TARGET_USER)"
 
+# After installing node, persist a default alias so login shells can run `nvm use default`
+# (install-nvm.sh writes `nvm use --silent default` into ~/.profile).
+SET_DEFAULT_ALIAS_SNIPPET='cur=$(nvm current 2>/dev/null || true); if [ -n "$cur" ] && [ "$cur" != "none" ] && [ "$cur" != "system" ]; then nvm alias default "$cur" >/dev/null 2>&1 || true; fi'
+
 # Install Node.js under the target user's environment
 if [[ "${TARGET_USER}" == "${CURRENT_USER}" ]]; then
     if [[ -z "${NODE_VERSION}" ]]; then
-        bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts"
+        bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts; ${SET_DEFAULT_ALIAS_SNIPPET}"
     else
         if [[ "${NODE_VERSION}" == "lts" ]]; then
-            bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts"
+            bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts; ${SET_DEFAULT_ALIAS_SNIPPET}"
         else
-            bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install '${NODE_VERSION}'"
+            bash -c "set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install '${NODE_VERSION}'; ${SET_DEFAULT_ALIAS_SNIPPET}"
         fi
     fi
 else
     if [[ -z "${NODE_VERSION}" ]]; then
-        INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts"
+        INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts; ${SET_DEFAULT_ALIAS_SNIPPET}"
     else
         if [[ "${NODE_VERSION}" == "lts" ]]; then
-            INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts"
+            INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install --lts; ${SET_DEFAULT_ALIAS_SNIPPET}"
         else
-            INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install '${NODE_VERSION}'"
+            INSTALL_AS_USER_CMD="set -eu; export NVM_DIR='${NVM_DIR}'; . \"$NVM_DIR/nvm.sh\"; nvm install '${NODE_VERSION}'; ${SET_DEFAULT_ALIAS_SNIPPET}"
         fi
     fi
     if command -v runuser >/dev/null 2>&1; then

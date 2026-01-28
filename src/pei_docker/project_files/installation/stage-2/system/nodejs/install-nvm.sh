@@ -75,6 +75,23 @@ export NVM_DIR="$NVM_INSTALL_DIR"
 stage_dir=$PEI_STAGE_DIR_2
 tmp_dir=$stage_dir/tmp
 
+append_block_if_missing() {
+    local file="$1"
+    local marker="$2"
+    local content="$3"
+    # Ensure file exists
+    if [ ! -f "$file" ]; then
+        touch "$file"
+    fi
+    if ! grep -qF "$marker" "$file" >/dev/null 2>&1; then
+        echo "" >> "$file"
+        echo "$marker" >> "$file"
+        echo "$content" >> "$file"
+        echo "$marker" >> "$file"
+        echo "" >> "$file"
+    fi
+}
+
 # do we have tmp/nvm directory? if not, git clone nvm
 if [ ! -d "$tmp_dir/nvm" ]; then
     echo "cloning nvm to $NVM_DIR from $NVM_REPO_URL ..."
@@ -113,13 +130,20 @@ NVM_SCRIPT="export NVM_DIR=\"$NVM_DIR\"
 [ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"  # This loads nvm
 [ -s \"\$NVM_DIR/bash_completion\" ] && \\. \"\$NVM_DIR/bash_completion\"  # This loads nvm bash_completion"
 
-# add NVM_SCRIPT to ~/.bashrc
-echo "" >> ~/.bashrc
-echo "$NVM_SCRIPT" >> ~/.bashrc
-echo "" >> ~/.bashrc
+# Add NVM init to ~/.bashrc (interactive shells) and ~/.profile (login shells).
+# Note: Ubuntu's default ~/.bashrc often returns early for non-interactive shells, so relying on ~/.bashrc alone
+# can make `node` unavailable in `bash -lc ...` flows. ~/.profile is more reliable for login-shell commands.
+NVM_MARKER="# NVM (PeiDocker)"
+append_block_if_missing "$HOME/.bashrc" "$NVM_MARKER" "$NVM_SCRIPT"
+
+# For login shells, also attempt to select a default node version (no-op if not configured yet).
+NVM_PROFILE_SCRIPT="export NVM_DIR=\"$NVM_DIR\"
+[ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"
+nvm use --silent default >/dev/null 2>&1 || true"
+append_block_if_missing "$HOME/.profile" "$NVM_MARKER" "$NVM_PROFILE_SCRIPT"
 
 echo "NVM installed to: $NVM_DIR"
-echo "Please restart your shell or run: source ~/.bashrc"
+echo "Please restart your shell or run: source ~/.bashrc (interactive) / source ~/.profile (login shells)"
 
 # Optional: configure npm registry to CN mirror
 if [ "$USE_CN_MIRROR" = true ]; then
@@ -145,13 +169,9 @@ if [ "$USE_CN_MIRROR" = true ]; then
 export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node/
 export NVM_NPM_MIRROR=https://npmmirror.com/mirrors/npm/
 "
-    # Append to .bashrc (for interactive shells)
-    echo "$MIRROR_CONFIG" >> ~/.bashrc
-    
-    # Append to .profile (for login shells, ensuring availability in non-interactive login shells)
-    if [ -f ~/.profile ]; then
-        echo "$MIRROR_CONFIG" >> ~/.profile
-    fi
+    MIRROR_MARKER="# NVM Mirrors (PeiDocker)"
+    append_block_if_missing "$HOME/.bashrc" "$MIRROR_MARKER" "$MIRROR_CONFIG"
+    append_block_if_missing "$HOME/.profile" "$MIRROR_MARKER" "$MIRROR_CONFIG"
 
 else
     echo "Using default npm registry (no --with-cn-mirror provided)"
