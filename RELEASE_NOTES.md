@@ -1,3 +1,17 @@
+# PeiDocker v1.2.7 Release Notes
+
+## 🚀 Release Overview
+
+PeiDocker v1.2.7 addresses a critical issue with Node.js environment loading in login shells and introduces enhanced installation options for global users.
+
+## ✨ Changes
+
+- **Node.js**: Fixed `nvm` initialization in login shells to ensure Node.js commands are available immediately.
+- **Installation**: Added support for custom installer URLs and China mirrors to improve accessibility.
+- **Documentation**: Simplified and updated documentation for better clarity.
+
+---
+
 # PeiDocker v1.2.6 Release Notes
 
 ## 🚀 Release Overview
