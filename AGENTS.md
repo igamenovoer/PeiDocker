@@ -39,3 +39,7 @@
 ## Security & Configuration Tips
 - Do not commit secrets or real SSH keys; use placeholders in examples.
 - Changes involving Docker behavior should be tested with Docker installed; avoid hard-coded host paths/ports.
+
+## Workspace Collaboration Note
+- Multiple developers work in this workspace concurrently. Do not delete files just because they were not created by you.
+- Do not use git commands that affect many files (e.g., revert/reset/checkout) unless explicitly instructed.
