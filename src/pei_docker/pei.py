@@ -82,7 +82,10 @@ import sys
 
 import omegaconf as oc
 from pei_docker.config_processor import *
-from pei_docker.pei_utils import process_config_env_substitution
+from pei_docker.pei_utils import (
+    load_yaml_file_with_duplicate_key_check,
+    process_config_env_substitution,
+)
         
 @click.group()
 def cli() -> None:
@@ -396,7 +399,7 @@ def configure(project_dir:str, config:str, full_compose:bool, with_merged:bool) 
         logging.error(f'Config file {config_path} does not exist')
         return
     
-    in_config = oc.OmegaConf.load(config_path)
+    in_config = load_yaml_file_with_duplicate_key_check(config_path)
     if not isinstance(in_config, oc.DictConfig):
         raise ValueError("Configuration file must contain a dictionary, not a list")
     

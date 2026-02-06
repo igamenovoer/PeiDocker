@@ -330,6 +330,7 @@ stage_2:
     output: myapp:stage-2
   
   storage:
+    # Storage keys are fixed: app, data, workspace
     app:
       type: auto-volume
     data:
@@ -339,6 +340,8 @@ stage_2:
       type: auto-volume
   
   mount:
+    # mount.<name>.dst_path is required and must be an absolute path in the container
+    # If multiple entries resolve to the same dst_path, PeiDocker will log a warning but still generate compose
     home_me:
       type: auto-volume
       dst_path: /home/me

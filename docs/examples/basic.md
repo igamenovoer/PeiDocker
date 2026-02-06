@@ -208,7 +208,7 @@ The `stage-2` image has three external storage directories: `app`, `data`, and `
 [](){#mount-additional-volumes}
 ### Mounting arbitrary volumes or directories
 
-You can mount additional volumes or directories to the container by adding them to the `mount` section. The following example demonstrates how to mount the `apt_cache` directory to the container's `/var/cache/apt` directory, in this way, the apt cache will be saved for future use. `home_me` is mounted to `/home/me` to save the home directory to a volume, so that it will not get lost after the container is deleted. 
+You can mount additional volumes or directories to the container by adding them to the `mount` section. Each mount MUST provide `dst_path`, and it MUST be an absolute path in the container (e.g. `/home/me`). If multiple entries resolve to the same container path, PeiDocker will log a warning but will still generate the compose file (Docker/Compose ultimately decides how to handle it). The following example demonstrates how to mount the `apt_cache` directory to the container's `/var/cache/apt` directory, in this way, the apt cache will be saved for future use. `home_me` is mounted to `/home/me` to save the home directory to a volume, so that it will not get lost after the container is deleted. 
 
 Unlike `app`, `data`, and `workspace`, the mounted volumes `apt_cache` and `home_me` will not be linked to `/soft`, they are mounted directly to the container and not managed by PeiDocker. You can also use `manual-volume` (with `volume_name` set) or `host` (with `host_path` set) in ther `type` though.
 

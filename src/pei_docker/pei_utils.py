@@ -67,12 +67,93 @@ Configuration processing:
     '/home/user/data'
 """
 
-# utility methods
-import omegaconf as oc
-from omegaconf.omegaconf import DictConfig
 import os
 import re
-from typing import Any
+from typing import Any, Dict
+
+import omegaconf as oc
+from omegaconf.omegaconf import DictConfig
+
+import yaml
+from yaml.loader import SafeLoader
+from yaml.nodes import MappingNode
+
+
+class _NoDuplicateSafeLoader(SafeLoader):
+    """PyYAML loader that rejects duplicate keys in mappings."""
+
+
+def _construct_mapping_no_duplicates(
+    loader: _NoDuplicateSafeLoader, node: MappingNode, deep: bool = False
+) -> Dict[Any, Any]:
+    """Construct a mapping node while rejecting duplicate keys.
+
+    Notes
+    -----
+    YAML parsers often accept duplicate keys and keep the last occurrence.
+    For configuration files this is almost always a mistake, so we reject it
+    early with a clear error message including a line/column hint when
+    available.
+    """
+    mapping: Dict[Any, Any] = {}
+
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            line = getattr(key_node.start_mark, "line", None)
+            col = getattr(key_node.start_mark, "column", None)
+            loc = ""
+            if isinstance(line, int) and isinstance(col, int):
+                loc = f" (line {line + 1}, column {col + 1})"
+            raise ValueError(f"Duplicate key {key!r} in YAML{loc}")
+
+        value = loader.construct_object(value_node, deep=deep)
+        mapping[key] = value
+
+    return mapping
+
+
+_NoDuplicateSafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping_no_duplicates
+)
+
+
+def load_yaml_file_with_duplicate_key_check(path: str) -> DictConfig:
+    """Load a YAML file into an OmegaConf DictConfig with duplicate key detection.
+
+    Parameters
+    ----------
+    path : str
+        Path to the YAML file.
+
+    Returns
+    -------
+    DictConfig
+        Parsed YAML as an OmegaConf DictConfig.
+
+    Raises
+    ------
+    ValueError
+        If the YAML file contains duplicate keys or the root object is not a mapping.
+    FileNotFoundError
+        If the path does not exist.
+    """
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    try:
+        data = yaml.load(text, Loader=_NoDuplicateSafeLoader)
+    except ValueError as e:
+        raise ValueError(f"In {path}: {e}") from e
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        raise ValueError("Configuration file must contain a dictionary, not a list")
+
+    cfg = oc.OmegaConf.create(data)
+    if not isinstance(cfg, oc.DictConfig):
+        raise ValueError("Configuration file must contain a dictionary, not a list")
+    return cfg
 
 def remove_null_keys(cfg: DictConfig) -> DictConfig:
     """

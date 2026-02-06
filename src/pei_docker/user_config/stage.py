@@ -116,6 +116,46 @@ class StageConfig:
     custom: Optional[CustomScriptConfig] = field(default=None)
     storage: Optional[Dict[str, StorageOption]] = field(factory=dict)
     mount: Optional[Dict[str, StorageOption]] = field(factory=dict)
+
+    def __attrs_post_init__(self) -> None:
+        """Validate stage configuration invariants.
+
+        Notes
+        -----
+        - Storage entries are restricted to the fixed keywords: app, data, workspace.
+        - Mount entries MUST provide an explicit absolute dst_path.
+        """
+        self._validate_storage_keys()
+        self._validate_mount_dst_paths()
+
+    def _validate_storage_keys(self) -> None:
+        """Validate that storage keys are restricted to fixed keywords."""
+        if not self.storage:
+            return
+
+        allowed = {"app", "data", "workspace"}
+        unknown = set(self.storage.keys()) - allowed
+        if unknown:
+            unknown_str = ", ".join(sorted(str(k) for k in unknown))
+            raise ValueError(
+                f"Invalid storage key(s): {unknown_str}. "
+                "Only 'app', 'data', and 'workspace' are allowed."
+            )
+
+    def _validate_mount_dst_paths(self) -> None:
+        """Validate that mount entries include an explicit absolute dst_path."""
+        if not self.mount:
+            return
+
+        for mount_name, storage_opt in self.mount.items():
+            dst_path = storage_opt.dst_path
+            if dst_path is None or len(dst_path) == 0:
+                raise ValueError(f"Mount '{mount_name}' must have dst_path specified")
+            if not dst_path.startswith("/"):
+                raise ValueError(
+                    f"Mount '{mount_name}' dst_path must be an absolute container path "
+                    f"starting with '/', got {dst_path!r}"
+                )
     
     def get_port_mapping_as_dict(self) -> Optional[Dict[int, int]]:
         """

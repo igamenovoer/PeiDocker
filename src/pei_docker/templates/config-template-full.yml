@@ -144,6 +144,10 @@ stage_1:
   # mount external volumes to container
   # the volumes can be given any names, mounted anywhere
   # mount section does NOT transfer to the next stage, so you need to define them again in stage-2
+  # NOTE:
+  #   - mount.<name>.dst_path is REQUIRED and MUST be an absolute path in the container.
+  #   - mount keys may be any names (even app/data/workspace) and do not affect destination resolution.
+  #   - If multiple entries resolve to the same dst_path, PeiDocker will log a warning but still generate compose.
   mount:
     apt_cache:
       type: auto-volume
@@ -225,6 +229,7 @@ stage_2:
     use_https: null
 
   # storage configurations
+  # storage keys are fixed: app, data, workspace (no custom keys allowed)
   storage:
     app:
       type: auto-volume # auto-volume, manual-volume, host, image
@@ -242,6 +247,10 @@ stage_2:
   # mount external volumes to container
   # the volumes can be given any names, mounted anywhere
   # the volume type cannot be 'image', or otherwise it will be ignored
+  # NOTE:
+  #   - mount.<name>.dst_path is REQUIRED and MUST be an absolute path in the container.
+  #   - mount keys may be any names (even app/data/workspace) and do not affect destination resolution.
+  #   - If multiple entries resolve to the same dst_path, PeiDocker will log a warning but still generate compose.
   mount:
     home_me:
       type: auto-volume   # auto-volume, manual-volume, host

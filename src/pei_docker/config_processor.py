@@ -193,7 +193,9 @@ class PeiConfigProcessor:
         ValueError
             If the loaded configuration files are not dictionary-like.
         """
-        config = oc.OmegaConf.load(config_file)
+        from pei_docker.pei_utils import load_yaml_file_with_duplicate_key_check
+
+        config = load_yaml_file_with_duplicate_key_check(config_file)
         compose = oc.OmegaConf.load(compose_template_file)
         
         # Ensure we have DictConfig objects
@@ -627,48 +629,90 @@ class PeiConfigProcessor:
             # env_strings : list[str] = [f'{k}={v}' for k, v in env_dict.items()]
             oc.OmegaConf.update(stage_compose, 'environment', env_dict)
             
-            # deal with storage
-            name2storage : dict[str, StorageOption] = {}
-            if stage_config.storage is not None and ith_stage==1:   # only stage 2 has storage
-                name2storage.update(stage_config.storage)
-            if stage_config.mount is not None:
-                name2storage.update(stage_config.mount)
-                
-            # create storage in docker compose
+            # deal with storage and mounts (separate namespaces)
+            # - storage keys are fixed keywords (app/data/workspace) and map to /hard/volume/<key>
+            # - mount keys are user-defined labels and MUST honor explicit dst_path
             vol_mapping_strings : list[str] = []
-            for prefix, storage_opt in name2storage.items():
-                # in-container path
-                if prefix in StoragePrefixes.get_all_prefixes():
-                    vol_path = StoragePaths.HardVolume + '/' + prefix
+            dst_path_to_sources: dict[str, list[str]] = {}
+
+            def _add_volume_mapping(mapping: str, dst_path: str, source: str) -> None:
+                existing = dst_path_to_sources.get(dst_path)
+                if existing is not None:
+                    logging.warning(
+                        "Multiple volume mappings target the same container path %r: %s, %s",
+                        dst_path,
+                        ", ".join(existing),
+                        source,
+                    )
+                    existing.append(source)
                 else:
-                    if storage_opt.dst_path is None:
-                        raise ValueError(f"Storage '{prefix}' must have dst_path specified")
+                    dst_path_to_sources[dst_path] = [source]
+                vol_mapping_strings.append(mapping)
+
+            # Storage (stage-2 only)
+            if ith_stage == 1 and stage_config.storage:
+                for storage_key, storage_opt in stage_config.storage.items():
+                    vol_path = StoragePaths.HardVolume + '/' + storage_key
+
+                    if storage_opt.type == StorageTypes.AutoVolume:
+                        oc.OmegaConf.update(compose_template, f'volumes.{storage_key}', {})
+                        _add_volume_mapping(f'{storage_key}:{vol_path}', vol_path, f'storage:{storage_key}')
+                    elif storage_opt.type == StorageTypes.ManualVolume:
+                        assert (
+                            storage_opt.volume_name is not None
+                        ), 'volume_name must be provided for manual-volume storage'
+                        oc.OmegaConf.update(
+                            compose_template,
+                            f'volumes.{storage_key}',
+                            {'external': True, 'name': storage_opt.volume_name},
+                        )
+                        _add_volume_mapping(f'{storage_key}:{vol_path}', vol_path, f'storage:{storage_key}')
+                    elif storage_opt.type == StorageTypes.Host:
+                        assert (
+                            storage_opt.host_path is not None
+                        ), 'host_path must be provided for host storage'
+                        _add_volume_mapping(
+                            f'{storage_opt.host_path}:{vol_path}',
+                            vol_path,
+                            f'storage:{storage_key}',
+                        )
+                    elif storage_opt.type == StorageTypes.Image:
+                        # No compose mount needed for in-image storage.
+                        pass
+
+            # Mounts (all stages)
+            if stage_config.mount:
+                for mount_name, storage_opt in stage_config.mount.items():
+                    assert storage_opt.dst_path is not None, 'dst_path must be provided for mount'
                     vol_path = storage_opt.dst_path
-                    
-                # mapping
-                if storage_opt.type == StorageTypes.AutoVolume:
-                    # add volume to docker compose
-                    oc.OmegaConf.update(compose_template, f'volumes.{prefix}', {})
-                    
-                    # map volume to soft path
-                    vol_mapping_strings.append(f'{prefix}:{vol_path}')
-                elif storage_opt.type == StorageTypes.ManualVolume:
-                    assert storage_opt.volume_name is not None, 'volume_name must be provided for manual-volume storage'
-                    
-                    # add volume to docker compose
-                    oc.OmegaConf.update(compose_template, f'volumes.{prefix}', 
-                                        {'external': True, 'name': storage_opt.volume_name})
-                    
-                    # map volume to soft path
-                    vol_mapping_strings.append(f'{prefix}:{vol_path}')
-                elif storage_opt.type == StorageTypes.Host:
-                    assert storage_opt.host_path is not None, 'host_path must be provided for host storage'
-                    
-                    # map host path to soft path
-                    vol_mapping_strings.append(f'{storage_opt.host_path}:{vol_path}')
-                elif storage_opt.type == StorageTypes.Image:
-                    # nothing to do here
-                    pass
+
+                    if storage_opt.type == StorageTypes.AutoVolume:
+                        vol_key = f'mount_{mount_name}'
+                        oc.OmegaConf.update(compose_template, f'volumes.{vol_key}', {})
+                        _add_volume_mapping(f'{vol_key}:{vol_path}', vol_path, f'mount:{mount_name}')
+                    elif storage_opt.type == StorageTypes.ManualVolume:
+                        assert (
+                            storage_opt.volume_name is not None
+                        ), 'volume_name must be provided for manual-volume mount'
+                        vol_key = f'mount_{mount_name}'
+                        oc.OmegaConf.update(
+                            compose_template,
+                            f'volumes.{vol_key}',
+                            {'external': True, 'name': storage_opt.volume_name},
+                        )
+                        _add_volume_mapping(f'{vol_key}:{vol_path}', vol_path, f'mount:{mount_name}')
+                    elif storage_opt.type == StorageTypes.Host:
+                        assert (
+                            storage_opt.host_path is not None
+                        ), 'host_path must be provided for host mount'
+                        _add_volume_mapping(
+                            f'{storage_opt.host_path}:{vol_path}',
+                            vol_path,
+                            f'mount:{mount_name}',
+                        )
+                    elif storage_opt.type == StorageTypes.Image:
+                        # Not supported for mount; keep behavior consistent with previous implementation.
+                        pass
             
             # write to compose
             oc.OmegaConf.update(stage_compose, 'volumes', vol_mapping_strings)
