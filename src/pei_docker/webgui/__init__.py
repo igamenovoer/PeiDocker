@@ -13,6 +13,7 @@ Key Features:
 - Real-time validation and reactive UI updates
 """
 
-from pei_docker.webgui.app import PeiDockerWebGUI
-
-__all__ = ['PeiDockerWebGUI']
+# NOTE: Avoid importing NiceGUI and app modules at package import time.
+# The GUI is deprecated in 2.0, and import-time side effects can fail in
+# minimal environments. Import concrete GUI classes from submodules if needed.
+__all__ = []

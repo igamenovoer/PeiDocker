@@ -266,9 +266,9 @@ pip install -e .
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### Web GUI (Experimental)
+### Web GUI (Deprecated in 2.0)
 
-The modern web interface provides an intuitive way to manage PeiDocker projects:
+The modern web interface provided an intuitive way to manage PeiDocker projects, but it is not available in 2.0.
 
 ```sh
 # Start GUI on auto-selected port, in browser
@@ -284,6 +284,8 @@ pei-docker-gui start --project-dir /path/to/my/project
 # You need this to use the "Browse" feature to locate directories
 pei-docker-gui start --native
 ```
+
+Note: The Web GUI is deprecated in PeiDocker 2.0 and currently exits with an error until a future update.
 
 ### Command Line Interface
 

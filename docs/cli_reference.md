@@ -103,15 +103,15 @@ pei-docker-cli remove -p ./my-project
 pei-docker-cli remove -p ./my-project -y
 ```
 
-## pei-docker-gui
+## pei-docker-gui (Deprecated in 2.0)
 
-Web interface for PeiDocker project configuration.
+Web interface for PeiDocker project configuration. The GUI is deprecated in 2.0 and currently unavailable.
 
-**Usage:** `pei-docker-gui [OPTIONS] COMMAND [ARGS]...`
+**Usage:** `pei-docker-gui [OPTIONS] COMMAND [ARGS]...` (exits with error)
 
 ### start
 
-Starts web interface server.
+Starts web interface server (deprecated; not available in 2.0).
 
 **Usage:** `pei-docker-gui start [OPTIONS]`
 
@@ -144,7 +144,7 @@ Starts web interface server.
 | Has other files | Show error |
 | Not specified | Show project selector |
 
-**Examples:**
+**Examples (will error in 2.0):**
 ```sh
 # Auto-select port
 pei-docker-gui start

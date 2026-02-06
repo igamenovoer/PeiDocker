@@ -99,10 +99,11 @@ from pathlib import Path
 from typing import Optional, List, NoReturn
 from contextlib import closing
 
-from nicegui import ui, app
+from typing import TYPE_CHECKING
 
-# Import the main app and models
-from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
+if TYPE_CHECKING:
+    from nicegui import ui, app
+    from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
 
 
 def check_port_available(port: int) -> bool:
@@ -458,6 +459,9 @@ def start_command(args: argparse.Namespace) -> None:
         Exits with code 1 if project directory is invalid, page name is invalid,
         or native mode requested but pywebview not installed.
     """
+    from nicegui import ui, app
+    from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
+
     # Determine which port to use
     actual_port: int
     if args.port is None:
@@ -565,6 +569,13 @@ def main() -> None:
     SystemExit
         Exits with code 1 if no command specified or if any validation fails.
     """
+    print(
+        "Error: PeiDocker Web GUI is deprecated in 2.0 and is currently unavailable."
+        " Please wait for a future update.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
     parser = argparse.ArgumentParser(
         prog='pei-docker-gui',
         description='PeiDocker Web GUI - Launch the NiceGUI web application'
