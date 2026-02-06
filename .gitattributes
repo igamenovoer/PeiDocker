@@ -1,2 +1,41 @@
-# SCM syntax highlighting & preventing 3-way merges
-pixi.lock merge=binary linguist-language=YAML linguist-generated=true
+* text=auto
+
+# Always use LF for scripts and source files (Linux/macOS/Windows compatible).
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+*.py text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+
+# Windows native scripts.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Common binary formats.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.bz2 binary
+*.xz binary
+*.7z binary
+*.whl binary
+*.so binary
+*.dll binary
+*.exe binary
+*.pyc binary
+
+# SCM syntax highlighting & preventing 3-way merges.
+pixi.lock merge=binary linguist-language=YAML linguist-generated=true -diff
