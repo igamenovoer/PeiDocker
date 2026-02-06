@@ -2,3 +2,7 @@
 [submodule "context/refcode/nicegui"]
 	path = context/refcode/nicegui
 	url = https://github.com/zauberzeug/nicegui.git
+[submodule "magic-context"]
+	path = magic-context
+	url = https://github.com/igamenovoer/magic-context.git
+	branch = main
