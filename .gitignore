@@ -208,4 +208,6 @@ tmp/
 *.fls_latexmk
 
 # Claude AI settings
-.claude/
+/.claude
+/.gemini
+/.codex
