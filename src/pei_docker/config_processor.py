@@ -10,6 +10,7 @@ The main entry point for processing is the `PeiConfigProcessor` class, which
 orchestrates the entire configuration transformation.
 """
 import os
+import io
 import logging
 import shlex
 import omegaconf as oc
@@ -733,34 +734,59 @@ class PeiConfigProcessor:
             'stage-1/custom/script.sh --verbose' -> ('stage-1/custom/script.sh', '--verbose')
             'stage-1/custom/script.sh --param="value with spaces"' -> ('stage-1/custom/script.sh', '--param="value with spaces"')
         """
-        try:
-            # Use shlex to parse shell-like arguments safely
-            tokens = shlex.split(script_entry.strip())
-        except ValueError as e:
-            # If shlex parsing fails (e.g., unmatched quotes), treat entire string as script path
-            logging.warning(f"Failed to parse script entry '{script_entry}': {e}. Treating as script path only.")
-            return script_entry.strip(), ""
-            
-        if not tokens:
+        entry = script_entry.strip()
+        if not entry:
             return "", ""
-            
-        script_path = tokens[0]
-        
-        if len(tokens) == 1:
-            # No parameters
-            return script_path, ""
-        else:
-            # Rejoin parameters with proper shell escaping
-            parameters = []
-            for token in tokens[1:]:
-                # If token contains spaces or special chars, quote it
-                if ' ' in token or '"' in token or "'" in token or any(c in token for c in ['&', '|', ';', '(', ')', '<', '>', '$', '`', '\\', '!', '?', '*', '[', ']']):
-                    # Use shlex.quote to properly escape the token
-                    parameters.append(shlex.quote(token))
-                else:
-                    parameters.append(token)
-            
-            return script_path, " ".join(parameters)
+
+        # We must preserve user-provided argument text so shell expansions (e.g. `$HOME`)
+        # work at execution time. So we only parse out the first token (script path) and
+        # keep the remainder as raw-ish text.
+        try:
+            lexer = shlex.shlex(io.StringIO(entry), posix=True)
+            lexer.whitespace_split = True
+            lexer.commenters = ""
+            script_path = lexer.get_token()
+            if not script_path:
+                return "", ""
+            remainder = entry[lexer.instream.tell() :].lstrip()
+            return script_path, remainder
+        except ValueError as e:
+            # If shlex parsing fails (e.g., unmatched quotes), treat entire string as script path.
+            logging.warning(
+                "Failed to parse script entry %r: %s. Treating as script path only.",
+                script_entry,
+                e,
+            )
+            return entry, ""
+
+    @staticmethod
+    def _validate_stage2_on_build_script_entries(script_entries: list[str]) -> None:
+        """
+        Reject runtime-only storage paths in stage-2 build-time custom scripts.
+
+        Rationale: `/soft/*` and mounted volumes (`/hard/volume/*`) are created/available
+        only after container start (stage-2 `on-entry.sh`), not during `docker build`.
+        Build-time scripts must target in-image locations (typically `/hard/image/...`).
+        """
+        runtime_only_tokens = (
+            "/soft/",
+            "/hard/volume/",
+            "$PEI_PATH_SOFT",
+            "${PEI_PATH_SOFT",
+            "$PEI_SOFT_",
+            "${PEI_SOFT_",
+        )
+
+        for entry in script_entries:
+            if any(token in entry for token in runtime_only_tokens):
+                raise ValueError(
+                    "Invalid stage_2.custom.on_build script entry: runtime-only storage paths "
+                    "are not available during `docker build`.\n"
+                    "- Disallowed: /soft/..., /hard/volume/..., $PEI_SOFT_* and $PEI_PATH_SOFT\n"
+                    "- Use in-image paths instead (typically /hard/image/...) for build-time installs\n"
+                    "- Runtime hooks (on_first_run/on_every_run/on_user_login) may use /soft/...\n"
+                    f"Offending entry: {entry!r}"
+                )
     
     def _generate_script_text(self, on_what:str, filelist : Optional[list[str]]) -> str:
         """
@@ -795,16 +821,16 @@ class PeiConfigProcessor:
                     script_path, parameters = self._parse_script_entry(script_entry)
                     if parameters:
                         # Note: source command with parameters - parameters are passed as positional args
-                        cmds.append(f"source $DIR/../../{script_path} {parameters}")
+                        cmds.append(f"source \"$DIR/../../{script_path}\" {parameters}")
                     else:
-                        cmds.append(f"source $DIR/../../{script_path}")
+                        cmds.append(f"source \"$DIR/../../{script_path}\"")
             else:
                 for script_entry in filelist:
                     script_path, parameters = self._parse_script_entry(script_entry)
                     if parameters:
-                        cmds.append(f"bash $DIR/../../{script_path} {parameters}")
+                        cmds.append(f"bash \"$DIR/../../{script_path}\" {parameters}")
                     else:
-                        cmds.append(f"bash $DIR/../../{script_path}")
+                        cmds.append(f"bash \"$DIR/../../{script_path}\"")
             
         return '\n'.join(cmds)
     
@@ -1012,6 +1038,10 @@ class PeiConfigProcessor:
         
         # parse the user config
         user_config : UserConfig = cattrs.structure(config_dict, UserConfig)
+
+        # Validate stage-2 build-time scripts early (before generating compose/scripts).
+        if user_config.stage_2 is not None and user_config.stage_2.custom is not None:
+            self._validate_stage2_on_build_script_entries(user_config.stage_2.custom.on_build)
         
         # apply the user config to the compose template
         if self.m_compose_template is None:

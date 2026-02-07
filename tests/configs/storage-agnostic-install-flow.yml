@@ -1,0 +1,49 @@
+# Storage-agnostic installer example
+#
+# Demonstrates:
+# - build-time installs using /hard/image/... (docker build context)
+# - runtime installs using /soft/... (container start context)
+#
+# NOTE: stage_2.custom.on_build MUST NOT reference /soft/... or /hard/volume/...
+# (those are runtime-only paths). Use /hard/image/... for build-time path flags.
+
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-storage-agnostic-example:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2228
+    users:
+      dev:
+        password: "dev123"
+
+stage_2:
+  image:
+    output: pei-storage-agnostic-example:stage-2
+
+  # Use in-image storage for the example so /soft/app -> /hard/image/app at runtime.
+  storage:
+    app:
+      type: image
+    data:
+      type: image
+    workspace:
+      type: image
+
+  custom:
+    on_build:
+      # Build-time: bake Miniconda into the image layer
+      - "stage-1/system/conda/install-miniconda.sh --install-dir=/hard/image/app/miniconda3 --tmp-dir=/tmp/pei-miniconda"
+
+    on_first_run:
+      # Runtime: /soft/* exists after on-entry creates symlinks
+      # With image storage, /soft/app/miniconda3 resolves to the same location as /hard/image/app/miniconda3
+      - "stage-1/system/conda/install-miniconda.sh --install-dir=/soft/app/miniconda3 --tmp-dir=/soft/data/tmp/pei-miniconda"
+
+    on_user_login:
+      # Activate conda in the SSH login shell
+      - "stage-1/system/conda/activate-conda-on-login.sh --conda-dir=/soft/app/miniconda3"
+

@@ -280,6 +280,41 @@ This produces:
   - Supports `-n/--name`, `-d/--detach`, `--no-rm`, `--image <name:tag>`, `-p/--publish`, `-v/--volume`, `--gpus`
   - Accepts `--` to pass a command to run inside the container
 
+### CI Pattern: Provision at Build Time (No `/soft/*` During `docker build`)
+
+When running installers during image build (`stage_2.custom.on_build`), **do not**
+use runtime-only paths:
+
+- Disallowed in `on_build`: `/soft/...`, `/hard/volume/...`, `$PEI_SOFT_*`, `$PEI_PATH_SOFT`
+- Use in-image paths instead (typically `/hard/image/...`)
+
+Minimal example (works with both compose builds and the merged single-`docker build` flow):
+
+```yaml
+stage_2:
+  custom:
+    on_build:
+      # Build-time: bake conda into the image layer
+      - "stage-1/system/conda/install-miniconda.sh --install-dir=/hard/image/app/miniconda3 --tmp-dir=/tmp/pei-miniconda"
+```
+
+Then generate merged artifacts and build:
+
+```sh
+pei-docker-cli configure --with-merged
+./build-merged.sh
+```
+
+#### Visibility Trade-off (Build-time vs Runtime Storage)
+
+If you install into `/hard/image/...` at build time, those files are baked into
+the image. At runtime, `/soft/...` may point at a mounted volume (`/hard/volume/...`),
+which can **hide** the in-image content under `/hard/image/...`.
+
+If you want build-time installs to be visible under `/soft/...` at runtime, ensure
+your runtime storage choice does not mount a volume over that path (or install into
+the mounted volume at runtime instead).
+
 ## Complete Configuration Example
 
 ```yaml

@@ -1,29 +1,12 @@
-#!/bin/bash
-# create pixi global environment for common packages
+#!/usr/bin/env bash
 
-# prevent interactive prompts
-export DEBIAN_FRONTEND=noninteractive
+# Stage-2 wrapper: forward to stage-1 canonical script.
 
-# source the pixi utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/pixi-utils.bash"
+set -euo pipefail
 
-echo "Creating pixi global environment for common packages..."
+if [[ -z "${PEI_STAGE_DIR_1:-}" ]]; then
+  echo "Error: PEI_STAGE_DIR_1 is not set; cannot locate stage-1 pixi scripts" >&2
+  exit 2
+fi
 
-# list of packages to install
-packages=(
-    "scipy"
-    "click"
-    "attrs"
-    "omegaconf"
-    "rich"
-    "networkx"
-    "ipykernel"
-)
-
-# Install packages for all users who have pixi
-install_packages_for_all_users "${packages[@]}"
-
-echo ""
-echo "Common package installation completed!"
-echo "Each user can check their packages with: pixi global list"
+exec "$PEI_STAGE_DIR_1/system/pixi/create-env-common.bash" "$@"
