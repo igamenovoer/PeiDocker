@@ -39,8 +39,9 @@ The completed change `openspec/changes/storage-agnostic-install-scripts/` establ
    - For each `installation/stage-2/system/<tool>/...` script, create a corresponding stage-1 implementation under `installation/stage-1/system/<tool>/...`.
    - Stage-2 `user_config.yml` MAY refer to stage-1 script paths directly; wrappers are primarily for backward compatibility.
    - When a stage-2 wrapper exists, replace the stage-2 script body with a thin forwarder that primarily calls stage-1:
-     - prefer `exec "$PEI_STAGE_DIR_1/..." "$@"` for executables
-     - use `source "$PEI_STAGE_DIR_1/..." "$@"` only when the stage-2 script is meant to be sourced (e.g., login shell setup helpers)
+     - wrappers MUST be **source-safe** in all cases (safe to use from `on_user_login`, which uses `source`)
+     - when executed normally, wrappers SHOULD prefer `exec "$PEI_STAGE_DIR_1/..." "$@"` for executable installers
+     - when sourced, wrappers MUST NOT `exec` or hard-`exit` a parent shell; they SHOULD invoke stage-1 installers in a subshell (e.g. `bash ... "$@"`) and `return` the status
    - Examples (from the completed first-batch migration):
      - exec wrapper: `installation/stage-2/system/pixi/install-pixi.bash`
      - source wrapper: `installation/stage-2/system/pixi/pixi-utils.bash`
@@ -71,18 +72,24 @@ The completed change `openspec/changes/storage-agnostic-install-scripts/` establ
    - Docs/examples should prefer stage-1 paths.
    - Any breaking changes (if unavoidable) must be documented in the script README for that tool and in `installation/README.md`.
 
-5. Stage tmp dir usage (`$PEI_STAGE_DIR_*/tmp`)
+5. Assets are canonical in stage-1 (no stage-2 asset compatibility paths)
 
-   - Stage-1 canonical scripts that need a per-stage scratch/cache directory SHOULD use:
-     - `$PEI_STAGE_DIR_1/tmp` (stage-1 canonical)
-     - `$PEI_STAGE_DIR_2/tmp` (stage-2-only logic, if any)
+   - When migrating a tool directory, move scripts **and** non-shell assets to stage-1 canonical.
+   - For migrated tools, configs/docs SHOULD reference assets via `stage-1/system/<tool>/...` paths.
+   - Stage-2 does not need separate compatibility paths for non-shell assets because stage-2 has access to the stage-1 installation tree.
+
+6. Stage cache/tmp dir usage (`$PEI_STAGE_DIR_*/tmp` + `--cache-dir`)
+
+   - Stage-1 canonical scripts that need a per-stage scratch/cache directory SHOULD default to `$PEI_STAGE_DIR_1/tmp`.
+   - Scripts SHOULD accept `--cache-dir <dir>` to override the default cache/tmp location when a caller needs explicit placement.
+   - Stage-2-only logic (if any) MAY use `$PEI_STAGE_DIR_2/tmp`.
    - If a script **writes** into the stage tmp dir, it MUST create it (`mkdir -p`) first.
    - If a script **only reads** from the stage tmp dir, it MUST treat a missing dir as a cache miss and MUST NOT fail.
-   - When migrating a script from stage-2 to stage-1, any use of `$PEI_STAGE_DIR_2/tmp` for scratch/caching should become `$PEI_STAGE_DIR_1/tmp`.
+   - When migrating a script from stage-2 to stage-1, any use of `$PEI_STAGE_DIR_2/tmp` for scratch/caching should become `$PEI_STAGE_DIR_1/tmp` (or be redirected via `--cache-dir`).
 
 ## Risks / Trade-offs
 
 - [Risk] Some stage-2 scripts rely on stage-2 env vars (e.g. `$PEI_STAGE_DIR_2`) for caching/tmp; naïvely moving them may reduce caching. → Mitigation: move the cache to stage-1 tmp (`$PEI_STAGE_DIR_1/tmp`) when the installer becomes stage-1 canonical, and/or add `--tmp-dir`/`--cache-dir` flags with safe defaults (`/tmp/...`).
-- [Risk] Some scripts use `sudo`, which may not be available/appropriate in all contexts (especially during Docker build). → Mitigation: make stage-1 canonical scripts assume root when intended for Docker build; remove `sudo` usage where possible or clearly document requirement.
+- [Risk] Some scripts use `sudo`, which may not be available/appropriate in all contexts (especially during Docker build). → Mitigation: make stage-1 canonical scripts assume root when intended for Docker build; remove `sudo` usage where possible (without otherwise refactoring scripts).
 - [Risk] Wrapper forwarding can break quoting/variable expansion if wrappers re-parse args. → Mitigation: wrappers forward `"$@"` verbatim; do not re-tokenize.
 - [Risk] Large churn touches many scripts and docs. → Mitigation: migrate tool-by-tool with tests and small commits; keep a clear inventory and acceptance criteria.

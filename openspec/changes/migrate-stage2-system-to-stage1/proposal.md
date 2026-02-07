@@ -6,12 +6,15 @@ PeiDocker’s installer scripts under `installation/stage-2/system/**` are curre
 
 - Make `installation/stage-1/system/**` the canonical home for system installer implementations for all tools currently present under `installation/stage-2/system/**`, **excluding** `installation/stage-2/system/conda/**` (out of scope for this change).
 - Move each tool directory as a unit (scripts **and** non-shell assets) so stage-1 contains the complete runnable tool installer bundle.
+- Non-shell assets do **not** require stage-2 compatibility paths: stage-2 hooks/configs can reference stage-1 asset paths directly, because stage-2 has access to the stage-1 installation tree.
 - Convert `installation/stage-2/system/**` scripts into minimal wrappers when needed (primarily for backward compatibility), forwarding to the corresponding stage-1 script and preserving CLI flags and behavior.
   - Stage-2 `user_config.yml` MAY refer to stage-1 script paths directly; not every tool needs a stage-2 wrapper.
   - Wrapper scripts may keep *minimal* stage-2 glue where required (e.g., auto-selection logic that depends on stage-2 storage visibility), but must not duplicate full installer logic.
+  - All stage-2 wrappers MUST be **source-safe** (so they are safe to use in `on_user_login`, which uses `source`).
 - Standardize installer CLI conventions across all migrated scripts:
   - Prefer explicit tool-specific flags (`--install-dir`, `--cache-dir`, `--tmp-dir`, `--user`) where applicable.
   - Avoid implicit `/soft/*` defaults and avoid probing `/soft/*` to decide behavior; callers must pass explicit paths when storage location matters.
+  - For migrated installers that need a per-stage cache/tmp location, default to `$PEI_STAGE_DIR_1/tmp` and allow callers to override via `--cache-dir <dir>`.
 - Update docs/examples so users are guided to stage-1 canonical paths; stage-2 paths remain supported as wrappers for backward compatibility.
 - Add/extend tests and a small integration verification matrix to ensure:
   - stage-2 wrappers forward flags without breaking shell expansion/quoting

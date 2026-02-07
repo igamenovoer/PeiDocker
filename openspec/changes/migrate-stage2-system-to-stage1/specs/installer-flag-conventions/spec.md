@@ -24,6 +24,8 @@ Installers MUST NOT hardcode writes to `/soft/app`, `/soft/data`, or `/soft/work
 ### Requirement: Stage tmp dirs are optional and safe
 If an installer uses a per-stage tmp/cache directory under `$PEI_STAGE_DIR_*/tmp`, it MUST follow these rules:
 
+- For migrated stage-1 canonical installers, the default per-stage cache/tmp directory SHOULD be `$PEI_STAGE_DIR_1/tmp`.
+- Installers SHOULD accept `--cache-dir <dir>` to override the default cache/tmp directory when callers need explicit placement.
 - If the script **writes** into the stage tmp dir, it MUST create it (`mkdir -p`) first.
 - If the script **only reads** from the stage tmp dir, it MUST treat a missing dir as a cache miss and MUST NOT fail.
 
@@ -34,6 +36,10 @@ If an installer uses a per-stage tmp/cache directory under `$PEI_STAGE_DIR_*/tmp
 #### Scenario: Script needs a stage tmp dir for writes
 - **WHEN** a script needs to write temporary or cached artifacts into `$PEI_STAGE_DIR_1/tmp` (or `$PEI_STAGE_DIR_2/tmp`)
 - **THEN** it MUST create the directory before writing and MUST fail only if the write itself fails
+
+#### Scenario: Caller overrides the cache/tmp dir
+- **WHEN** a caller provides `--cache-dir /some/path`
+- **THEN** the installer MUST use that directory for its cached downloads/build artifacts instead of `$PEI_STAGE_DIR_1/tmp`
 
 ### Requirement: Migrated scripts do not depend on stage-2 tmp layout
 When a script is migrated from stage-2 canonical to stage-1 canonical, any use of `$PEI_STAGE_DIR_2/tmp` for scratch/caching MUST be migrated to `$PEI_STAGE_DIR_1/tmp` (or be parameterized via `--tmp-dir`).

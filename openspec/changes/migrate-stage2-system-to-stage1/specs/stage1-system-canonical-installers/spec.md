@@ -15,6 +15,13 @@ When migrating a tool from stage-2 to stage-1, the change MUST move any non-shel
 - **WHEN** a tool installer relies on a non-shell asset located under its tool directory
 - **THEN** the same asset MUST exist under the stage-1 canonical tool directory with the same relative path
 
+### Requirement: Non-shell assets do not need stage-2 compatibility paths
+For migrated tools, stage-2 does not require separate compatibility paths for non-shell assets under `src/pei_docker/project_files/installation/stage-2/system/**`, because stage-2 hooks/configs can reference stage-1 canonical asset paths directly.
+
+#### Scenario: Stage-2 hook references a stage-1 asset path
+- **WHEN** a stage-2 hook or documentation references a non-shell asset under `stage-1/system/<tool>/...`
+- **THEN** that reference SHOULD be considered valid, and no stage-2 asset copy is required for compatibility
+
 ### Requirement: Stage-2 configs can call stage-1 canonical scripts
 Stage-2 `custom.*` hooks in `user_config.yml` SHALL support referencing stage-1 script paths directly (e.g., `stage-1/system/<tool>/install-<tool>.sh`) without requiring stage-2 wrapper indirection.
 
