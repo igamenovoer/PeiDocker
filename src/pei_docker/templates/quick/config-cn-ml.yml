@@ -107,15 +107,15 @@ stage_2:
     # Scripts can include parameters: 'script.sh --param1=value1 --param2="value with spaces"'
     on_build:
     # install pixi, a lightweight python package manager
-    - 'stage-2/system/pixi/install-pixi.bash --pypi-repo tuna --conda-repo tuna --user me'
+    - 'stage-1/system/pixi/install-pixi.bash --pypi-repo tuna --conda-repo tuna --user me'
 
     # install uv
     - 'stage-1/system/uv/install-uv.sh --pypi-repo tuna --user me'
     # # install nodejs for codex and claude code
-    # - 'stage-2/system/nodejs/install-nvm-nodejs.sh --with-cn-mirror --user me'
+    # - 'stage-1/system/nodejs/install-nvm-nodejs.sh --with-cn-mirror --user me'
 
     # # install codex
-    # - 'stage-2/system/codex-cli/install-codex-cli.sh --user me'
+    # - 'stage-1/system/codex-cli/install-codex-cli.sh --user me'
 
     # # install claude code
-    # - 'stage-2/system/claude-code/install-claude-code.sh --user me'
+    # - 'stage-1/system/claude-code/install-claude-code.sh --user me'

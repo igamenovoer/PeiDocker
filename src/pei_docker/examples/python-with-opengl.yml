@@ -59,7 +59,7 @@ stage_2:
   custom:
     on_first_run:                  # Scripts to run only on first container startup
     - stage-2/system/conda/auto-install-miniconda.sh    # Install Miniconda for Python package management
-    - stage-2/system/opengl/setup-opengl-win32.sh       # Setup OpenGL libraries and dependencies
+    - stage-1/system/opengl/setup-opengl-win32.sh       # Setup OpenGL libraries and dependencies
 
 # Usage Notes:
 # 1. Perfect for Python-based graphics programming, scientific visualization

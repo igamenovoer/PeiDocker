@@ -40,6 +40,6 @@ stage_2:
     on_build: 
       # install pixi, a lightweight python package manager
       # configure pixi to use tuna mirror in China via installation arguments
-      - 'stage-2/system/pixi/install-pixi.bash --conda-repo tuna --pypi-repo tuna'
+      - 'stage-1/system/pixi/install-pixi.bash --conda-repo tuna --pypi-repo tuna'
 
       # create a common environment

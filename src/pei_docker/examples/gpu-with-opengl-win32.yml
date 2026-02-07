@@ -70,7 +70,7 @@ stage_2:
   # Custom scripts configuration for OpenGL setup
   custom:
     on_build:                      # Scripts to run during image building
-      - 'stage-2/system/opengl/setup-opengl-win32.sh'  # Install OpenGL libraries and dependencies
+      - 'stage-1/system/opengl/setup-opengl-win32.sh'  # Install OpenGL libraries and dependencies
 
 # Usage Notes:
 # 1. Requires NVIDIA Docker runtime and compatible GPU drivers

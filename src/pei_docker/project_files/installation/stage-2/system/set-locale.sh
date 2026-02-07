@@ -1,6 +1,32 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-export DEBIAN_FRONTEND=noninteractive
+# Stage-2 wrapper: forward to stage-1 canonical installer.
 
-apt-get install -y locales
-locale-gen en_US.UTF-8
+_peidocker_is_sourced() {
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+_peidocker_die() {
+  echo "Error: $*" >&2
+  if _peidocker_is_sourced; then
+    return 2
+  fi
+  exit 2
+}
+
+if ! _peidocker_is_sourced; then
+  set -euo pipefail
+fi
+
+if [[ -z "${PEI_STAGE_DIR_1:-}" ]]; then
+  _peidocker_die "PEI_STAGE_DIR_1 is not set; cannot locate stage-1 locale setup script"
+fi
+
+stage1_script="$PEI_STAGE_DIR_1/system/set-locale.sh"
+
+if _peidocker_is_sourced; then
+  (set -euo pipefail; bash "$stage1_script" "$@")
+  return $?
+fi
+
+exec bash "$stage1_script" "$@"

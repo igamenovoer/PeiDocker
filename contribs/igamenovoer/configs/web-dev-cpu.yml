@@ -92,7 +92,7 @@ stage_2:
 
   custom:
     on_first_run: 
-      - 'stage-2/system/nodejs/install-nodejs-for-everyone.sh'  # install nvm and nodejs
+      - 'stage-1/system/nodejs/install-nvm-nodejs.sh --user igamenovoer'  # install nvm and nodejs
 
   # additional mounts
   mount:

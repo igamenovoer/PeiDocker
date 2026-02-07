@@ -53,8 +53,8 @@ stage_2:
   
         # Install pixi with cache directory in external storage for persistence and use tuna mirrors
   
-        - 'stage-2/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache --conda-repo tuna --pypi-repo tuna'
+        - 'stage-1/system/pixi/install-pixi.bash --cache-dir=/hard/volume/app/pixi-cache --conda-repo tuna --pypi-repo tuna'
   
-        - 'stage-2/system/pixi/create-env-common.bash'
+        - 'stage-1/system/pixi/create-env-common.bash'
   
   

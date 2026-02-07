@@ -1,30 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# =================================================================
-# Install Angular CLI with pnpm
-# =================================================================
-# Usage: ./install-angular.sh
-#
-# Description:
-#   This script installs Angular CLI globally using pnpm package manager
-#   and configures Angular to use pnpm as the default package manager
-#   for new projects.
-#
-# Prerequisites:
-#   - Node.js must be installed (run install-nodejs.sh first)
-#   - pnpm must be installed (included with install-nodejs.sh)
-#   - Internet connection required
-#
-# Post-installation:
-#   - Use 'ng new project-name' to create new Angular projects
-#   - Projects will automatically use pnpm for package management
-#
-# Examples:
-#   ./install-angular.sh
-# =================================================================
+# Stage-2 wrapper: forward to stage-1 canonical installer.
 
-echo "installing angular/cli"
-pnpm install -g @angular/cli
+_peidocker_is_sourced() {
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
 
-echo "using pnpm as angular package manager"
-ng config -g cli.packageManager pnpm
+_peidocker_die() {
+  echo "Error: $*" >&2
+  if _peidocker_is_sourced; then
+    return 2
+  fi
+  exit 2
+}
+
+if ! _peidocker_is_sourced; then
+  set -euo pipefail
+fi
+
+if [[ -z "${PEI_STAGE_DIR_1:-}" ]]; then
+  _peidocker_die "PEI_STAGE_DIR_1 is not set; cannot locate stage-1 nodejs installer"
+fi
+
+stage1_script="$PEI_STAGE_DIR_1/system/nodejs/install-angular.sh"
+
+if _peidocker_is_sourced; then
+  (set -euo pipefail; bash "$stage1_script" "$@")
+  return $?
+fi
+
+exec bash "$stage1_script" "$@"

@@ -2,11 +2,31 @@
 
 # Stage-2 wrapper: forward to stage-1 canonical installer.
 
-set -euo pipefail
+_peidocker_is_sourced() {
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
 
-if [[ -z "${PEI_STAGE_DIR_1:-}" ]]; then
-  echo "Error: PEI_STAGE_DIR_1 is not set; cannot locate stage-1 pixi installer" >&2
+_peidocker_die() {
+  echo "Error: $*" >&2
+  if _peidocker_is_sourced; then
+    return 2
+  fi
   exit 2
+}
+
+if ! _peidocker_is_sourced; then
+  set -euo pipefail
 fi
 
-exec "$PEI_STAGE_DIR_1/system/pixi/install-pixi.bash" "$@"
+if [[ -z "${PEI_STAGE_DIR_1:-}" ]]; then
+  _peidocker_die "PEI_STAGE_DIR_1 is not set; cannot locate stage-1 pixi installer"
+fi
+
+stage1_script="$PEI_STAGE_DIR_1/system/pixi/install-pixi.bash"
+
+if _peidocker_is_sourced; then
+  (set -euo pipefail; bash "$stage1_script" "$@")
+  return $?
+fi
+
+exec bash "$stage1_script" "$@"

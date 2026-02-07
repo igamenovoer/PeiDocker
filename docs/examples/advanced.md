@@ -162,7 +162,7 @@ stage_2:
 
 The following example demonstrates how to build a Docker image with hardware-accelerated OpenGL support on Windows. The critical part is to: 
 
-* install necessary packages (e.g., `libglvnd-dev`) in the Dockerfile, see [setup-opengl-win32.sh](https://github.com/igamenovoer/PeiDocker/blob/627abb919fca23a24e7bc95da0af9c6ac9c88166/pei_docker/project_files/installation/stage-2/system/opengl/setup-opengl-win32.sh)
+* install necessary packages (e.g., `libglvnd-dev`) in the Dockerfile, see [setup-opengl-win32.sh](https://github.com/igamenovoer/PeiDocker/blob/v2-dev/src/pei_docker/project_files/installation/stage-1/system/opengl/setup-opengl-win32.sh)
 
 * mount the necessary directories for WSLg to work properly, see [WSLg GPU selection](https://github.com/microsoft/wslg/wiki/GPU-selection-in-WSLg).
 
@@ -242,7 +242,7 @@ stage_2:
   custom:
     # scripts run during build
     on_build: 
-      - 'stage-2/system/opengl/setup-opengl-win32.sh' # install opengl
+      - 'stage-1/system/opengl/setup-opengl-win32.sh' # install opengl
 ```
 
 ```yaml
