@@ -92,13 +92,22 @@ ls -la <project>/merged.Dockerfile <project>/merged.env <project>/build-merged.s
 
 ## Implementation Summary
 
-TODO(after implementation): summarize where docs were added/updated and how the example was validated.
+Documentation was updated to make the merged/single-Dockerfile path explicit and
+to include a minimal build-time installer example that avoids `/soft/*` during
+`docker build`.
 
 ### What has been implemented
 
-TODO(after implementation)
+- Documented the merged build workflow and artifacts:
+  - `docs/index.md`
+  - `docs/cli_reference.md`
+- Added a minimal CI example showing `stage_2.custom.on_build` calling an installer
+  with `/hard/image/...` paths (and explicitly calling out disallowed runtime-only paths).
 
 ### How to verify
 
-TODO(after implementation)
-
+- Verify CLI help exposes the flag:
+  - `pixi run pei-docker-cli configure --help`
+- Generate merged artifacts and confirm the outputs exist:
+  - `pixi run pei-docker-cli configure -p <project> --with-merged`
+  - `ls -la <project>/merged.Dockerfile <project>/merged.env <project>/build-merged.sh`

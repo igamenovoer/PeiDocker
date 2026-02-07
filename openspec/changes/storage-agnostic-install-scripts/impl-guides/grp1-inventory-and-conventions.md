@@ -132,13 +132,26 @@ rg -n "/hard/(image|volume)/" src/pei_docker/project_files/installation/stage-2/
 
 ## Implementation Summary
 
-TODO(after implementation): summarize the final audited inventory and which scripts were moved vs wrapped.
+This group’s deliverables landed as “conventions + first-batch selection” rather than
+a hard-coded inventory artifact.
+
+- The **installer conventions** were documented in `src/pei_docker/project_files/installation/README.md`.
+- The **first-batch migration targets** were selected as Pixi + Conda, which then drove
+  the concrete refactors in Group 4.
 
 ### What has been implemented
 
-TODO(after implementation)
+- Added “Installer Script Conventions (v2.0)” section to `src/pei_docker/project_files/installation/README.md`.
+- Established the stage-1 canonical vs stage-2 wrapper layout for the first batch:
+  - Pixi: `stage-1/system/pixi/*` canonical, `stage-2/system/pixi/*` wrappers
+  - Conda: `stage-1/system/conda/*` canonical, `stage-2/system/conda/*` wrappers
+- Captured the lifecycle reminder (build-time vs runtime path constraints) in the same README.
 
 ### How to verify
 
-TODO(after implementation)
-
+- Read the conventions section in `src/pei_docker/project_files/installation/README.md`.
+- Confirm stage-1 canonical scripts exist for the first batch:
+  - `src/pei_docker/project_files/installation/stage-1/system/pixi/`
+  - `src/pei_docker/project_files/installation/stage-1/system/conda/`
+- Confirm stage-2 scripts are thin forwarders (example):
+  - `src/pei_docker/project_files/installation/stage-2/system/pixi/install-pixi.bash`

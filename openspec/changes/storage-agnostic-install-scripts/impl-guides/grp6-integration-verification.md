@@ -61,7 +61,7 @@ graph LR
 
 ### Test Input
 
-- Example config (to add/update): `tests/configs/storage-agnostic-installers.yml` (suggested name)
+- Example config: `tests/configs/storage-agnostic-install-flow.yml`
   - build-time on_build scripts use `/hard/image/...`
   - runtime hooks use `/soft/...`
 - Existing config: `tests/configs/custom-script-params-test.yml` (extend with `$VARS` if needed)
@@ -93,13 +93,27 @@ pixi run pytest -q
 
 ## Implementation Summary
 
-TODO(after implementation): summarize the added example config(s) and how integration was validated locally/CI.
+This group added a concrete example config and validated the core invariants
+with unit tests plus a Docker build smoke test.
 
 ### What has been implemented
 
-TODO(after implementation)
+- Added example config: `tests/configs/storage-agnostic-install-flow.yml`:
+  - build-time `stage_2.custom.on_build` calls conda install with `/hard/image/...`
+  - runtime hooks use `/soft/...` paths (valid at container start)
+- Added unit tests:
+  - `tests/test_custom_script_args.py` (wrapper arg passthrough, `$VARS` expansion)
+  - `tests/test_on_build_path_validation.py` (reject runtime-only paths in `on_build`)
+- Ran a Docker build smoke flow (optional in CI) to validate:
+  - stage-2 `on_build` hooks execute correctly during `docker build`
+  - argument forwarding behaves the same for stage-1 canonical and stage-2 wrapper paths
 
 ### How to verify
 
-TODO(after implementation)
-
+- Run the unit tests:
+  - `pixi run pytest -q`
+- Optional Docker smoke (requires Docker):
+  - `pixi run pei-docker-cli create -p <tmp-project>`
+  - `cp tests/configs/storage-agnostic-install-flow.yml <tmp-project>/user_config.yml`
+  - `pixi run pei-docker-cli configure -p <tmp-project>`
+  - `docker compose -f <tmp-project>/docker-compose.yml build stage-2`

@@ -129,13 +129,37 @@ rg -n "/soft/" src/pei_docker/project_files/installation/stage-1/system/<tool>
 
 ## Implementation Summary
 
-TODO(after implementation): summarize which installers became stage-1 canonical and which stage-2 paths remain as wrappers.
+Pixi + Conda were migrated as the first “canonical stage-1” batch, and the
+corresponding stage-2 scripts were converted into thin forwarders that locate
+the canonical implementation via `$PEI_STAGE_DIR_1`.
 
 ### What has been implemented
 
-TODO(after implementation)
+- Stage-1 canonical Pixi scripts added under:
+  - `src/pei_docker/project_files/installation/stage-1/system/pixi/`
+    - `install-pixi.bash`
+    - `create-env-common.bash`
+    - `create-env-ml.bash`
+    - `pixi-utils.bash`
+    - `README.md` (preferred usage + lifecycle examples)
+- Stage-2 Pixi scripts converted to wrappers under:
+  - `src/pei_docker/project_files/installation/stage-2/system/pixi/`
+    - exec wrappers: `install-pixi.bash`, `create-env-common.bash`, `create-env-ml.bash`
+    - source wrapper: `pixi-utils.bash`
+- Stage-1 canonical Conda scripts added under:
+  - `src/pei_docker/project_files/installation/stage-1/system/conda/`
+    - `install-miniconda.sh` (storage-agnostic; supports `--install-dir` and `--tmp-dir`)
+    - `activate-conda-on-login.sh`
+    - helper files copied from stage-2 (pip/conda repo scripts + mirror template)
+- Stage-2 Conda scripts converted to wrappers under:
+  - `src/pei_docker/project_files/installation/stage-2/system/conda/`
+    - `install-miniconda.sh`, `activate-conda-on-login.sh`
 
 ### How to verify
 
-TODO(after implementation)
-
+- Confirm wrappers forward via `$PEI_STAGE_DIR_1`:
+  - `sed -n '1,80p' src/pei_docker/project_files/installation/stage-2/system/pixi/install-pixi.bash`
+  - `sed -n '1,80p' src/pei_docker/project_files/installation/stage-2/system/conda/install-miniconda.sh`
+- Confirm stage-1 scripts avoid implicit `/soft/*` behavior:
+  - `rg -n \"/soft/\" src/pei_docker/project_files/installation/stage-1/system/pixi`
+  - `rg -n \"/soft/\" src/pei_docker/project_files/installation/stage-1/system/conda`

@@ -12,37 +12,18 @@ Reject stage-2 build-time custom scripts (`stage_2.custom.on_build`) that pass r
 
 Add an explicit validation step in `src/pei_docker/config_processor.py` that runs after `UserConfig` is structured (via `cattrs`) and before scripts/compose are generated.
 
-Proposed helper API (Python):
+Implemented helper API (Python):
 
 ```python
 # src/pei_docker/config_processor.py
 
 from __future__ import annotations
 
-from typing import Iterable
-
-
-RUNTIME_ONLY_TOKENS = (
-    "/soft/",
-    "/hard/volume/",
-    "$PEI_PATH_SOFT",
-    "$PEI_SOFT_",
-)
-
-
-def validate_stage2_on_build_script_entries(script_entries: Iterable[str]) -> None:
-    """Reject runtime-only paths in stage-2 on_build custom scripts.
-
-    This intentionally validates the *configured string* (not post-rendered
-    wrapper output) so errors are actionable and stable.
-    """
-    for entry in script_entries:
-        if any(tok in entry for tok in RUNTIME_ONLY_TOKENS):
-            raise ValueError(
-                "stage_2.custom.on_build may not reference runtime-only paths "
-                "(/soft, /hard/volume) or soft-path env vars ($PEI_SOFT_*, $PEI_PATH_SOFT). "
-                f"Offending script entry: {entry!r}"
-            )
+class PeiConfigProcessor:
+    @staticmethod
+    def _validate_stage2_on_build_script_entries(script_entries: list[str]) -> None:
+        """Reject runtime-only storage paths in stage-2 build-time custom scripts."""
+        ...
 ```
 
 Notes:
@@ -135,13 +116,26 @@ pixi run pytest -q tests/test_on_build_path_validation.py
 
 ## Implementation Summary
 
-TODO(after implementation): summarize the validator, test coverage, and error UX changes.
+Stage-2 build-time scripts are now validated to reject runtime-only storage paths
+early (during config processing), with an actionable error message pointing to
+the offending entry.
 
 ### What has been implemented
 
-TODO(after implementation)
+- Implemented `PeiConfigProcessor._validate_stage2_on_build_script_entries()` in
+  `src/pei_docker/config_processor.py`.
+- Invoked that validator from `PeiConfigProcessor.process()` before wrapper/compose generation.
+- Validator rejects these tokens in `stage_2.custom.on_build` entries:
+  - `/soft/...`
+  - `/hard/volume/...`
+  - `$PEI_SOFT_*` / `${PEI_SOFT_*`
+  - `$PEI_PATH_SOFT` / `${PEI_PATH_SOFT`
+- Added unit coverage in `tests/test_on_build_path_validation.py`.
 
 ### How to verify
 
-TODO(after implementation)
-
+- Run the unit tests:
+  - `pixi run pytest -q tests/test_on_build_path_validation.py`
+- Sanity check with an intentionally bad config:
+  - set `stage_2.custom.on_build` to include `/soft/...`
+  - run `pei-docker-cli configure` and confirm it fails fast with the lifecycle hint
