@@ -1,6 +1,16 @@
 # Environment Variable Substitution Example
-# This configuration demonstrates how to use environment variables 
-# with fallback values for flexible Docker image configuration.
+# This configuration demonstrates how to use environment variables with:
+#
+# 1) Configure-time substitution (expanded by `pei-docker-cli configure`):
+#    - ${VAR} / ${VAR:-default}
+#
+# 2) Compose-time passthrough (preserved through config parsing and emitted into
+#    generated `docker-compose.yml` for Docker Compose to expand later):
+#    - {{VAR}} / {{VAR:-default}}
+#
+# In the generated `docker-compose.yml`, passthrough markers are rewritten:
+#   {{VAR}}           -> ${VAR}
+#   {{VAR:-default}}  -> ${VAR:-default}
 
 stage_1:
   # Base image can be customized for different environments
@@ -15,7 +25,8 @@ stage_1:
   ssh:
     enable: true
     port: 22
-    host_port: "${SSH_HOST_PORT:-2222}"  # Customizable SSH port
+    # SSH host_port is an integer field, so it can use only configure-time substitution.
+    host_port: "${SSH_HOST_PORT:-2222}"  # Customizable SSH port (configure-time)
     
     users:
       # Username and password can be set via environment variables
@@ -43,7 +54,15 @@ stage_1:
 
 stage_2:
   image:
-    output: "${PROJECT_NAME:-flexible-app}:stage-2"
+    # Mixed-mode example:
+    # - ${PROJECT_NAME:-...} is expanded during `configure`
+    # - {{TAG:-dev}} is preserved and expanded by Docker Compose
+    output: "${PROJECT_NAME:-flexible-app}:{{TAG:-dev}}"
+
+  # Port mappings are strings (Docker Compose `ports:` entries) and may contain
+  # compose-time passthrough markers.
+  ports:
+    - "{{WEB_HOST_PORT:-8080}}:80"
 
   # Device type should match stage-1
   device:

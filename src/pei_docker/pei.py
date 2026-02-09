@@ -81,10 +81,14 @@ import subprocess
 import sys
 
 import omegaconf as oc
+import yaml
 from pei_docker.config_processor import *
 from pei_docker.pei_utils import (
     load_yaml_file_with_duplicate_key_check,
     process_config_env_substitution,
+    find_first_passthrough_marker_in_container,
+    rewrite_passthrough_markers_in_container,
+    validate_no_leftover_substitution,
 )
         
 @click.group()
@@ -406,6 +410,18 @@ def configure(project_dir:str, config:str, full_compose:bool, with_merged:bool) 
     # Process environment variable substitution
     logging.info('Processing environment variable substitution')
     in_config = process_config_env_substitution(in_config)
+    validate_no_leftover_substitution(in_config)
+
+    if with_merged:
+        cfg_container = oc.OmegaConf.to_container(in_config, resolve=False)
+        found = find_first_passthrough_marker_in_container(cfg_container)
+        if found is not None:
+            found_path, found_value = found
+            raise ValueError(
+                "Passthrough markers `{{...}}` are supported only for generated "
+                "`docker-compose.yml` and are incompatible with `--with-merged`. "
+                f"Found marker-like content at {found_path!r}: {found_value!r}."
+            )
     
     # read the compose template file
     compose_path : str = os.path.join(project_dir, Defaults.OutputComposeTemplateName)
@@ -416,7 +432,24 @@ def configure(project_dir:str, config:str, full_compose:bool, with_merged:bool) 
     # process the config file
     proc : PeiConfigProcessor = PeiConfigProcessor.from_config(in_config, in_compose, project_dir=project_dir)
     out_compose = proc.process(remove_extra=not full_compose)
-    out_yaml = oc.OmegaConf.to_yaml(out_compose)
+
+    out_compose_container = oc.OmegaConf.to_container(out_compose, resolve=True)
+    if with_merged:
+        found = find_first_passthrough_marker_in_container(out_compose_container)
+        if found is not None:
+            found_path, found_value = found
+            raise ValueError(
+                "Passthrough markers `{{...}}` are supported only for generated "
+                "`docker-compose.yml` and are incompatible with `--with-merged`. "
+                f"Found marker-like content at {found_path!r}: {found_value!r}."
+            )
+    out_compose_container = rewrite_passthrough_markers_in_container(out_compose_container)
+    out_yaml = yaml.safe_dump(
+        out_compose_container,
+        default_flow_style=False,
+        sort_keys=False,
+        indent=2,
+    )
     
     # write the compose file to the same directory as config file
     out_compose_path = os.path.join(project_dir, Defaults.OutputComposeName)

@@ -1,9 +1,16 @@
 # Advanced Examples
 
 [](){#environment-variables}
-## Environment Variable Substitution
+## Environment Variables (Configure-Time vs Compose-Time)
 
-PeiDocker supports environment variable substitution in configuration files, allowing you to customize your setup without modifying the `user_config.yml` file directly. This is particularly useful for:
+PeiDocker supports two placeholder syntaxes so you can choose when values are resolved:
+
+1. **Configure-time substitution** (expanded during `pei-docker-cli configure`):
+   - `${VAR}` / `${VAR:-default}`
+2. **Compose-time passthrough** (preserved through config parsing and emitted into generated `docker-compose.yml` for Docker Compose to expand later):
+   - `{{VAR}}` / `{{VAR:-default}}`
+
+This is particularly useful for:
 
 - Different development environments (development, staging, production)
 - Team collaboration with different local paths
@@ -11,7 +18,11 @@ PeiDocker supports environment variable substitution in configuration files, all
 
 ### Syntax
 
-Use the `${VARIABLE_NAME:-default_value}` syntax in your `user_config.yml`:
+#### Configure-time substitution
+
+Use `${VARIABLE_NAME:-default_value}` in your `user_config.yml`. Values are expanded using the environment running `pei-docker-cli configure`.
+
+If any `${...}` tokens remain after configure-time substitution, `pei-docker-cli configure` fails with a clear error (set the env var before configuring, or use `{{...}}` passthrough).
 
 ```yaml
 stage_1:
@@ -24,6 +35,21 @@ stage_2:
       type: host
       host_path: "${SHARED_PATH:-C:\\tmp\\default}"
       dst_path: "/shared"
+```
+
+#### Compose-time passthrough
+
+Use `{{VARIABLE_NAME:-default_value}}` in any value that will end up in the generated `docker-compose.yml`. PeiDocker preserves these markers through config processing and rewrites them into standard Docker Compose `${...}` substitutions only when writing `docker-compose.yml`.
+
+```yaml
+stage_2:
+  image:
+    # Mixed-mode example: expanded at configure-time, then compose-time
+    output: "${PROJECT_NAME:-my-app}:{{TAG:-dev}}"
+
+  # Port mappings are strings and may include passthrough markers
+  ports:
+    - "{{WEB_HOST_PORT:-8080}}:80"
 ```
 
 ### Examples
@@ -148,13 +174,20 @@ stage_2:
 
 ### Best Practices
 
-1. **Always provide defaults**: Use `${VAR:-default}` rather than `${VAR}` to ensure the configuration works even when environment variables aren't set.
+1. **Always provide defaults**: Prefer `${VAR:-default}` / `{{VAR:-default}}` rather than `${VAR}` / `{{VAR}}` so configs work without extra environment setup.
 
 2. **Use meaningful variable names**: Choose descriptive names like `PROJECT_DATA_PATH` instead of generic names like `PATH1`.
 
 3. **Document your variables**: Include comments in your `user_config.yml` explaining what each environment variable controls.
 
 4. **Test both scenarios**: Verify your configuration works both with and without environment variables set.
+
+### Limitations (Initial Scope)
+
+- Passthrough markers `{{...}}` are supported only for values emitted into `docker-compose.yml` (compose-only initially).
+- `pei-docker-cli configure --with-merged` is incompatible with passthrough markers (merged artifacts are not interpreted by Docker Compose substitution).
+- Passthrough markers are **not supported** in generated script contexts (e.g. `stage_?.custom.*` and `stage_?.custom.on_entry`) because those values are baked into scripts during `configure`.
+- If env baking into `/etc/environment` is enabled (`PEI_BAKE_ENV_STAGE_1` / `PEI_BAKE_ENV_STAGE_2`), stage environment values must not contain passthrough markers, because they would be baked as literal strings.
 
 ## Hardware-accelerated OpenGL
 

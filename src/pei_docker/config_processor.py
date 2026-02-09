@@ -17,7 +17,7 @@ import omegaconf as oc
 from omegaconf import DictConfig
 from attrs import define, field
 import cattrs
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from pei_docker.user_config import *
 
@@ -598,8 +598,21 @@ class PeiConfigProcessor:
             (user_config.stage_2, oc.OmegaConf.select(compose_template, 'services.stage-2')),
         ]
         
-        # this will accumulate from stage 1 to stage 2
-        port_dict : dict[int, int] = {}
+        stage_1_ports: list[str] = []
+        stage_2_ports: list[str] = []
+        ssh_mapping: str | None = None
+
+        if user_config.stage_1 is not None and user_config.stage_1.ports:
+            stage_1_ports = list(user_config.stage_1.ports)
+        if user_config.stage_2 is not None and user_config.stage_2.ports:
+            stage_2_ports = list(user_config.stage_2.ports)
+
+        if (
+            user_config.stage_1 is not None
+            and user_config.stage_1.ssh is not None
+            and user_config.stage_1.ssh.host_port is not None
+        ):
+            ssh_mapping = f"{user_config.stage_1.ssh.host_port}:{user_config.stage_1.ssh.port}"
         env_dict : dict[str, str] = {}
         
         for ith_stage, _data in enumerate(stages):
@@ -608,13 +621,10 @@ class PeiConfigProcessor:
                 continue
                         
             # port mapping
-            if stage_config.ports is not None:
-                _port_dict = port_mapping_str_to_dict(stage_config.ports)
-                port_dict.update(_port_dict)
-            
-            if stage_config.ssh is not None and stage_config.ssh.host_port is not None:
-                port_dict[stage_config.ssh.host_port] = stage_config.ssh.port
-            port_strings = port_mapping_dict_to_str(port_dict)
+            if ith_stage == 0:
+                port_strings = stage_1_ports + ([ssh_mapping] if ssh_mapping else [])
+            else:
+                port_strings = stage_1_ports + stage_2_ports + ([ssh_mapping] if ssh_mapping else [])
             
             # from rich import print as pprint
             # logging.info(f'Port mappings: {port_strings}')
@@ -787,6 +797,56 @@ class PeiConfigProcessor:
                     "- Runtime hooks (on_first_run/on_every_run/on_user_login) may use /soft/...\n"
                     f"Offending entry: {entry!r}"
                 )
+
+    @staticmethod
+    def _reject_passthrough_markers_in_script_entries(
+        script_entries: list[str], *, context: str
+    ) -> None:
+        """Reject passthrough markers in generated-script contexts.
+
+        Notes
+        -----
+        Passthrough markers ``{{...}}`` are supported only for values that end up
+        in ``docker-compose.yml`` (so Docker Compose can interpolate them). Script
+        hook entries are embedded into PeiDocker-generated scripts at configure
+        time and therefore must not contain passthrough markers.
+        """
+        for i, entry in enumerate(script_entries):
+            if isinstance(entry, str) and "{{" in entry:
+                raise ValueError(
+                    "Passthrough markers `{{...}}` are supported only for values "
+                    "emitted into `docker-compose.yml` and are not supported in "
+                    "generated scripts. "
+                    f"Found in {context}[{i}]: {entry!r}"
+                )
+
+    @staticmethod
+    def _bool_from_compose_arg(value: Any) -> bool:
+        """Coerce a compose build arg value to bool using PeiDocker conventions."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value != 0
+        if isinstance(value, str):
+            v = value.strip()
+            if v in {"1", "true", "TRUE", "True"}:
+                return True
+            if v in {"0", "false", "FALSE", "False"}:
+                return False
+            return v.lower() == "true"
+        return False
+
+    def _is_env_baking_enabled(self, compose_cfg: DictConfig, stage: str) -> bool:
+        """Return True if the resolved compose enables env baking for a stage."""
+        if stage not in {"stage-1", "stage-2"}:
+            return False
+        stage_idx = stage.split("-", 1)[1]
+        arg_name = f"PEI_BAKE_ENV_STAGE_{stage_idx}"
+        value = oc.OmegaConf.select(
+            compose_cfg,
+            f"services.{stage}.build.args.{arg_name}",
+        )
+        return self._bool_from_compose_arg(value)
     
     def _generate_script_text(self, on_what:str, filelist : Optional[list[str]]) -> str:
         """
@@ -846,6 +906,40 @@ class PeiConfigProcessor:
         user_config : UserConfig
             The user configuration object containing environment settings for each stage.
         """
+        self._generate_etc_environment_with_bake_flags(
+            user_config,
+            bake_stage_1=False,
+            bake_stage_2=False,
+        )
+
+    def _generate_etc_environment_with_bake_flags(
+        self,
+        user_config: UserConfig,
+        *,
+        bake_stage_1: bool,
+        bake_stage_2: bool,
+    ) -> None:
+        """Generate stage env files and optionally enforce baking restrictions.
+
+        Notes
+        -----
+        Passthrough markers ``{{...}}`` are supported only in values that Docker
+        Compose can interpolate. Stage environment values are written into
+        ``installation/stage-*/generated/_etc_environment.sh`` and are appended
+        to ``/etc/environment`` only when env baking is enabled. Therefore:
+
+        - markers are allowed in stage environment values by default
+        - markers are rejected when baking is enabled for that stage
+        """
+
+        def _reject_baked_env_markers(stage_name: str, env_dict: dict[str, str]) -> None:
+            for k, v in env_dict.items():
+                if isinstance(v, str) and "{{" in v:
+                    raise ValueError(
+                        "Passthrough markers `{{...}}` cannot be baked into "
+                        f"`/etc/environment` (stage {stage_name}). "
+                        f"Offending env entry: {k}={v!r}"
+                    )
         
         # stage 1
         # write to file
@@ -855,6 +949,8 @@ class PeiConfigProcessor:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         if user_config.stage_1 is not None and user_config.stage_1.environment:
             env_dict = user_config.stage_1.get_environment_as_dict()
+            if bake_stage_1 and env_dict is not None:
+                _reject_baked_env_markers("stage-1", env_dict)
             
             logging.info(f'Writing env to {filename}')
             with open(filename, 'w+') as f:
@@ -876,6 +972,8 @@ class PeiConfigProcessor:
         
         if user_config.stage_2 is not None and user_config.stage_2.environment:
             env_dict = user_config.stage_2.get_environment_as_dict()
+            if bake_stage_2 and env_dict is not None:
+                _reject_baked_env_markers("stage-2", env_dict)
             
             logging.info(f'Writing env to {filename}')
             with open(filename, 'w+') as f:
@@ -1042,6 +1140,32 @@ class PeiConfigProcessor:
         # Validate stage-2 build-time scripts early (before generating compose/scripts).
         if user_config.stage_2 is not None and user_config.stage_2.custom is not None:
             self._validate_stage2_on_build_script_entries(user_config.stage_2.custom.on_build)
+
+        # Reject passthrough markers in any script-related config that is baked into
+        # generated files during `configure` (no Docker Compose interpolation).
+        for stage_name, stage_cfg in (
+            ("stage_1", user_config.stage_1),
+            ("stage_2", user_config.stage_2),
+        ):
+            if stage_cfg is None or stage_cfg.custom is None:
+                continue
+
+            custom = stage_cfg.custom
+            self._reject_passthrough_markers_in_script_entries(
+                custom.on_build, context=f"{stage_name}.custom.on_build"
+            )
+            self._reject_passthrough_markers_in_script_entries(
+                custom.on_first_run, context=f"{stage_name}.custom.on_first_run"
+            )
+            self._reject_passthrough_markers_in_script_entries(
+                custom.on_every_run, context=f"{stage_name}.custom.on_every_run"
+            )
+            self._reject_passthrough_markers_in_script_entries(
+                custom.on_user_login, context=f"{stage_name}.custom.on_user_login"
+            )
+            self._reject_passthrough_markers_in_script_entries(
+                custom.on_entry, context=f"{stage_name}.custom.on_entry"
+            )
         
         # apply the user config to the compose template
         if self.m_compose_template is None:
@@ -1065,7 +1189,13 @@ class PeiConfigProcessor:
             self._generate_script_files(user_config)
             
         # generate etc/environment files
-        self._generate_etc_environment(user_config)
+        bake_stage_1 = self._is_env_baking_enabled(compose_resolved, "stage-1")
+        bake_stage_2 = self._is_env_baking_enabled(compose_resolved, "stage-2")
+        self._generate_etc_environment_with_bake_flags(
+            user_config,
+            bake_stage_1=bake_stage_1,
+            bake_stage_2=bake_stage_2,
+        )
         
         # strip the x-? from the compose template
         if remove_extra:

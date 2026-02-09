@@ -11,8 +11,6 @@ from typing import Optional, Dict, List
 from pei_docker.user_config.utils import (
     env_converter,
     env_str_to_dict,
-    port_mapping_str_to_dict,
-    port_mapping_dict_to_str
 )
 from pei_docker.user_config.image import ImageConfig
 from pei_docker.user_config.ssh import SSHConfig
@@ -64,10 +62,6 @@ class StageConfig:
         
     Methods
     -------
-    get_port_mapping_as_dict() : Dict[int, int] or None
-        Convert port mappings to dictionary format for programmatic access.
-    set_port_mapping_from_dict(port_mapping: Dict[int, int])
-        Set port mappings from dictionary format.
     get_environment_as_dict() : Dict[str, str] or None
         Get environment variables as dictionary (handles legacy list format).
         
@@ -157,44 +151,6 @@ class StageConfig:
                     f"starting with '/', got {dst_path!r}"
                 )
     
-    def get_port_mapping_as_dict(self) -> Optional[Dict[int, int]]:
-        """
-        Get port mappings as dictionary format for programmatic access.
-        
-        Returns
-        -------
-        Dict[int, int] or None
-            Dictionary mapping host ports to container ports, or None
-            if no port mappings are configured.
-            
-        Examples
-        --------
-        >>> config = StageConfig(ports=["8080:80", "9000-9002:9000-9002"])
-        >>> config.get_port_mapping_as_dict()
-        {8080: 80, 9000: 9000, 9001: 9001, 9002: 9002}
-        """
-        if self.ports is not None:
-            return port_mapping_str_to_dict(self.ports)
-        return None
-        
-    def set_port_mapping_from_dict(self, port_mapping: Dict[int, int]) -> None:
-        """
-        Set port mappings from dictionary format.
-        
-        Parameters
-        ----------
-        port_mapping : Dict[int, int]
-            Dictionary mapping host ports to container ports.
-            
-        Examples
-        --------
-        >>> config = StageConfig()
-        >>> config.set_port_mapping_from_dict({8080: 80, 9000: 9000})
-        >>> config.ports
-        ['8080:80', '9000:9000']
-        """
-        self.ports = port_mapping_dict_to_str(port_mapping)
-        
     def get_environment_as_dict(self) -> Optional[Dict[str, str]]:
         """
         Get environment variables as dictionary format.
