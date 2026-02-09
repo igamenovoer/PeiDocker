@@ -11,6 +11,14 @@ Constraints:
 - Passthrough syntax is limited to `{{VAR}}` and `{{VAR:-default}}` (no `?` / `:?` forms).
 - Avoid conflicts with OmegaConf interpolation and the existing config processing pipeline.
 
+## Testing Conventions
+
+- For end-to-end tests that build images on this host, use `ubuntu:24.04` as the base image.
+- For any temporary test projects / generated artifacts, use a workspace-relative directory under `tmp/<subdir>` (example: `tmp/env-var-passthrough-and-port-strings-test/`).
+- Due to networking issues, for any download-related testing (APT, Pixi/Conda installers, etc.), either:
+  - use a China-based mirror, or
+  - use the host proxy at `127.0.0.1:7890`.
+
 ## Goals / Non-Goals
 
 **Goals:**

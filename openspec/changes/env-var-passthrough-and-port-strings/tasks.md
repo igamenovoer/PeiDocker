@@ -1,3 +1,21 @@
+## Implementation Guides
+
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp1-passthrough-marker-utilities.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp2-config-time-substitution-hard-errors.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp3-compose-emission-integration.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp4-unsupported-context-guardrails.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp5-port-mapping-string-model.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/grp6-docs-and-examples.md`
+- `openspec/changes/env-var-passthrough-and-port-strings/impl-guides/impl-integrate-groups.md`
+
+## Testing Conventions
+
+- Use `ubuntu:24.04` as the base image for any end-to-end tests that build images on this host.
+- Use `tmp/<subdir>` for any temporary project directories / generated artifacts during testing (example: `tmp/env-var-passthrough-and-port-strings-test/`).
+- Due to networking issues, for any download-related testing (APT, Pixi/Conda installers, etc.), either:
+  - use a China-based mirror, or
+  - use the host proxy at `127.0.0.1:7890`.
+
 ## 1. Passthrough Marker Utilities
 
 - [ ] 1.1 Implement `{{VAR}}` / `{{VAR:-default}}` marker parsing + validation (trim whitespace, validate `VAR`, reject `}}` in default)
