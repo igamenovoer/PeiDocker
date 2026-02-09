@@ -1066,3 +1066,131 @@ def read_ssh_key_content(key_path: str) -> str:
         raise PermissionError(f'Permission denied reading SSH key file: {key_path}')
     except Exception as e:
         raise RuntimeError(f'Error reading SSH key file {key_path}: {e}')
+
+# -----------------------------------------------------------------------------
+# Passthrough Marker Utilities ({{VAR}} -> ${VAR})
+# -----------------------------------------------------------------------------
+
+def is_passthrough_marker(value: str) -> bool:
+    """
+    Check if a string is a valid passthrough marker {{...}}.
+    
+    A passthrough marker is a string of the form:
+      {{VAR}}
+    or
+      {{VAR:-default}}
+      
+    It must start with {{ and end with }}.
+    Whitespace inside braces is allowed and trimmed.
+    """
+    if not isinstance(value, str):
+        return False
+    value = value.strip()
+    return value.startswith("{{") and value.endswith("}}")
+
+def validate_passthrough_marker(value: str) -> None:
+    """
+    Validate a passthrough marker string.
+    
+    Raises ValueError if the string is not a valid marker or contains
+    forbidden characters/patterns.
+    """
+    if not is_passthrough_marker(value):
+        # If it's not even structurally a marker, we might strictly raise or just pass
+        # But if this function is called, we assume it's expected to be a marker.
+        if isinstance(value, str) and "{{" in value:
+             # It might be a malformed marker
+             pass
+        else:
+             return # Not a marker candidate
+
+    # Strip outer braces
+    content = value.strip()[2:-2].strip()
+    
+    # Check for empty content
+    if not content:
+        raise ValueError("Empty passthrough marker")
+        
+    # Check for nested markers or disallowed characters in defaults
+    # Parse VAR and DEFAULT
+    if ":-" in content:
+        var_part, default_part = content.split(":-", 1)
+        var_part = var_part.strip()
+        # validate var_part (shell variable name constraints usually apply, but we can be loose)
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', var_part):
+            raise ValueError(f"Invalid variable name in marker: {var_part}")
+            
+        # validate default_part
+        if "{{" in default_part or "}}" in default_part:
+             raise ValueError("Default value cannot contain nested markers or braces")
+        if "${" in default_part:
+             raise ValueError("Default value cannot contain config-time substitution tokens '${'")
+             
+    else:
+        var_part = content
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', var_part):
+            raise ValueError(f"Invalid variable name in marker: {var_part}")
+
+def rewrite_passthrough_markers(text: str) -> str:
+    """
+    Rewrite {{VAR}} and {{VAR:-def}} markers to ${VAR} and ${VAR:-def}.
+    
+    This is a plain text transformation. It finds all occurrences of 
+    {{...}} patterns and converts them to ${...}.
+    
+    Nested markers are NOT supported (and disallowed by validation).
+    """
+    if not isinstance(text, str):
+        return text
+        
+    pattern = r'\{\{(.*?)\}\}'
+    
+    def replacer(match):
+        content = match.group(1).strip()
+        # We assume validation has happened or we do a best-effort rewrite
+        # But for correctness, we just wrap it in ${ }
+        return f"${{{content}}}"
+        
+    return re.sub(pattern, replacer, text)
+
+def rewrite_passthrough_markers_in_container(data: Any) -> Any:
+    """
+    Recursively rewrite passthrough markers in a container (dict/list).
+    
+    Returns a new container with rewritten values.
+    """
+    if isinstance(data, dict):
+        return {k: rewrite_passthrough_markers_in_container(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [rewrite_passthrough_markers_in_container(item) for item in data]
+    elif isinstance(data, str):
+        return rewrite_passthrough_markers(data)
+    else:
+        return data
+
+def validate_no_leftover_substitution(cfg: DictConfig) -> None:
+    """
+    Scan configuration for leftover ${...} tokens.
+    
+    Raises ValueError if any are found, as they indicate unresolved 
+    config-time substitutions.
+    """
+    # Convert to container to traverse easily
+    container = oc.OmegaConf.to_container(cfg, resolve=False)
+    
+    def check_recursive(data, path=""):
+        if isinstance(data, dict):
+            for k, v in data.items():
+                check_recursive(v, f"{path}.{k}" if path else k)
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                check_recursive(item, f"{path}[{i}]")
+        elif isinstance(data, str):
+            if "${" in data:
+                 # Check if it looks like a variable substitution pattern
+                 # We use a simple check for now
+                 if re.search(r'\$\{.*\}', data):
+                     raise ValueError(f"Config value contains forbidden leftover substitution '${{...}}' at '{path}': {data!r}. Use '{{{{VAR}}}}' for Compose-time passthrough.")
+
+    check_recursive(container)
+
