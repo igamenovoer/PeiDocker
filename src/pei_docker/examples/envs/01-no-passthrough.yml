@@ -1,0 +1,24 @@
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${CASE_PREFIX:-pei-env-no-pass}:stage-1"
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2222}"
+    users:
+      me:
+        password: "123456"
+
+  apt:
+    repo_source: "${APT_REPO_SOURCE:-tuna}"
+
+stage_2:
+  image:
+    output: "${CASE_PREFIX:-pei-env-no-pass}:stage-2"
+
+  environment:
+    CASE_NAME: "${CASE_NAME:-no-passthrough}"
+    APP_MODE: "${APP_MODE:-dev}"
+    RESOLVED_AT: "configure-time"

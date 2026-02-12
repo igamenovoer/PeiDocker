@@ -12,6 +12,11 @@ nav:
 - Examples:
   - Basic: examples/basic.md
   - Advanced: examples/advanced.md
+  - Environment Variables:
+    - 1. No Passthrough: examples/env-no-passthrough.md
+    - 2. With Passthrough: examples/env-with-passthrough.md
+    - 3. Advanced Handling: examples/env-advanced.md
+  - Build & Run (Env Cases): examples/env-build-and-run.md
 
 theme:
   name: material

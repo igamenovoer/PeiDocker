@@ -9,6 +9,13 @@ To accelerate apt installation in China, the `apt` source is set to `tuna`. For 
 
 **Note:** This example uses password-only authentication. For advanced SSH key configuration including inline keys, file-based keys, and environment variable integration, see [Advanced SSH Key Configuration](advanced.md#ssh-keys-advanced).
 
+For environment-variable focused tutorials, see:
+
+- [Env Tutorial 1: No Passthrough](env-no-passthrough.md)
+- [Env Tutorial 2: With Passthrough](env-with-passthrough.md)
+- [Env Tutorial 3: Advanced Env Handling](env-advanced.md)
+- [Env Build and Run Walkthrough](env-build-and-run.md)
+
 ```yaml
 # user_config.yml under project directory
 

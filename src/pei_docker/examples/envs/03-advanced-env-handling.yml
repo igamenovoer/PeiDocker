@@ -1,0 +1,30 @@
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-pei-env-advanced}:stage-1"
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2224}"
+    users:
+      me:
+        password: "123456"
+
+  apt:
+    repo_source: "${APT_REPO_SOURCE:-tuna}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-pei-env-advanced}:{{TAG:-edge}}"
+
+  ports:
+    - "{{WEB_HOST_PORT:-28080}}:80"
+    - "${ALT_PORT:-29090}:90"
+
+  environment:
+    CASE_NAME: "advanced-env-handling"
+    MIXED_IMAGE_REF: "${PROJECT_NAME:-pei-env-advanced}:{{TAG:-edge}}"
+    RESOLVED_HOSTNAME: "${HOST_LABEL:-lab}"
+    RUNTIME_PROFILE: "{{RUNTIME_PROFILE:-default}}"
+    STATIC_FLAG: "advanced-case"

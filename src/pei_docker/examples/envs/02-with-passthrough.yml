@@ -1,0 +1,28 @@
+stage_1:
+  image:
+    base: "${BASE_IMAGE:-ubuntu:24.04}"
+    output: "${PROJECT_NAME:-pei-env-pass}:stage-1"
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: "${SSH_HOST_PORT:-2223}"
+    users:
+      me:
+        password: "123456"
+
+  apt:
+    repo_source: "${APT_REPO_SOURCE:-tuna}"
+
+stage_2:
+  image:
+    output: "${PROJECT_NAME:-pei-env-pass}:{{TAG:-dev}}"
+
+  ports:
+    - "{{WEB_HOST_PORT:-18080}}:80"
+
+  environment:
+    CASE_NAME: "with-passthrough"
+    RUNTIME_TAG: "{{TAG:-dev}}"
+    HOST_WEB_PORT: "{{WEB_HOST_PORT:-18080}}"
+    CONFIG_MODE: "compose-time"
