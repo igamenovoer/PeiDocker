@@ -1,0 +1,29 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-entrypoint-e2e-custom-stage1:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: null
+    users:
+      tester:
+        password: "tester123"
+        uid: 1200
+
+  custom:
+    on_entry:
+      - "stage-1/custom/stage1-entry.sh --baked-stage=1 --baked-order=first"
+
+stage_2:
+  image:
+    output: pei-entrypoint-e2e-custom-stage1:stage-2
+
+  storage:
+    app:
+      type: image
+    data:
+      type: image
+    workspace:
+      type: image

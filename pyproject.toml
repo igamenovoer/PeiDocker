@@ -144,6 +144,7 @@ test = "pytest tests/"
 lint = "ruff check src/"
 format = "black src/ tests/"
 type-check = "mypy src/"
+test-entrypoint-e2e = "bash tests/scripts/run-entrypoint-e2e-functional.bash"
 
 # Documentation tasks (run in dev environment)
 docs-serve = "mkdocs serve"
