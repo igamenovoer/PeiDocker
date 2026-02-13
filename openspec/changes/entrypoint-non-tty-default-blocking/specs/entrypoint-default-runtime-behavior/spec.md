@@ -1,10 +1,17 @@
 ## ADDED Requirements
 
 ### Requirement: Entrypoint preparation runs before handoff
+Entrypoint MUST always complete stage preparation before any final handoff action.
+
 When a stage container starts, entrypoint MUST run stage preparation steps before handing off to:
 - a custom `on_entry` entrypoint,
 - a user command, or
 - default fallback behavior.
+
+#### Scenario: preparation happens before user command handoff
+- **WHEN** a stage container starts with a user command
+- **THEN** entrypoint MUST run preparation first
+- **AND** only after preparation completes, entrypoint MUST `exec` the user command
 
 ### Requirement: Custom `on_entry` is executed via a generated wrapper script
 When `custom.on_entry` is configured for a stage, the system MUST generate a wrapper script:
@@ -34,6 +41,8 @@ The wrapper script MUST:
 - **AND** it MUST NOT interpret `--no-block` or other default-mode options
 
 ### Requirement: Default-mode CLI shape
+Entrypoint MUST parse runtime argv according to this default-mode CLI shape whenever no custom `on_entry` applies.
+
 When no custom `on_entry` applies:
 - If argv does **not** start with `--`, entrypoint MUST treat argv as a user command and `exec "$@"`.
 - If argv **does** start with `--`, entrypoint MUST parse entrypoint options until `--`, then treat everything after `--` as the user command to `exec` (if provided).
@@ -53,8 +62,16 @@ Supported entrypoint options (default-mode) MUST include:
 - **THEN** entrypoint MUST exit non-zero with a helpful error message
 
 ### Requirement: `--no-block` disables default fallback blocking
+Entrypoint MUST support `--no-block` as an explicit opt-out of fallback blocking behavior.
+
 When no custom `on_entry` applies and no user command is provided:
 - If `--no-block` is specified, entrypoint MUST exit successfully after preparation (no bash, no sleep).
+
+#### Scenario: no-block explicit exit
+- **WHEN** a stage container starts with `--no-block`
+- **AND** no custom `on_entry` applies
+- **AND** no command is provided after option parsing
+- **THEN** entrypoint MUST exit `0` after preparation
 
 ### Requirement: `--verbose` enables verbose runtime hook wrapper logging
 When `--verbose` is specified in default-mode options, entrypoint MUST enable verbose logging for runtime hook wrappers and preparation scripts.
@@ -71,6 +88,8 @@ Implementation note:
 - **THEN** runtime hook wrappers under `generated/` (including the generated custom `on_entry` wrapper) SHOULD avoid noisy "Executing ..." logs
 
 ### Requirement: Interactive detection includes stdin-open (`docker run -i`)
+Entrypoint MUST decide default fallback interactivity by considering both TTY presence and stdin-open state.
+
 When no custom `on_entry` applies and no user command is provided and `--no-block` is not specified:
 - If stdin is a TTY OR stdin is open (not `/dev/null`), entrypoint MUST start `/bin/bash`.
 - If stdin is not a TTY AND stdin is closed (`/dev/null`), entrypoint MUST run a blocking foreground process (`sleep infinity` or equivalent).
@@ -89,6 +108,21 @@ When no custom `on_entry` applies and no user command is provided and `--no-bloc
 - **AND** no user command is provided
 - **THEN** entrypoint MUST execute `sleep infinity` (or equivalent) as a blocking foreground process
 
+### Requirement: SSH-first default usability
+Entrypoint MUST keep no-command non-interactive startup SSH-usable in the project’s default SSH-first usage model.
+
+In the expected default deployment model for these images:
+- SSH service support is present in the image baseline.
+- Users primarily access containers through SSH after container startup.
+
+Therefore, for no-command non-interactive startup (sleep fallback path), entrypoint behavior MUST keep the container alive long enough for SSH-based usage.
+
+#### Scenario: no-command non-interactive startup remains SSH-usable
+- **WHEN** a stage container starts in non-interactive mode with no command
+- **AND** SSH service is configured/enabled for the image
+- **THEN** the container MUST remain running by default
+- **AND** SSH users MUST be able to log in and run basic installed-tooling smoke commands
+
 ### Requirement: Logging
 Entrypoint MUST log which final action it takes:
 - custom `on_entry`
@@ -96,3 +130,7 @@ Entrypoint MUST log which final action it takes:
 - bash fallback
 - sleep fallback
 - no-block exit
+
+#### Scenario: final action is logged
+- **WHEN** entrypoint selects its final branch
+- **THEN** logs MUST include a clear message indicating which branch was selected

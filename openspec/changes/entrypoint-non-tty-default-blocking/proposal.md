@@ -17,6 +17,10 @@ PeiDocker entrypoint defaults currently fall back to `/bin/bash` when no command
   - Stage-2 overrides stage-1 if both exist.
   - If custom entrypoint applies, entrypoint passes all runtime args through unchanged (no entrypoint option parsing).
   - Missing custom script is a hard error (non-zero exit).
+- Add required heavy functional coverage as manual-trigger tests under:
+  - `tests/functional/entrypoint-non-tty-default-blocking/...`
+  - Tests must build real Docker images and save logs/artifacts under `tmp/entrypoint-non-tty-default-blocking-e2e/`.
+  - Primary validation is SSH-first: start container with no runtime command in non-interactive mode, verify SSH login succeeds, and confirm installed tooling/scripts are usable after login.
 - Update documentation/spec coverage for entrypoint default behavior, entrypoint CLI, and non-interactive runtime expectations.
 
 ## Capabilities

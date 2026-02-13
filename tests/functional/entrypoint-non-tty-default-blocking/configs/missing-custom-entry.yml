@@ -1,0 +1,29 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-entrypoint-e2e-missing:stage-1
+
+  ssh:
+    enable: true
+    port: 22
+    host_port: null
+    users:
+      tester:
+        password: "tester123"
+        uid: 1200
+
+stage_2:
+  image:
+    output: pei-entrypoint-e2e-missing:stage-2
+
+  storage:
+    app:
+      type: image
+    data:
+      type: image
+    workspace:
+      type: image
+
+  custom:
+    on_entry:
+      - "stage-2/custom/missing-entry.sh --mode=smoke"

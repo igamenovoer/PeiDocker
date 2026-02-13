@@ -1,153 +1,141 @@
 #!/bin/bash
 
-# stage 2 entrypoint, part of the content is from stage 1 entrypoint
+script_dir_1="$PEI_STAGE_DIR_1/internals"
+script_dir_2="$PEI_STAGE_DIR_2/internals"
+custom_wrapper_1="$PEI_STAGE_DIR_1/generated/_custom-on-entry.sh"
+custom_wrapper_2="$PEI_STAGE_DIR_2/generated/_custom-on-entry.sh"
 
-script_dir_1=$PEI_STAGE_DIR_1/internals
-script_dir_2=$PEI_STAGE_DIR_2/internals
+selected_custom_wrapper=""
+selected_custom_stage=""
 
-# run on-entry tasks for stage 1
-bash $script_dir_1/on-entry.sh
+if [ -s "$custom_wrapper_2" ]; then
+    selected_custom_wrapper="$custom_wrapper_2"
+    selected_custom_stage="stage-2"
+elif [ -s "$custom_wrapper_1" ]; then
+    selected_custom_wrapper="$custom_wrapper_1"
+    selected_custom_stage="stage-1"
+fi
 
-# run on-entry tasks for stage 2
-bash $script_dir_2/on-entry.sh
+_stdin_is_interactive() {
+    if [ -t 0 ]; then
+        return 0
+    fi
 
-# # do first run tasks
-# bash $script_dir_1/on-first-run.sh
+    stdin_target="$(readlink /proc/$$/fd/0 2>/dev/null || true)"
+    if [ -n "$stdin_target" ] && [ "$stdin_target" != "/dev/null" ]; then
+        return 0
+    fi
 
-# # create links
-# bash $script_dir_2/create-links.sh
+    return 1
+}
 
-# # do first run tasks in stage 2
-# bash $script_dir_2/on-first-run.sh
+_prescan_verbose_default_mode() {
+    # Only parse entrypoint options in default mode.
+    if [ -n "$selected_custom_wrapper" ]; then
+        return 0
+    fi
+    if [ $# -eq 0 ]; then
+        return 0
+    fi
+    case "$1" in
+        --*)
+            ;;
+        *)
+            return 0
+            ;;
+    esac
 
-# check if ssh is installed, if yes, start the service
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --)
+                break
+                ;;
+            --verbose)
+                export PEI_ENTRYPOINT_VERBOSE=1
+                return 0
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+}
+
+_prescan_verbose_default_mode "$@"
+
+# Always run preparation before handoff.
+bash "$script_dir_1/on-entry.sh"
+bash "$script_dir_2/on-entry.sh"
+
 if [ -f /etc/ssh/sshd_config ]; then
     echo "Starting ssh service..."
     service ssh start
 fi
 
-# check if custom entry point is provided (stage-2 overrides stage-1)
-custom_entry_file_2="$PEI_STAGE_DIR_2/internals/custom-entry-path"
-custom_entry_args_file_2="$PEI_STAGE_DIR_2/internals/custom-entry-args"
-custom_entry_file_1="$PEI_STAGE_DIR_1/internals/custom-entry-path"
-custom_entry_args_file_1="$PEI_STAGE_DIR_1/internals/custom-entry-args"
-
-if [ -f "$custom_entry_file_2" ] && [ -s "$custom_entry_file_2" ]; then
-
-    # Stage-2 custom entry point exists, use it and ignore stage-1
-
-    raw_path=$(cat "$custom_entry_file_2")
-
-    custom_entry_script="${raw_path/\$PEI_STAGE_DIR_2/$PEI_STAGE_DIR_2}"
-
-    custom_entry_args_file="$custom_entry_args_file_2"
-
-    stage_name="stage-2"
-
-elif [ -f "$custom_entry_file_1" ] && [ -s "$custom_entry_file_1" ]; then
-
-    # No stage-2 custom entry point, check stage-1
-
-    raw_path=$(cat "$custom_entry_file_1")
-
-    custom_entry_script="${raw_path/\$PEI_STAGE_DIR_1/$PEI_STAGE_DIR_1}"
-
-    custom_entry_args_file="$custom_entry_args_file_1"
-
-    stage_name="stage-1"
-
-else
-
-    # No custom entry point found
-
-    if [ $# -gt 0 ]; then
-
-        echo "Executing command: $@"
-
-        exec "$@"
-
-    else
-
-        echo "Shell started."
-
-        export SHELL=/bin/bash
-
-        /bin/bash
-
-        exit 0
-
-    fi
-
+if [ -n "$selected_custom_wrapper" ]; then
+    echo "Entrypoint branch: custom on_entry wrapper ($selected_custom_stage)"
+    exec bash "$selected_custom_wrapper" "$@"
 fi
 
-
-
-# Execute the custom entry point with argument precedence logic
-
-if [ -f "$custom_entry_script" ]; then
-
-    echo "Executing $stage_name custom entry point: $custom_entry_script"
-
-    
-
-    # Determine which arguments to use
-
-    if [ $# -gt 0 ]; then
-
-        # Runtime arguments provided, use them
-
-        echo "Using runtime arguments: $@"
-
-        bash "$custom_entry_script" "$@"
-
-    elif [ -f "$custom_entry_args_file" ]; then
-
-        # No runtime arguments, use default arguments from config
-
-        default_args=$(cat "$custom_entry_args_file")
-
-        if [ -n "$default_args" ]; then
-
-            echo "Using default arguments: $default_args"
-
-            eval "bash \"$custom_entry_script\" $default_args"
-
-        else
-
-            echo "No arguments (runtime or default)"
-
-            bash "$custom_entry_script"
-
-        fi
-
-    else
-
-        # No arguments file, run without arguments
-
-        echo "No arguments (no default args file)"
-
-        bash "$custom_entry_script"
-
-    fi
-
-else
-
-    echo "Warning: Custom entry point file not found: $custom_entry_script"
-
-    if [ $# -gt 0 ]; then
-
-        echo "Executing command: $@"
-
-        exec "$@"
-
-    else
-
-        echo "Starting default shell..."
-
-        export SHELL=/bin/bash
-
-        /bin/bash
-
-    fi
-
+# Preserve legacy command passthrough when argv does not start with '--'.
+if [ $# -gt 0 ]; then
+    case "$1" in
+        --*)
+            ;;
+        *)
+            echo "Entrypoint branch: exec user command ($*)"
+            exec "$@"
+            ;;
+    esac
 fi
+
+no_block=0
+args=("$@")
+cmd_start=0
+idx=0
+len=${#args[@]}
+
+while [ $idx -lt $len ]; do
+    arg="${args[$idx]}"
+    case "$arg" in
+        --no-block)
+            no_block=1
+            ;;
+        --verbose)
+            export PEI_ENTRYPOINT_VERBOSE=1
+            ;;
+        --)
+            cmd_start=$((idx + 1))
+            break
+            ;;
+        --*)
+            echo "Error: Unknown entrypoint option: $arg" >&2
+            exit 2
+            ;;
+        *)
+            echo "Error: Unexpected entrypoint argument before '--': $arg" >&2
+            exit 2
+            ;;
+    esac
+    idx=$((idx + 1))
+done
+
+if [ $cmd_start -gt 0 ] && [ $cmd_start -lt $len ]; then
+    cmd=("${args[@]:$cmd_start}")
+    echo "Entrypoint branch: exec user command (${cmd[*]})"
+    exec "${cmd[@]}"
+fi
+
+if [ "$no_block" = "1" ]; then
+    echo "Entrypoint branch: no-block exit"
+    exit 0
+fi
+
+if _stdin_is_interactive; then
+    echo "Entrypoint branch: bash fallback"
+    export SHELL=/bin/bash
+    exec /bin/bash
+fi
+
+echo "Entrypoint branch: sleep fallback"
+exec sleep infinity

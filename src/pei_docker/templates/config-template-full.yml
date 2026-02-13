@@ -188,13 +188,13 @@ stage_1:
       # Example with user-specific parameters:
       # - 'stage-1/custom/setup-user-env.sh --theme=dark --shell=bash --enable-completion'
 
-    # custom entry point script - replaces shell startup in system entrypoint
-    # this script will be executed at the end of system entrypoint with arguments
-    # if not specified, interactive shell will start by default
+    # custom entry point script (runs after on-entry preparation and ssh startup)
+    # this script is wrapped as generated/_custom-on-entry.sh and receives runtime args
+    # if not specified, default fallback applies (interactive bash or non-interactive sleep)
     # supports both formats with optional default arguments:
     #   on_entry: ['stage-1/custom/my-entry.sh --mode=default --timeout=30']
     #   on_entry: 'stage-1/custom/my-entry.sh --mode=default --timeout=30'
-    # runtime arguments override default arguments: docker run image --mode=batch
+    # runtime args are appended after config args: docker run image -- --mode=batch
     on_entry: []  # ['stage-1/custom/my-entry.sh --mode=interactive']
     
 stage_2:
@@ -296,12 +296,13 @@ stage_2:
       # Example with development environment setup:
       # - 'stage-2/custom/dev-setup.sh --activate-venv --cd-to-project --show-git-status'
 
-    # custom entry point script - replaces shell startup in system entrypoint
-    # this script will be executed at the end of system entrypoint with arguments
-    # if not specified, interactive shell will start by default (or stage-1 entry point if defined)
+    # custom entry point script (runs after on-entry preparation and ssh startup)
+    # this script is wrapped as generated/_custom-on-entry.sh and receives runtime args
+    # if not specified, default fallback applies (interactive bash or non-interactive sleep)
+    # if stage-2 on_entry is unset, stage-1 on_entry wrapper is used when present
     # supports both formats with optional default arguments:
     #   on_entry: ['stage-2/custom/my-entry.sh --mode=production --log-level=info']
     #   on_entry: 'stage-2/custom/my-entry.sh --mode=production --log-level=info'
-    # runtime arguments override default arguments: docker run image --mode=debug
-    # stage-2 entry point overrides stage-1 entry point when both are defined
+    # runtime args are appended after config args: docker run image -- --mode=debug
+    # stage-2 on_entry overrides stage-1 on_entry when both are defined
     on_entry: []  # ['stage-2/custom/my-entry.sh --mode=production']

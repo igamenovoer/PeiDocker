@@ -870,8 +870,10 @@ class PeiConfigProcessor:
             The complete text content of the generated shell script.
         """
         cmds : list[str] = [
-            "DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\" ",
-            f"echo \"Executing $DIR/_custom-{on_what}.sh\" "
+            "DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"",
+            "if [ \"${PEI_ENTRYPOINT_VERBOSE:-0}\" = \"1\" ]; then",
+            f"  echo \"Executing $DIR/_custom-{on_what}.sh\"",
+            "fi",
         ]
         
         if filelist:
@@ -893,6 +895,43 @@ class PeiConfigProcessor:
                         cmds.append(f"bash \"$DIR/../../{script_path}\"")
             
         return '\n'.join(cmds)
+
+    def _generate_custom_on_entry_script_text(
+        self,
+        stage_name: str,
+        on_entry_script: Optional[str],
+    ) -> str:
+        """Generate wrapper script text for custom ``on_entry``.
+
+        When no custom on-entry is configured, return an empty string so the
+        generated file is size 0 and can be detected via ``-s`` by entrypoint.
+        """
+        if on_entry_script is None:
+            return ""
+
+        stage_idx = stage_name.replace("stage-", "")
+        script_path, default_args = self._parse_script_and_args(on_entry_script)
+        target_script = f"$PEI_STAGE_DIR_{stage_idx}/../{script_path}"
+        default_args_text = " ".join(shlex.quote(arg) for arg in default_args)
+
+        cmds: list[str] = [
+            "DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"",
+            "if [ \"${PEI_ENTRYPOINT_VERBOSE:-0}\" = \"1\" ]; then",
+            "  echo \"Executing $DIR/_custom-on-entry.sh\"",
+            "fi",
+            f"target_script=\"{target_script}\"",
+            "if [ ! -f \"$target_script\" ]; then",
+            "  echo \"Error: Custom on-entry target script not found: $target_script\" >&2",
+            "  exit 1",
+            "fi",
+        ]
+
+        if default_args_text:
+            cmds.append(f"exec bash \"$target_script\" {default_args_text} \"$@\"")
+        else:
+            cmds.append("exec bash \"$target_script\" \"$@\"")
+
+        return "\n".join(cmds)
     
     def _generate_etc_environment(self, user_config : UserConfig) -> None:
         """
@@ -1048,29 +1087,22 @@ class PeiConfigProcessor:
             with open(filename_user_login, 'w+') as f:
                 f.write(on_user_login_script)
                 
-            # Handle custom entry point
-            if on_entry_script is not None:
-                # Parse script path and default arguments
-                script_path, default_args = self._parse_script_and_args(on_entry_script)
-                
-                # Store script path
-                custom_entry_path_file = f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-path'
-                os.makedirs(os.path.dirname(custom_entry_path_file), exist_ok=True)
-                logging.info(f'Writing custom entry path to {custom_entry_path_file}')
-                # Convert the script path to absolute path within the container
-                container_script_path = f'$PEI_STAGE_DIR_{name.replace("stage-", "").upper()}/{script_path}'
-                with open(custom_entry_path_file, 'w+') as f:
-                    f.write(container_script_path)
-                
-                # Store default arguments
-                custom_entry_args_file = f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-args'
-                logging.info(f'Writing custom entry default args to {custom_entry_args_file}')
-                with open(custom_entry_args_file, 'w+') as f:
-                    # Join arguments with spaces, properly escaping for shell
-                    if default_args:
-                        f.write(' '.join(shlex.quote(arg) for arg in default_args))
-                    else:
-                        f.write('')  # Empty file for no default arguments
+            # Handle custom on-entry wrapper generation (empty when unset).
+            on_entry_wrapper = self._generate_custom_on_entry_script_text(name, on_entry_script)
+            filename_on_entry = f'{self.m_project_dir}/{self.m_host_dir}/{name}/generated/_custom-on-entry.sh'
+            os.makedirs(os.path.dirname(filename_on_entry), exist_ok=True)
+            logging.info(f'Writing to {filename_on_entry}')
+            with open(filename_on_entry, 'w+') as f:
+                f.write(on_entry_wrapper)
+
+            # Remove legacy files no longer used by entrypoint logic.
+            for legacy_file in (
+                f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-path',
+                f'{self.m_project_dir}/{self.m_host_dir}/{name}/internals/custom-entry-args',
+            ):
+                if os.path.exists(legacy_file):
+                    logging.info(f'Removing legacy file {legacy_file}')
+                    os.remove(legacy_file)
             
     
     def process(self, remove_extra : bool = True, generate_custom_script_files : bool = True) -> DictConfig:

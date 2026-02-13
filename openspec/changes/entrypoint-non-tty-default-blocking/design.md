@@ -100,6 +100,20 @@ Rationale:
 ### Decision 6: Logging
 Entrypoint logs the chosen branch (custom entrypoint, exec command, bash fallback, sleep fallback, no-block exit) to make behavior obvious in CI/K8s logs.
 
+### Decision 7: Verification is SSH-first and Docker-image-real
+Required verification for this change is implemented as heavy, manual-trigger functional tests:
+
+- Test artifacts live under `tests/functional/entrypoint-non-tty-default-blocking/...`.
+- Tests build real stage-1 and stage-2 Docker images.
+- Runtime logs and supporting artifacts are written under `tmp/entrypoint-non-tty-default-blocking-e2e/`.
+- These tests are opt-in and are not part of default `pytest` / `pixi run test`.
+
+Success criteria focus on the intended default usage model:
+
+- Image baseline includes SSH service support and entrypoint starts `sshd` when available.
+- Primary user path is launching the container and logging in via SSH from another host.
+- `docker exec` is secondary (debug/CI), so pass/fail is mainly determined by whether SSH users can log in and use installed tools/scripts after startup.
+
 ## Risks / Trade-offs
 
 - **Risk: `sleep infinity` compatibility on some minimal images** → Mitigation: use Ubuntu base behavior already used by project templates; if needed, document acceptable equivalent blocking command.

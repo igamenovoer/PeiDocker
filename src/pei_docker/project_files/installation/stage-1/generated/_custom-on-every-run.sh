@@ -1,4 +1,6 @@
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" 
-echo "Executing $DIR/_custom-on-every-run.sh" 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ "${PEI_ENTRYPOINT_VERBOSE:-0}" = "1" ]; then
+  echo "Executing $DIR/_custom-on-every-run.sh"
+fi
 bash $DIR/../custom/stage-1/custom/my-on-every-run-1.sh
 bash $DIR/../custom/stage-1/custom/my-on-every-run-2.sh
