@@ -254,7 +254,7 @@ run_default_mode_checks() {
         local cmdline
         cmdline="$(pid1_cmdline "$cid")"
         save_log "${image_key}-E01-pid1" "$cmdline"
-        assert_contains "$cmdline" "sleep infinity"
+        assert_contains "$cmdline" "bash"
 
         local logs
         logs="$(container_logs "$cid")"

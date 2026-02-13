@@ -138,4 +138,5 @@ if _stdin_is_interactive; then
 fi
 
 echo "Entrypoint branch: sleep fallback"
-exec sleep infinity
+trap 'exit 0' TERM
+while :; do sleep infinity & wait $!; done
