@@ -1,0 +1,4 @@
+# The repo root `.gitignore` ignores `lib/` for Python packaging artifacts.
+# Unignore test helper libraries under functional tests so they can be committed.
+!entrypoint-non-tty-default-blocking/lib/
+!entrypoint-non-tty-default-blocking/lib/**
