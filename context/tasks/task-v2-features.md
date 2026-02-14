@@ -27,6 +27,7 @@
 - Example: Single-user standalone mode on a physical machine where entrypoint prepares user environment (home/profile/hooks) and then starts an interactive shell or user command.
 - Example: Same image supports both modes via explicit runtime selection (for example env var or command flag) without rebuilding the image.
 - Provide `.sh` and `.bat` scripts to build and start containers without using Docker Compose at all.
+- Support both Docker and Podman when creating docker compose files, allowing users to choose their preferred container runtime.
 
 ## Documentation update
 

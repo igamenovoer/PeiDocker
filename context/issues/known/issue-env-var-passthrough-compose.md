@@ -47,7 +47,7 @@ This representation cannot express “provide `KEY` only, value comes from runti
 
 ## Impact / Symptoms
 
-Using the example config `src/pei_docker/examples/environment-variables.yml:1`:
+Using the example config `src/pei_docker/examples/legacy/environment-variables.yml:1`:
 
 - `${BASE_IMAGE:-ubuntu:24.04}` is resolved during `configure`
 - users cannot reliably keep `${BASE_IMAGE}` inside the generated `docker-compose.yml` so that `docker compose` resolves it later
@@ -67,4 +67,3 @@ Practical consequence:
 - Add an explicit “passthrough env” concept in user config (e.g. `stage_?.environment_passthrough: [FOO, BAR]`) and emit compose env entries that defer to `docker compose`.
 - Allow per-field/per-section control over config-time substitution (or a configure flag to disable it).
 - Support a Compose-like env list format where items can be either `KEY=VALUE` or `KEY` (passthrough), without forcing conversion into a dict.
-
