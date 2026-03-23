@@ -1,0 +1,22 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-docker-volume:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2225
+    users:
+      dev:
+        password: "123456"
+
+stage_2:
+  image:
+    output: pei-example-docker-volume:stage-2
+  storage:
+    app:
+      type: image
+    data:
+      type: auto-volume
+    workspace:
+      type: auto-volume

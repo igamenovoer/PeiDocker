@@ -47,7 +47,7 @@ This representation cannot express “provide `KEY` only, value comes from runti
 
 ## Impact / Symptoms
 
-Using the example config `src/pei_docker/examples/legacy/environment-variables.yml:1`:
+Using the example config `examples/basic/env-variables/user_config.yml:1`:
 
 - `${BASE_IMAGE:-ubuntu:24.04}` is resolved during `configure`
 - users cannot reliably keep `${BASE_IMAGE}` inside the generated `docker-compose.yml` so that `docker compose` resolves it later

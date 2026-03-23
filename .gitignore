@@ -211,3 +211,4 @@ tmp/
 /.claude
 /.gemini
 /.codex
+.git/

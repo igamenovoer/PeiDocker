@@ -1,0 +1,20 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-port-mapping:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2227
+    users:
+      dev:
+        password: "123456"
+  ports:
+    - "6006:6006"
+
+stage_2:
+  image:
+    output: pei-example-port-mapping:stage-2
+  ports:
+    - "8080:80"
+    - "3000-3002:3000-3002"

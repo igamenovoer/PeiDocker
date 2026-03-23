@@ -6,17 +6,72 @@ repo_name: PeiDocker
 use_directory_urls: true
 
 nav:
-- Introduction: index.md
-- CLI Reference: cli_reference.md
-- Build Internals: build-internals.md
-- Examples:
-  - Basic: examples/basic.md
-  - Advanced: examples/advanced.md
-  - Environment Variables:
-    - 1. No Passthrough: examples/env-no-passthrough.md
-    - 2. With Passthrough: examples/env-with-passthrough.md
-    - 3. Advanced Handling: examples/env-advanced.md
-  - Build & Run (Env Cases): examples/env-build-and-run.md
+  - Home: index.md
+  - Manual:
+      - Getting Started:
+          - Installation: manual/getting-started/installation.md
+          - Build Modes: manual/getting-started/build-modes.md
+          - Quickstart: manual/getting-started/quickstart.md
+          - Project Structure: manual/getting-started/project-structure.md
+      - Concepts:
+          - Two-Stage Architecture: manual/concepts/two-stage-architecture.md
+          - Storage Model: manual/concepts/storage-model.md
+          - Script Lifecycle: manual/concepts/script-lifecycle.md
+          - Environment Variables: manual/concepts/environment-variables.md
+      - Guides:
+          - SSH Setup: manual/guides/ssh-setup.md
+          - GPU Support: manual/guides/gpu-support.md
+          - Proxy Configuration: manual/guides/proxy-configuration.md
+          - Custom Scripts: manual/guides/custom-scripts.md
+          - Storage And Mounts: manual/guides/storage-and-mounts.md
+          - Port Mapping: manual/guides/port-mapping.md
+          - Networking: manual/guides/networking.md
+          - Web GUI: manual/guides/webgui.md
+      - Scripts:
+          - Overview: manual/scripts/index.md
+          - Pixi: manual/scripts/pixi.md
+          - Conda: manual/scripts/conda.md
+          - SSH: manual/scripts/ssh.md
+          - ROS2: manual/scripts/ros2.md
+          - Proxy: manual/scripts/proxy.md
+          - OpenGL: manual/scripts/opengl.md
+          - OpenCV: manual/scripts/opencv.md
+          - Simple Installers: manual/scripts/simple-installers.md
+      - CLI Reference: manual/cli-reference.md
+      - Troubleshooting: manual/troubleshooting.md
+  - Examples:
+      - Overview: examples/index.md
+      - Basic:
+          - 01 Minimal SSH: examples/basic/01-minimal-ssh.md
+          - 02 GPU Container: examples/basic/02-gpu-container.md
+          - 03 Host Mount: examples/basic/03-host-mount.md
+          - 04 Docker Volume: examples/basic/04-docker-volume.md
+          - 05 Custom Script: examples/basic/05-custom-script.md
+          - 06 Port Mapping: examples/basic/06-port-mapping.md
+          - 07 Proxy Setup: examples/basic/07-proxy-setup.md
+          - 08 Env Variables: examples/basic/08-env-variables.md
+          - 09 Env Passthrough: examples/basic/09-env-passthrough.md
+          - 10 Pixi Environment: examples/basic/10-pixi-environment.md
+          - 11 Conda Environment: examples/basic/11-conda-environment.md
+          - 12 Multi-User SSH: examples/basic/12-multi-user-ssh.md
+          - 13 APT Mirrors: examples/basic/13-apt-mirrors.md
+      - Advanced:
+          - ML Dev GPU: examples/advanced/ml-dev-gpu.md
+          - Web Dev Node.js: examples/advanced/web-dev-nodejs.md
+          - Team Dev Environment: examples/advanced/team-dev-environment.md
+          - China Corporate Proxy: examples/advanced/china-corporate-proxy.md
+          - ROS2 Robotics: examples/advanced/ros2-robotics.md
+          - Vision OpenGL: examples/advanced/vision-opengl.md
+          - Migrate From Dockerfile: examples/advanced/migrate-from-dockerfile.md
+  - Developer:
+      - Architecture: developer/architecture.md
+      - Build Pipeline: developer/build-pipeline.md
+      - Config Processing: developer/config-processing.md
+      - Contracts: developer/contracts.md
+      - Storage Internals: developer/storage-internals.md
+      - Entrypoint System: developer/entrypoint-system.md
+      - Env Var Processing: developer/env-var-processing.md
+      - Testing: developer/testing.md
 
 theme:
   name: material

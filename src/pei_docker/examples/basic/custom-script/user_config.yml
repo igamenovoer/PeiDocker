@@ -1,0 +1,18 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-custom-script:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2226
+    users:
+      dev:
+        password: "123456"
+  custom:
+    on_build:
+      - 'stage-1/custom/echo-on-build.sh --message="hello-from-custom-script"'
+
+stage_2:
+  image:
+    output: pei-example-custom-script:stage-2

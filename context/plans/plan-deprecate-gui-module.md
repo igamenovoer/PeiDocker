@@ -7,7 +7,7 @@
 - Dependencies:
   - **src/pei_docker/webgui/cli_launcher.py** (GUI CLI entry point and start flow)
   - **pyproject.toml** (console entry point for `pei-docker-gui`)
-  - **docs/cli_reference.md** (CLI documentation)
+  - **docs/manual/cli-reference.md** (CLI documentation)
   - **README.md** (top-level usage notes)
 - Target: PeiDocker maintainers and contributors implementing 2.0 deprecations.
 
@@ -36,7 +36,7 @@ CL->>U: error: GUI deprecated<br/>exit(1)
 
 ## 3. Files to Modify or Add
 - **src/pei_docker/webgui/cli_launcher.py**: Add early guard in `main()` (and optionally `start_command`) to raise `SystemExit` with a clear deprecation message before any GUI logic runs.
-- **docs/cli_reference.md**: Update GUI section to note deprecation and unavailable status.
+- **docs/manual/cli-reference.md**: Update GUI section to note deprecation and unavailable status.
 - **README.md**: Add a short note indicating GUI is deprecated in 2.0.
 
 ## 4. TODOs (Implementation Steps)

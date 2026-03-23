@@ -1,0 +1,22 @@
+stage_1:
+  image:
+    base: nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+    output: pei-example-gpu:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2223
+    users:
+      dev:
+        password: "123456"
+  device:
+    type: gpu
+
+stage_2:
+  image:
+    output: pei-example-gpu:stage-2
+  device:
+    type: gpu
+  environment:
+    - "NVIDIA_VISIBLE_DEVICES=all"
+    - "NVIDIA_DRIVER_CAPABILITIES=compute,utility"

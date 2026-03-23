@@ -1,0 +1,18 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-apt-mirror:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2234
+    users:
+      dev:
+        password: "123456"
+  apt:
+    repo_source: tuna
+    keep_repo_after_build: true
+
+stage_2:
+  image:
+    output: pei-example-apt-mirror:stage-2

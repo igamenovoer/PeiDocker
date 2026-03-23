@@ -97,9 +97,10 @@ The framework emphasizes simplicity and reproducibility, automatically handling 
 
 **Documentation**:
 - [Main Documentation](docs/index.md) - Complete user guide and setup instructions
-- [CLI Reference](docs/cli_reference.md) - Detailed command-line interface documentation
-- [Basic Examples](docs/examples/basic.md) - Getting started with basic configurations
-- [Advanced Examples](docs/examples/advanced.md) - Complex configuration scenarios
+- [CLI Reference](docs/manual/cli-reference.md) - Detailed command-line interface documentation
+- [Examples Overview](docs/examples/index.md) - Entry point for basic and advanced example configurations
+- [Basic Example: Minimal SSH](docs/examples/basic/01-minimal-ssh.md) - Smallest end-to-end example project
+- [Advanced Example: ML Dev GPU](docs/examples/advanced/ml-dev-gpu.md) - Representative multi-feature development setup
 - [Project README](README.md) - Quick start guide and overview
 
 **Design and Architecture**:

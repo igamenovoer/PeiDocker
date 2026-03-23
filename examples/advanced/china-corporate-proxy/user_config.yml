@@ -1,0 +1,37 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-cn-proxy:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2238
+    users:
+      dev:
+        password: "123456"
+  proxy:
+    address: host.docker.internal
+    port: "${PROXY_PORT:-7890}"
+    enable_globally: true
+    remove_after_build: false
+    use_https: false
+  apt:
+    repo_source: tuna
+    use_proxy: true
+    keep_proxy_after_build: true
+
+stage_2:
+  image:
+    output: pei-example-cn-proxy:stage-2
+  proxy:
+    enable_globally: true
+  storage:
+    app:
+      type: image
+    data:
+      type: auto-volume
+    workspace:
+      type: auto-volume
+  custom:
+    on_build:
+      - "stage-1/system/uv/install-uv.sh --user dev --pypi-repo tuna"

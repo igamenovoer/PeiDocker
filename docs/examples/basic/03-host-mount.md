@@ -1,0 +1,37 @@
+# 03 Host Mount
+
+Use this when you want your stage-2 workspace to live on the host instead of in a Docker volume.
+
+Source: `examples/basic/host-mount/user_config.yml`
+
+```yaml
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-host-mount:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2224
+    users:
+      dev:
+        password: "123456"
+
+stage_2:
+  image:
+    output: pei-example-host-mount:stage-2
+  storage:
+    app:
+      type: image
+    data:
+      type: image
+    workspace:
+      type: host
+      host_path: "${HOST_WORKSPACE:-/tmp/peidocker-host-workspace}"
+```
+
+Key point: only the `workspace` storage key is host-backed here. `app` and `data` stay image-backed so the example isolates one storage decision at a time.
+
+When you run `configure`, `${HOST_WORKSPACE}` is resolved immediately. Change that environment variable before running `pei-docker-cli configure` if you want a different host path.
+
+Read [Storage Model](../../manual/concepts/storage-model.md) and [Storage And Mounts](../../manual/guides/storage-and-mounts.md) next.

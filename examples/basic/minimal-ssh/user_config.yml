@@ -1,0 +1,15 @@
+stage_1:
+  image:
+    base: ubuntu:24.04
+    output: pei-example-minimal-ssh:stage-1
+  ssh:
+    enable: true
+    port: 22
+    host_port: 2222
+    users:
+      dev:
+        password: "123456"
+
+stage_2:
+  image:
+    output: pei-example-minimal-ssh:stage-2
