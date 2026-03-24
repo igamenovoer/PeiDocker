@@ -66,7 +66,10 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not basic_example_runtime'"
+markers = [
+    "basic_example_runtime: heavy Docker-backed runtime validation for packaged basic examples",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning"
@@ -140,11 +143,12 @@ types-PyYAML = "*"
 
 [tool.pixi.tasks]
 # Development tasks (run in dev environment)
-test = "pytest tests/"
+test = "pytest tests/ -m \"not basic_example_runtime\""
 lint = "ruff check src/"
 format = "black src/ tests/"
 type-check = "mypy src/"
 test-entrypoint-e2e = "bash tests/scripts/run-entrypoint-e2e-functional.bash"
+test-basic-example-runtime = "pytest -m basic_example_runtime tests/functional/basic_example_runtime -v"
 
 # Documentation tasks (run in dev environment)
 docs-serve = "mkdocs serve"

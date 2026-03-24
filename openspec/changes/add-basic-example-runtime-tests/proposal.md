@@ -1,21 +1,28 @@
 ## Why
 
-The packaged basic examples are the most direct expression of PeiDocker's core workflows, but today they are not covered by a systematic post-build runtime verification suite. We need real Docker-backed tests now so regressions in user creation, tool installation, runtime mounts, environment handling, and example-specific behavior are caught against the same examples users are told to copy.
+The packaged basic examples are the closest thing PeiDocker has to executable user-facing contracts, but right now they are not verified end-to-end in an automatic way. We have narrow regression tests and one heavy entrypoint suite, but we still do not automatically prove that:
+
+- the example docs stay aligned with the packaged example assets
+- each example can be turned into a real project and built successfully
+- the documented users can actually log in and use the capability the example exists to demonstrate
+
+That leaves a gap between "the repo contains an example" and "the example still works as a user would run it."
 
 ## What Changes
 
-- Add a heavy, pytest-driven functional test suite that builds and runs the packaged basic examples under `src/pei_docker/examples/basic/`, but only when explicitly requested.
-- Verify each example from the perspective of the configured non-root user, including user existence, login/shell usability, expected runtime configuration, and availability of example-installed tools.
-- Add per-example runtime assertions for the documented feature slices, including storage behavior, custom build hooks, env resolution, multi-user SSH, Pixi, Conda, and mirror/proxy-sensitive examples.
-- Require robust teardown so each test run stops containers, removes volumes created by the example project, and removes the stage-1 and stage-2 images built for the scenario.
-- Make proxy-sensitive example tests consume proxy settings from the invoking shell environment when present, and skip those tests when no relevant proxy environment is configured.
-- Add concise operator documentation for prerequisites, explicit pytest invocation, conditional skips, and artifact/debug locations.
+- Add a fast Python test lane that checks `docs/examples/basic/*.md` against the packaged example assets under `src/pei_docker/examples/basic/`, including extra supporting files where applicable.
+- Add a heavy, pytest-driven Docker-backed functional suite that creates projects from the packaged basic examples, builds them, starts them, and verifies runtime behavior.
+- Verify example behavior primarily from configured non-root user sessions over SSH, including login shell usability, user-scoped tool availability, and example-specific runtime observables.
+- Make the runtime harness fully automatic once invoked: it allocates run-scoped project names, image tags, and free host ports, applies environment inputs, captures artifacts, and performs teardown even on failure.
+- Make proxy-sensitive scenarios derive proxy settings from the invoking shell environment and assert concrete runtime cleanup behavior for both shell proxy env vars and APT proxy files.
+- Preserve the documented `${...}` versus `{{...}}` semantics in mixed environment examples instead of flattening or rewriting generated compose artifacts after configuration.
+- Add explicit operator documentation and invocation paths, including a raw pytest command and a dedicated Pixi task for the heavy suite.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `basic-example-runtime-tests`: Defines the required Docker-backed runtime test coverage, execution model, environment-sensitive skips, and cleanup guarantees for the packaged basic examples.
+- `basic-example-runtime-tests`: Defines the required example-verification coverage, including docs/example contract checks, Docker-backed runtime coverage, environment-sensitive handling, and cleanup guarantees for the packaged basic examples.
 
 ### Modified Capabilities
 
@@ -23,8 +30,8 @@ The packaged basic examples are the most direct expression of PeiDocker's core w
 
 ## Impact
 
-- Affected areas: `tests/functional/`, supporting test helpers/scripts, test fixtures, and developer testing documentation.
-- Runtime dependencies for test execution: Docker daemon, Docker Compose plugin, pytest, SSH client tooling, and network access for examples that install tools from external repositories.
-- Environment-sensitive dependencies: proxy-backed examples depend on relevant shell proxy variables being set to runnable host-reachable values; otherwise those tests are skipped.
-- Test-runner impact: default fast test commands must continue to exclude this new pytest suite unless the developer opts in via an explicit command or marker/path selection.
-- No production runtime behavior changes; this change adds verification coverage and execution guidance for the existing example set.
+- Affected areas: `tests/`, `tests/functional/`, supporting helpers/fixtures, `docs/developer/testing.md`, and the OpenSpec artifacts for example verification.
+- Runtime dependencies for the heavy suite: Docker daemon, Docker Compose plugin, pytest, OpenSSH client tooling, `sshpass`, and network access for examples that install tools from external repositories.
+- Environment-sensitive dependencies: proxy-backed examples depend on relevant shell proxy variables being set to reachable values; GPU hardware assertions are capability-gated on host runtime availability.
+- Test-runner impact: default fast test commands must continue to exclude the Docker-heavy suite, while the docs/example contract lane may remain in the normal Python test path.
+- No production runtime behavior changes; this change adds verification coverage and execution guidance for the existing packaged examples.
