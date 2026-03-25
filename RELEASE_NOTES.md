@@ -1,6 +1,31 @@
-# PeiDocker v2.0.0 Release Notes
+# PeiDocker v2.0.1 Release Notes
 
 ## Release Overview
+
+PeiDocker v2.0.1 is a focused patch release for the `v2.0.0` line. It fixes a
+post-release regression in the deprecated `pei-docker-gui` entry point, where
+the installed package could fail at import time before reaching the intended
+deprecation message.
+
+## Fixes
+
+- Fixed deferred annotation handling in
+  `pei_docker.webgui.cli_launcher` so the installed `pei-docker-gui`
+  entry point no longer crashes with `NameError` during import.
+- Kept the current deprecation behavior intact: the GUI command remains
+  unavailable in the 2.0 series, but now fails in the intended controlled way.
+
+## Install / Upgrade
+
+```bash
+uv tool install pei-docker==2.0.1
+# or
+pip install pei-docker==2.0.1
+```
+
+## Previous Major Release
+
+### v2.0.0
 
 PeiDocker v2.0.0 is a major release that consolidates the work done since
 `v1.2.7` into a cleaner examples layout, a rewritten documentation structure,
@@ -45,14 +70,6 @@ automatic verification of the packaged basic examples.
 This release was prepared against the release-triggered GitHub Actions PyPI
 workflow and validated with the standard local quality gates. The packaged
 basic examples now also have dedicated automatic verification coverage.
-
-## Install / Upgrade
-
-```bash
-uv tool install pei-docker==2.0.0
-# or
-pip install pei-docker==2.0.0
-```
 
 ## Older Releases
 
