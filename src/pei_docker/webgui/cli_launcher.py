@@ -89,6 +89,8 @@ Notes
 - Default projects are created in system temp directory with timestamp
 """
 
+from __future__ import annotations
+
 import argparse
 import asyncio
 import importlib.util
