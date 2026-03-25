@@ -140,7 +140,7 @@ class EnvironmentTab(BaseTab):
                     ).classes('flex-1').props(f'data-testid="{stage}-env-var-value-{key}"')
                     
                     # Remove button
-                    remove_btn = ui.button(
+                    ui.button(
                         '🗑️ Remove',
                         on_click=lambda k=key, s=stage, se=stage_env: self._remove_env_variable(s, se, k)
                     ).classes('bg-red-600 hover:bg-red-700 text-white px-3 py-1') \

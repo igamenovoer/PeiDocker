@@ -3,11 +3,9 @@ Builders for creating configuration structures from UI state.
 """
 
 from typing import Dict, List, Any, Optional
-import uuid
 
 from pei_docker.webgui.constants import (
     CustomScriptLifecycleTypes,
-    ScriptTypes,
     DeviceTypes
 )
 from pei_docker.user_config import (

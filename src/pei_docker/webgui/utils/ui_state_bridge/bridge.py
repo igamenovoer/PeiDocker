@@ -10,14 +10,12 @@ from omegaconf import OmegaConf
 
 from pei_docker.webgui.constants import CustomScriptLifecycleTypes
 from pei_docker.webgui.models.ui_state import AppUIState
-from pei_docker.webgui.models.config_adapter import AppConfigAdapter
 from pei_docker.user_config import (
     UserConfig as AttrsUserConfig,
     env_str_to_dict
 )
 from pei_docker.webgui.utils.ui_state_bridge.converters import UIToAttrsConverter
 from pei_docker.webgui.utils.ui_state_bridge.loaders import ConfigLoader
-from pei_docker.webgui.utils.ui_state_bridge.utils import clean_config_dict
 
 
 class UIStateBridge:

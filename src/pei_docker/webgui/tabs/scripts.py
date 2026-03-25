@@ -5,7 +5,7 @@ This tab handles custom entry points and lifecycle hook scripts
 for Stage-1 and Stage-2 sequential image builds.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Any, Tuple
+from typing import TYPE_CHECKING, Dict, List, Any, Tuple
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
 from pei_docker.webgui.constants import (
@@ -79,7 +79,7 @@ class ScriptsTab(BaseTab):
                 
                 # Entry point mode selection - bind to UI state
                 with ui.column().classes('mb-4 w-full'):
-                    entry_mode_radio = ui.radio(
+                    ui.radio(
                         options={
                             EntryModes.NONE: 'Use default',
                             EntryModes.FILE: 'File path',

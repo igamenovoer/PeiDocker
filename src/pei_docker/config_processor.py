@@ -10,7 +10,6 @@ The main entry point for processing is the `PeiConfigProcessor` class, which
 orchestrates the entire configuration transformation.
 """
 import os
-import io
 import logging
 import shlex
 import omegaconf as oc
@@ -19,7 +18,18 @@ from attrs import define, field
 import cattrs
 from typing import Any, Optional, Tuple
 
-from pei_docker.user_config import *
+from pei_docker.user_config import (
+    AptConfig,
+    CustomScriptConfig,
+    DeviceConfig,
+    SSHConfig,
+    SSHUserConfig,
+    ProxyConfig,
+    StageConfig,
+    StorageTypes,
+    UserConfig,
+    env_str_to_dict,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -407,7 +417,6 @@ class PeiConfigProcessor:
             The 'build' section of the Docker Compose configuration to be updated.
         """
         
-        oc_get = oc.OmegaConf.select
         oc_set = oc.OmegaConf.update
         
         if ssh_config is None:
@@ -752,13 +761,32 @@ class PeiConfigProcessor:
         # work at execution time. So we only parse out the first token (script path) and
         # keep the remainder as raw-ish text.
         try:
-            lexer = shlex.shlex(io.StringIO(entry), posix=True)
-            lexer.whitespace_split = True
-            lexer.commenters = ""
-            script_path = lexer.get_token()
+            script_path = shlex.split(entry, posix=True)[0]
             if not script_path:
                 return "", ""
-            remainder = entry[lexer.instream.tell() :].lstrip()
+
+            in_single = False
+            in_double = False
+            escaped = False
+            split_index = len(entry)
+            for index, char in enumerate(entry):
+                if escaped:
+                    escaped = False
+                    continue
+                if char == "\\" and not in_single:
+                    escaped = True
+                    continue
+                if char == "'" and not in_double:
+                    in_single = not in_single
+                    continue
+                if char == '"' and not in_single:
+                    in_double = not in_double
+                    continue
+                if char.isspace() and not in_single and not in_double:
+                    split_index = index
+                    break
+
+            remainder = entry[split_index:].lstrip()
             return script_path, remainder
         except ValueError as e:
             # If shlex parsing fails (e.g., unmatched quotes), treat entire string as script path.

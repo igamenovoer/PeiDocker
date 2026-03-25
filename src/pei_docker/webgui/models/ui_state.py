@@ -6,7 +6,7 @@ binding system. These models provide automatic two-way data binding between
 UI elements and data models without manual event handling.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Dict, List, Any
 from nicegui import binding
 

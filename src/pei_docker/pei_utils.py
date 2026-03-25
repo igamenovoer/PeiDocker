@@ -587,7 +587,7 @@ def detect_ssh_key_type(private_key_text: str) -> str:
                 return 'ecdsa'
             elif public_key.startswith('ssh-dss'):
                 return 'dsa'
-        except:
+        except Exception:
             pass
     
     # Check traditional PEM format headers
@@ -1311,7 +1311,7 @@ def validate_no_leftover_substitution(cfg: DictConfig) -> None:
     container = oc.OmegaConf.to_container(cfg, resolve=False)
     token_re = re.compile(r"\$\{[^}]*\}")
     
-    def check_recursive(data, path=""):
+    def check_recursive(data: Any, path: str = "") -> None:
         if isinstance(data, dict):
             for k, v in data.items():
                 check_recursive(v, f"{path}.{k}" if path else k)
@@ -1331,4 +1331,3 @@ def validate_no_leftover_substitution(cfg: DictConfig) -> None:
                 )
 
     check_recursive(container)
-

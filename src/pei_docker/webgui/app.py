@@ -10,14 +10,12 @@ import asyncio
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, List, Any, Literal
+from typing import Optional, Dict, Any
 from datetime import datetime
-import copy
 from enum import Enum
 from functools import partial
 
 from nicegui import ui, app
-from nicegui.events import ValueChangeEventArguments
 
 # Optional import for native dialog support
 try:
@@ -116,15 +114,15 @@ class PeiDockerWebGUI:
             ui.label('🐳 PeiDocker Web GUI').classes('text-xl font-bold')
             
             # Action buttons (only shown in active state)
-            with ui.row().classes('gap-2') as actions:
-                save_btn = ui.button('💾 Save', on_click=self.save_configuration) \
+            with ui.row().classes('gap-2'):
+                ui.button('💾 Save', on_click=self.save_configuration) \
                     .classes('bg-green-600 hover:bg-green-700') \
                     .props('data-testid="save-btn"')
                 
-                configure_btn = ui.button('⚙️ Configure', on_click=self.configure_project) \
+                ui.button('⚙️ Configure', on_click=self.configure_project) \
                     .classes('bg-yellow-600 hover:bg-yellow-700')
                 
-                download_btn = ui.button('📦 Download', on_click=self.download_project) \
+                ui.button('📦 Download', on_click=self.download_project) \
                     .classes('bg-blue-500 hover:bg-blue-600')
                 
                 # Visibility will be managed by update_ui_state()
@@ -576,7 +574,7 @@ class PeiDockerWebGUI:
                     else:
                         ui.notify('No folder selected', type='info')
                         
-                except Exception as e:
+                except Exception:
                     # Fall back to manual input dialog if native fails
                     await self._show_manual_directory_dialog(input_field)
             else:

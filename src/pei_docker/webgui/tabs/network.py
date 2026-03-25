@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Optional, List, Dict, Any
 from nicegui import ui
 from pei_docker.webgui.tabs.base import BaseTab
 from pei_docker.webgui.constants import AptMirrors
-import re
 
 if TYPE_CHECKING:
     from pei_docker.webgui.app import PeiDockerWebGUI

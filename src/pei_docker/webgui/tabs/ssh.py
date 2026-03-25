@@ -168,7 +168,7 @@ class SSHTab(BaseTab):
                     
                     # Check if user has SSH keys
                     ssh_keys = user_data.get('ssh_keys', [])
-                    has_keys = len(ssh_keys) > 0
+                    len(ssh_keys) > 0
                     
                     # Public key
                     pubkey_data = next((k for k in ssh_keys if k.get('type') == 'public'), None)

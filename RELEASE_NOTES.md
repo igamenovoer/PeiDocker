@@ -1,142 +1,71 @@
-# PeiDocker v1.2.7 Release Notes
+# PeiDocker v2.0.0 Release Notes
 
-## 🚀 Release Overview
+## Release Overview
 
-PeiDocker v1.2.7 addresses a critical issue with Node.js environment loading in login shells and introduces enhanced installation options for global users.
+PeiDocker v2.0.0 is a major release that consolidates the work done since
+`v1.2.7` into a cleaner examples layout, a rewritten documentation structure,
+more consistent installer behavior, safer runtime entrypoint behavior, and
+automatic verification of the packaged basic examples.
 
-## ✨ Changes
+## Highlights
 
-- **Node.js**: Fixed `nvm` initialization in login shells to ensure Node.js commands are available immediately.
-- **Installation**: Added support for custom installer URLs and China mirrors to improve accessibility.
-- **Documentation**: Simplified and updated documentation for better clarity.
+- Reorganized packaged examples into structured `basic/` and `advanced/`
+  catalogs in both the repository and the packaged assets.
+- Rewrote the documentation structure around a clearer manual, examples index,
+  and developer internals sections.
+- Added automatic verification for the packaged basic examples, including
+  Docker-backed runtime checks and docs/example parity tests.
+- Improved environment variable handling, including compose-time passthrough
+  support and clearer separation between configure-time and compose-time
+  substitution.
+- Migrated canonical installer implementations toward stage-1 system scripts,
+  with stage-2 wrappers clarified and aligned.
+- Hardened runtime entrypoint behavior and expanded functional coverage around
+  startup behavior and non-interactive execution.
 
----
+## Breaking and Migration Notes
 
-# PeiDocker v1.2.6 Release Notes
+- Example locations changed. If you previously relied on the old flat example
+  files under `src/pei_docker/examples/*.yml`, use the structured examples
+  under `examples/basic/`, `examples/advanced/`, and the packaged copies under
+  `src/pei_docker/examples/basic/` and `src/pei_docker/examples/advanced/`.
+- Compose-time environment passthrough is now an explicit part of the config
+  model. Use `${...}` for configure-time substitution and `{{...}}` for
+  compose-time passthrough semantics.
+- Canonical installer implementations now live primarily under
+  `stage-1/system/...`. If you maintained custom references to stage-2 system
+  installer paths, review them and prefer the stage-1 canonical scripts where
+  applicable.
+- The docs navigation and page layout changed substantially. If you linked to
+  older monolithic docs pages, update your links to the current pages under
+  `docs/manual/`, `docs/examples/`, and `docs/developer/`.
 
-## 🚀 Release Overview
+## Validation Summary
 
-PeiDocker v1.2.6 is a bugfix release that improves entrypoint logic, Bun integration, and fixes GID conflicts.
+This release was prepared against the release-triggered GitHub Actions PyPI
+workflow and validated with the standard local quality gates. The packaged
+basic examples now also have dedicated automatic verification coverage.
 
-## ✨ Changes
+## Install / Upgrade
 
-- **Fix entrypoint logic**: Addressed issues with arguments and variables in entrypoints (Issue #2, #3, #5).
-- **Bun Integration**: Switched agent installation to Bun and added Bun installer.
-- **Fix GID conflict**: Resolved user creation failure by using system group for `ssh_users`.
-- **Essentials**: Added `unzip` to essential packages.
-- **Documentation**: Updated usage guide and added auto-generation of `PEI-DOCKER-USAGE-GUIDE.md`.
+```bash
+uv tool install pei-docker==2.0.0
+# or
+pip install pei-docker==2.0.0
+```
 
----
+## Older Releases
 
-# PeiDocker v1.0.0 Release Notes
+### v1.2.7
 
-## 🚀 Release Overview
+- Fixed `nvm` initialization in login shells so Node.js commands are available
+  immediately.
+- Added support for custom installer URLs and China mirrors.
+- Simplified and refreshed parts of the documentation.
 
-PeiDocker v1.0.0 is the first stable production release, introducing a web-based GUI, modular architecture, and PyPI distribution.
+### v1.2.6
 
-## 📦 PyPI Publication Instructions
-
-### Pre-publication Checklist
-
-1. ✅ PR #3 has been created: https://github.com/igamenovoer/PeiDocker/pull/3
-2. ✅ Version updated to 1.0.0 in pyproject.toml
-3. ✅ LICENSE file added (MIT)
-4. ✅ MANIFEST.in configured for package distribution
-5. ✅ Dependencies updated (nicegui added, textual removed)
-6. ✅ README updated with PyPI installation instructions
-
-### After PR Merge
-
-1. **Merge the PR**
-   ```sh
-   # On GitHub, merge PR #3 into main branch
-   ```
-
-2. **Switch to main branch locally**
-   ```sh
-   git checkout main
-   git pull origin main
-   ```
-
-3. **Create a GitHub Release**
-   ```sh
-   gh release create v1.0.0 --title "v1.0.0: Production Release with Web GUI" --notes-file RELEASE_NOTES.md
-   ```
-
-4. **Build the distribution**
-   ```sh
-   # Clean any previous builds
-   rm -rf dist/ build/ *.egg-info/
-   
-   # Build the package
-   python -m build
-   ```
-
-5. **Upload to TestPyPI first (optional but recommended)**
-   ```sh
-   python -m twine upload --repository testpypi dist/*
-   
-   # Test installation
-   pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pei-docker
-   ```
-
-6. **Upload to PyPI**
-   ```sh
-   python -m twine upload dist/*
-   ```
-
-### Post-publication
-
-1. **Verify installation**
-   ```sh
-   pip install pei-docker
-   pei-docker-cli --help
-   pei-docker-gui --help
-   ```
-
-2. **Update documentation**
-   - Update GitHub Pages if applicable
-   - Add PyPI badge to README
-
-3. **Announce the release**
-   - Create announcement on GitHub
-   - Update project website if applicable
-
-## ✨ New Features
-
-### Web GUI (`pei-docker-gui`)
-- Browser-based interface using NiceGUI
-- Auto-port selection
-- Visual project configuration
-- Project export/import (ZIP files)
-- Real-time validation
-
-### Architecture Improvements
-- Modular codebase structure
-- `user_config` split into 10 focused modules
-- `ui_state_bridge` split into 6 focused modules
-- Full backward compatibility
-
-### Configuration Enhancements
-- Separate port mappings for stage-1 and stage-2
-- Enhanced SSH configuration
-- Environment variable substitution
-- Improved validation
-
-## 📝 Migration Guide
-
-For existing users:
-- No breaking changes
-- All CLI commands remain the same
-- New `pei-docker-gui` command is optional
-- Existing projects work without modification
-
-## 🙏 Acknowledgments
-
-Thanks to all contributors and users who helped shape this release!
-
----
-
-**Installation**: `pip install pei-docker`  
-**Documentation**: https://github.com/igamenovoer/PeiDocker  
-**Issues**: https://github.com/igamenovoer/PeiDocker/issues
+- Fixed entrypoint argument and variable handling issues.
+- Added Bun-based agent installation and Bun installer support.
+- Resolved GID conflicts for `ssh_users`.
+- Added `unzip` to essential packages.

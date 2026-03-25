@@ -6,9 +6,8 @@ user_config.py compatible with the pydantic-expecting GUI code, eliminating
 the need for duplicate model definitions.
 """
 
-from typing import Protocol, Dict, List, Any, Optional, runtime_checkable, Union
+from typing import Protocol, Dict, List, Any, Optional, runtime_checkable
 from dataclasses import dataclass
-from pathlib import Path
 
 # Import attrs-based models from CLI
 from pei_docker.user_config import (
@@ -22,11 +21,7 @@ from pei_docker.user_config import (
     DeviceConfig as AttrsDeviceConfig,
     CustomScriptConfig as AttrsCustomScriptConfig,
     StorageOption as AttrsStorageOption,
-    StorageTypes,
     port_mapping_str_to_dict,
-    port_mapping_dict_to_str,
-    env_str_to_dict,
-    env_dict_to_str,
 )
 
 

@@ -1,112 +1,85 @@
 # GitHub Actions PyPI Publishing Workflow
 
-## 🚀 Automated PyPI Publishing Setup Complete!
+This repository publishes to PyPI by creating a GitHub release. The workflow is defined in
+`.github/workflows/publish-to-pypi.yml` and triggers on `release.published`.
 
-The repository now has a fully configured GitHub Actions workflow that automatically publishes releases to PyPI.
+## What the workflow does
 
-## 📋 Workflow Configuration
+1. Checks out the tagged source tree.
+2. Sets up Python 3.11.
+3. Installs `build` and `twine`.
+4. Builds both the wheel and source distribution.
+5. Runs `twine check dist/*`.
+6. Uploads the package to PyPI using the `PYPI_API_TOKEN` repository secret.
 
-**File:** `.github/workflows/publish-to-pypi.yml`
+## Release prerequisites
 
-**Trigger:** Automatically runs when a GitHub release is published
+Before publishing a release:
 
-**What it does:**
-1. ✅ Checks out the repository code
-2. ✅ Sets up Python 3.11 environment
-3. ✅ Installs build tools (build, twine)
-4. ✅ Builds the package (both wheel and source distribution)
-5. ✅ Validates the package using twine check
-6. ✅ Publishes to PyPI using the stored API token
+1. Ensure the package version in `pyproject.toml` matches the intended release tag.
+   Example: tag `v2.0.0` must build from a commit where `version = "2.0.0"`.
+2. Update `RELEASE_NOTES.md` for the release.
+3. Run the local validation gates you want on the release candidate, at minimum:
+   ```bash
+   pixi run test
+   pixi run lint
+   pixi run type-check
+   pixi run -e dev docs-build
+   ```
+4. Confirm the repository secret `PYPI_API_TOKEN` still exists:
+   ```bash
+   gh secret list
+   ```
 
-## 🔑 Security Setup
+## How to publish a release
 
-- ✅ **PyPI API Token** securely stored as GitHub secret `PYPI_API_TOKEN`
-- ✅ Token format: `pypi-AgEI...` (starts with pypi-AgEI)
-- ✅ No sensitive information exposed in the workflow file
+### GitHub CLI
 
-## 🔄 How to Trigger the Workflow
-
-The workflow automatically triggers when you **publish a release** on GitHub:
-
-### Method 1: Via GitHub Web Interface
-1. Go to: https://github.com/igamenovoer/PeiDocker/releases
-2. Click "Create a new release"
-3. Choose a tag version (e.g., `v1.0.1`)
-4. Add release title and notes
-5. Click "Publish release"
-6. ➡️ Workflow automatically starts!
-
-### Method 2: Via GitHub CLI
 ```bash
-# Create and publish a new release
-gh release create v1.0.1 --title "v1.0.1: Bug fixes and improvements" --notes "Release notes here..."
-
-# The workflow will automatically trigger
+gh release create v2.0.0 \
+  --title "v2.0.0: Major release" \
+  --notes-file RELEASE_NOTES.md
 ```
 
-### Method 3: Re-trigger for Existing Release
-If you need to re-publish the current v1.0.0 release:
-```bash
-# Delete and recreate the release (this will trigger the workflow)
-gh release delete v1.0.0 --yes
-gh release create v1.0.0 --title "v1.0.0: Production Release with Web GUI" --notes-file RELEASE_NOTES.md
-```
+### GitHub Web UI
 
-## 📊 Monitoring the Workflow
+1. Open: https://github.com/igamenovoer/PeiDocker/releases
+2. Click `Draft a new release`
+3. Create the tag `v2.0.0`
+4. Paste or upload the release notes from `RELEASE_NOTES.md`
+5. Publish the release
 
-### Check Workflow Status:
+Publishing the release triggers the PyPI workflow automatically.
+
+## Monitoring and verification
+
+Check workflow status:
+
 ```bash
-# List all workflows
 gh workflow list
-
-# View recent runs
-gh run list --workflow="Publish to PyPI"
-
-# View detailed logs of the latest run
+gh run list --workflow "Publish to PyPI"
 gh run view --log
 ```
 
-### GitHub Web Interface:
-Visit: https://github.com/igamenovoer/PeiDocker/actions
+GitHub Actions page:
+https://github.com/igamenovoer/PeiDocker/actions
 
-## ✅ Workflow Benefits
+After the workflow succeeds, verify:
 
-1. **Fully Automated:** No manual PyPI uploads needed
-2. **Secure:** API tokens stored safely as GitHub secrets
-3. **Validated:** Package integrity checked before upload
-4. **Release-Triggered:** Only publishes on official releases
-5. **Traceable:** Full logs and history in GitHub Actions
-
-## 🧪 Testing the Workflow
-
-Since the existing v1.0.0 release was created before the workflow, you can test it by:
-
-1. **Option A:** Create a new version (recommended)
+1. The Actions run completed successfully.
+2. PyPI shows the new version:
+   https://pypi.org/project/pei-docker/
+3. The package can be installed:
    ```bash
-   # Update version in pyproject.toml to 1.0.1
-   # Make any minor changes/fixes
-   # Commit and create new release
+   uv tool install pei-docker==2.0.0
+   pei-docker-cli --help
    ```
 
-2. **Option B:** Re-create v1.0.0 release
-   ```bash
-   gh release delete v1.0.0 --yes
-   gh release create v1.0.0 --title "v1.0.0: Production Release with Web GUI" --notes-file RELEASE_NOTES.md
-   ```
+## Troubleshooting
 
-## 🎯 Expected Results
+If publishing fails:
 
-After publishing a release, you should see:
-- ✅ Package appears on PyPI: https://pypi.org/project/pei-docker/
-- ✅ GitHub Actions run completes successfully
-- ✅ Release is linked to the published PyPI version
-
-## 🚨 Troubleshooting
-
-If the workflow fails:
-1. Check the Actions logs: https://github.com/igamenovoer/PeiDocker/actions
-2. Verify the PyPI API token is still valid
-3. Ensure version number in `pyproject.toml` is unique (not already on PyPI)
-4. Check package build integrity
-
-The workflow is now ready and will automatically handle all future releases! 🎉
+1. Check the workflow logs in GitHub Actions.
+2. Confirm `PYPI_API_TOKEN` still exists and is valid.
+3. Confirm the version in `pyproject.toml` is unique on PyPI.
+4. Confirm the tagged commit contains the intended release metadata and notes.

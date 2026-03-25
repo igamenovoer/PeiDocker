@@ -2,7 +2,7 @@
 Utility functions for ui_state_bridge module.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 
 def clean_config_dict(config_dict: Dict[str, Any]) -> Dict[str, Any]:

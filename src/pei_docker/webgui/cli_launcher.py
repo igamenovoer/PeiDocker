@@ -91,18 +91,18 @@ Notes
 
 import argparse
 import asyncio
+import importlib.util
 import os
 import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional, List, NoReturn
+from typing import Optional
 from contextlib import closing
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from nicegui import ui, app
     from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
 
 
@@ -459,8 +459,8 @@ def start_command(args: argparse.Namespace) -> None:
         Exits with code 1 if project directory is invalid, page name is invalid,
         or native mode requested but pywebview not installed.
     """
-    from nicegui import ui, app
-    from pei_docker.webgui.app import PeiDockerWebGUI, TabName, AppState
+    from nicegui import ui
+    from pei_docker.webgui.app import PeiDockerWebGUI
 
     # Determine which port to use
     actual_port: int
@@ -490,10 +490,9 @@ def start_command(args: argparse.Namespace) -> None:
     # Check for native mode requirements
     native_mode = getattr(args, 'native', False)
     if native_mode:
-        try:
-            import webview  # type: ignore
+        if importlib.util.find_spec("webview") is not None:
             print("Native mode enabled - application will run in desktop window", file=sys.stderr)
-        except ImportError:
+        else:
             print("Error: Native mode requires 'pywebview' package to be installed.", file=sys.stderr)
             print("Install it with: pixi run pip install pywebview", file=sys.stderr)
             sys.exit(1)
@@ -530,8 +529,8 @@ def start_command(args: argparse.Namespace) -> None:
     
     # Run the application
     if native_mode:
-        print(f"Starting PeiDocker Web GUI in native mode...")
-        print(f"A desktop window will open for the application")
+        print("Starting PeiDocker Web GUI in native mode...")
+        print("A desktop window will open for the application")
     else:
         print(f"Starting PeiDocker Web GUI on port {actual_port}...")
         print(f"Open http://localhost:{actual_port} in your browser")

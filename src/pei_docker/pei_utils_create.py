@@ -8,7 +8,6 @@ allowing it to be called from other Python code like the GUI.
 import os
 import shutil
 import logging
-import sys
 from typing import Optional
 from pei_docker.config_processor import Defaults
 

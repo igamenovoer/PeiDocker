@@ -69,12 +69,8 @@ All operations work with the project directory structure created by the
 """
 
 # Main command implementation for PeiDocker utility
-import logging
-
-# Configure logging with consistent format
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s]\t%(message)s')
-
 import click
+import logging
 import os
 import shutil
 import subprocess
@@ -82,7 +78,7 @@ import sys
 
 import omegaconf as oc
 import yaml
-from pei_docker.config_processor import *
+from pei_docker.config_processor import Defaults, PeiConfigProcessor
 from pei_docker.pei_utils import (
     load_yaml_file_with_duplicate_key_check,
     process_config_env_substitution,
@@ -90,7 +86,10 @@ from pei_docker.pei_utils import (
     rewrite_passthrough_markers_in_container,
     validate_no_leftover_substitution,
 )
-        
+
+# Configure logging with consistent format
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s]\t%(message)s')
+
 @click.group()
 def cli() -> None:
     """
@@ -777,7 +776,7 @@ def remove(project_dir: str, yes: bool) -> None:
             
             # Remove the image
             if not remove_image(image_name, yes):
-                logging.info(f'Skipping due to user cancellation or error')
+                logging.info('Skipping due to user cancellation or error')
                 continue
         
         logging.info('Cleanup completed')
