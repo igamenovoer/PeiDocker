@@ -1,0 +1,4 @@
+interface:
+  display_name: "PeiDocker Utility Scripts"
+  short_description: "Use PeiDocker built-in script hooks"
+  default_prompt: "Use $pei-docker-utility-scripts to add built-in PeiDocker installers to config hooks."

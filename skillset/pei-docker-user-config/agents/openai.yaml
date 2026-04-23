@@ -1,0 +1,4 @@
+interface:
+  display_name: "PeiDocker User Config"
+  short_description: "Author PeiDocker user_config.yml files"
+  default_prompt: "Use $pei-docker-user-config to edit a PeiDocker user_config.yml safely."

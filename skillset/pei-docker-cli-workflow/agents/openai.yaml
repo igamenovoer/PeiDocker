@@ -1,0 +1,4 @@
+interface:
+  display_name: "PeiDocker CLI Workflow"
+  short_description: "Create and configure PeiDocker projects"
+  default_prompt: "Use $pei-docker-cli-workflow to create, configure, or inspect a PeiDocker project."
